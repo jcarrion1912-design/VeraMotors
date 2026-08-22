@@ -1,0 +1,892 @@
+/* =========================================================
+   CITAS - AUTOTECH PRO / VERAMOTORS
+   ========================================================= */
+
+.citas-page {
+    min-height: 100vh;
+    background: #f7f9fb;
+    color: #191c1e;
+    font-family: "Inter", sans-serif;
+    overflow: hidden;
+}
+
+/* =========================================================
+   CONTENEDOR PRINCIPAL
+   ========================================================= */
+
+.citas-content {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    height: 100vh;
+}
+
+/* =========================================================
+   TOP BAR
+   ========================================================= */
+
+.citas-topbar {
+    height: 64px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    background: #ffffff;
+    border-bottom: 1px solid #c5c6cd;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    flex-shrink: 0;
+}
+
+.citas-mobile-brand {
+    display: none;
+    align-items: center;
+    gap: 12px;
+}
+
+.citas-mobile-brand button {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    color: #45474c;
+}
+
+.citas-mobile-brand span {
+    font-size: 24px;
+    font-weight: 700;
+    color: #091426;
+}
+
+/* =========================================================
+   BUSCADOR
+   ========================================================= */
+
+.citas-search {
+    display: flex;
+    flex: 1;
+    max-width: 430px;
+}
+
+.citas-search-box {
+    position: relative;
+    width: 100%;
+}
+
+.citas-search-box .material-symbols-outlined {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #75777d;
+    font-size: 21px;
+}
+
+.citas-search-box input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 9px 12px 9px 44px;
+    background: #f2f4f6;
+    border: 1px solid #c5c6cd;
+    border-radius: 999px;
+    outline: none;
+    color: #191c1e;
+    font-size: 14px;
+    font-family: "Inter", sans-serif;
+    transition: 0.2s;
+}
+
+.citas-search-box input:focus {
+    border-color: #0058be;
+    box-shadow: 0 0 0 2px rgba(0, 88, 190, 0.12);
+}
+
+/* =========================================================
+   ACCIONES TOPBAR
+   ========================================================= */
+
+.citas-top-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-left: auto;
+}
+
+.citas-top-action {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: transparent;
+    border-radius: 50%;
+    color: #45474c;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.citas-top-action:hover {
+    background: #e6e8ea;
+}
+
+.citas-user-button {
+    margin-left: 8px;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 1px solid #c5c6cd;
+    background: transparent;
+    cursor: pointer;
+}
+
+.citas-user-button img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* =========================================================
+   MAIN
+   ========================================================= */
+
+.citas-main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+}
+
+.citas-container {
+    width: 100%;
+    max-width: 1280px;
+    min-height: 100%;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+/* =========================================================
+   CABECERA DE CITAS
+   ========================================================= */
+
+.citas-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 24px;
+    background: #ffffff;
+    border: 1px solid #c5c6cd;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.citas-header-title h2 {
+    margin: 0;
+    color: #091426;
+    font-size: 32px;
+    line-height: 40px;
+    font-weight: 700;
+}
+
+.citas-header-title p {
+    margin: 4px 0 0;
+    color: #45474c;
+    font-size: 14px;
+}
+
+/* =========================================================
+   FILTROS
+   ========================================================= */
+
+.citas-filters {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.citas-date-selector {
+    display: flex;
+    align-items: center;
+    background: #f2f4f6;
+    border: 1px solid #c5c6cd;
+    border-radius: 8px;
+    padding: 4px;
+}
+
+.citas-date-selector button {
+    width: 30px;
+    height: 30px;
+    border: none;
+    background: transparent;
+    border-radius: 5px;
+    cursor: pointer;
+    color: #45474c;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.citas-date-selector button:hover {
+    background: #e0e3e5;
+}
+
+.citas-date {
+    padding: 0 12px;
+    color: #191c1e;
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.citas-filter-select {
+    height: 38px;
+    padding: 0 12px;
+    background: #ffffff;
+    border: 1px solid #c5c6cd;
+    border-radius: 8px;
+    color: #191c1e;
+    font-family: "Inter", sans-serif;
+    font-size: 14px;
+    outline: none;
+    cursor: pointer;
+}
+
+.citas-filter-select:focus {
+    border-color: #0058be;
+    box-shadow: 0 0 0 2px rgba(0, 88, 190, 0.12);
+}
+
+.citas-new-button {
+    height: 38px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 14px;
+    border: none;
+    border-radius: 8px;
+    background: #0058be;
+    color: #ffffff;
+    font-family: "Inter", sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
+    transition: 0.2s;
+}
+
+.citas-new-button:hover {
+    background: #004395;
+}
+
+.citas-new-button:active {
+    transform: scale(0.97);
+}
+
+/* =========================================================
+   CALENDARIO
+   ========================================================= */
+
+.citas-calendar {
+    flex: 1;
+    min-height: 650px;
+    background: #ffffff;
+    border: 1px solid #c5c6cd;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* =========================================================
+   ENCABEZADO DE DÍAS
+   ========================================================= */
+
+.calendar-days {
+    display: grid;
+    grid-template-columns: 90px repeat(7, 1fr);
+    background: #f2f4f6;
+    border-bottom: 1px solid #c5c6cd;
+    flex-shrink: 0;
+}
+
+.calendar-day {
+    min-height: 70px;
+    padding: 12px 8px;
+    text-align: center;
+    border-right: 1px solid #c5c6cd;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.calendar-day:last-child {
+    border-right: none;
+}
+
+.calendar-day-label {
+    color: #45474c;
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.calendar-day-number {
+    margin-top: 2px;
+    color: #191c1e;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.calendar-day.today {
+    background: rgba(224, 227, 229, 0.55);
+}
+
+.calendar-day.today .calendar-day-label,
+.calendar-day.today .calendar-day-number {
+    color: #0058be;
+    font-weight: 700;
+}
+
+/* =========================================================
+   CUERPO DEL CALENDARIO
+   ========================================================= */
+
+.calendar-body {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: auto;
+    position: relative;
+}
+
+.calendar-grid {
+    min-width: 900px;
+}
+
+/* =========================================================
+   FILAS DE HORARIO
+   ========================================================= */
+
+.calendar-row {
+    position: relative;
+    display: grid;
+    grid-template-columns: 90px repeat(7, 1fr);
+    height: 96px;
+    border-bottom: 1px solid rgba(197, 198, 205, 0.45);
+}
+
+.calendar-time {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 12px;
+    color: #45474c;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px;
+    border-right: 1px solid rgba(197, 198, 205, 0.6);
+    background: #ffffff;
+}
+
+.calendar-cell {
+    border-right: 1px solid rgba(197, 198, 205, 0.5);
+    position: relative;
+}
+
+.calendar-cell:last-child {
+    border-right: none;
+}
+
+.calendar-cell.today {
+    background: rgba(242, 244, 246, 0.5);
+}
+
+/* =========================================================
+   CITA DENTRO DEL CALENDARIO
+   ========================================================= */
+
+.calendar-appointment {
+    position: absolute;
+    inset: 8px 4px;
+    z-index: 10;
+    padding: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    transition: 0.2s;
+    overflow: hidden;
+}
+
+.calendar-appointment:hover {
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.14);
+    transform: translateY(-1px);
+}
+
+.appointment-confirmed {
+    background: #d8e2ff;
+    border: 1px solid rgba(0, 88, 190, 0.25);
+    color: #004395;
+}
+
+.appointment-pending {
+    background: #e6e8ea;
+    border: 1px solid #75777d;
+    color: #45474c;
+}
+
+.appointment-urgent {
+    background: #ffdad7;
+    border: 1px solid rgba(186, 26, 26, 0.25);
+    color: #930013;
+}
+
+.appointment-status {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 4px;
+    font-size: 10px;
+    line-height: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.appointment-dot {
+    width: 8px;
+    height: 8px;
+    flex-shrink: 0;
+    border-radius: 50%;
+}
+
+.appointment-confirmed .appointment-dot {
+    background: #0058be;
+}
+
+.appointment-pending .appointment-dot {
+    background: #75777d;
+}
+
+.appointment-urgent .appointment-dot {
+    background: #ba1a1a;
+}
+
+.appointment-name {
+    margin: 0;
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.appointment-vehicle {
+    margin: 2px 0 0;
+    font-size: 11px;
+    line-height: 16px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.appointment-technician {
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    line-height: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.appointment-technician .material-symbols-outlined {
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+/* =========================================================
+   SCROLLBAR
+   ========================================================= */
+
+.calendar-body::-webkit-scrollbar,
+.citas-main::-webkit-scrollbar,
+.new-appointment-body::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.calendar-body::-webkit-scrollbar-track,
+.citas-main::-webkit-scrollbar-track,
+.new-appointment-body::-webkit-scrollbar-track {
+    background: #f7f9fb;
+}
+
+.calendar-body::-webkit-scrollbar-thumb,
+.citas-main::-webkit-scrollbar-thumb,
+.new-appointment-body::-webkit-scrollbar-thumb {
+    background: #c5c6cd;
+    border-radius: 4px;
+}
+
+.calendar-body::-webkit-scrollbar-thumb:hover,
+.citas-main::-webkit-scrollbar-thumb:hover,
+.new-appointment-body::-webkit-scrollbar-thumb:hover {
+    background: #75777d;
+}
+
+/* =========================================================
+   OVERLAY NUEVA CITA
+   ========================================================= */
+
+.appointment-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(9, 20, 38, 0.20);
+    backdrop-filter: blur(3px);
+    z-index: 40;
+    opacity: 0;
+    visibility: hidden;
+    transition: 0.3s ease;
+}
+
+.appointment-overlay.open {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* =========================================================
+   PANEL NUEVA CITA
+   ========================================================= */
+
+.new-appointment-sidebar {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 100%;
+    max-width: 448px;
+    height: 100vh;
+    background: #ffffff;
+    border-left: 1px solid #c5c6cd;
+    box-shadow: -8px 0 30px rgba(0, 0, 0, 0.16);
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+}
+
+.new-appointment-sidebar.open {
+    transform: translateX(0);
+}
+
+/* =========================================================
+   HEADER PANEL
+   ========================================================= */
+
+.new-appointment-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px;
+    background: #f2f4f6;
+    border-bottom: 1px solid #c5c6cd;
+}
+
+.new-appointment-header h3 {
+    margin: 0;
+    color: #091426;
+    font-size: 18px;
+    line-height: 24px;
+    font-weight: 700;
+}
+
+.new-appointment-close {
+    width: 34px;
+    height: 34px;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: #45474c;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.new-appointment-close:hover {
+    background: #e0e3e5;
+}
+
+/* =========================================================
+   FORMULARIO
+   ========================================================= */
+
+.new-appointment-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+}
+
+.form-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.form-section+.form-section {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #c5c6cd;
+}
+
+.form-section-title {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin: 0 0 4px;
+    color: #45474c;
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 600;
+}
+
+.form-section-title .material-symbols-outlined {
+    font-size: 18px;
+    color: #0058be;
+}
+
+.form-field {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-field label {
+    margin-bottom: 4px;
+    color: #45474c;
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.form-field input,
+.form-field select,
+.form-field textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 9px 12px;
+    background: #ffffff;
+    border: 1px solid #c5c6cd;
+    border-radius: 8px;
+    color: #191c1e;
+    font-family: "Inter", sans-serif;
+    font-size: 14px;
+    outline: none;
+    transition: 0.2s;
+}
+
+.form-field input:focus,
+.form-field select:focus,
+.form-field textarea:focus {
+    border-color: #0058be;
+    box-shadow: 0 0 0 2px rgba(0, 88, 190, 0.12);
+}
+
+.form-field textarea {
+    min-height: 80px;
+    resize: none;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+/* =========================================================
+   FOOTER FORMULARIO
+   ========================================================= */
+
+.new-appointment-footer {
+    padding: 24px;
+    border-top: 1px solid #c5c6cd;
+    background: #ffffff;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 12px;
+}
+
+.cancel-button {
+    padding: 9px 16px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: #45474c;
+    font-family: "Inter", sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.cancel-button:hover {
+    background: #eceef0;
+}
+
+.save-button {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 9px 16px;
+    border: none;
+    border-radius: 8px;
+    background: #0058be;
+    color: #ffffff;
+    font-family: "Inter", sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
+}
+
+.save-button:hover {
+    background: #004395;
+}
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 1100px) {
+
+    .citas-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .citas-filters {
+        width: 100%;
+    }
+}
+
+@media (max-width: 768px) {
+
+    .citas-topbar {
+        padding: 0 16px;
+    }
+
+    .citas-mobile-brand {
+        display: flex;
+    }
+
+    .citas-search {
+        display: none;
+    }
+
+    .citas-main {
+        padding: 12px;
+    }
+
+    .citas-container {
+        gap: 12px;
+    }
+
+    .citas-header {
+        padding: 16px;
+    }
+
+    .citas-header-title h2 {
+        font-size: 24px;
+        line-height: 32px;
+    }
+
+    .citas-filters {
+        width: 100%;
+    }
+
+    .citas-date-selector {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .citas-filter-select {
+        flex: 1;
+        min-width: 140px;
+    }
+
+    .citas-new-button {
+        flex: 1;
+        justify-content: center;
+    }
+
+    .calendar-days {
+        grid-template-columns: 70px repeat(7, 110px);
+        min-width: 840px;
+    }
+
+    .calendar-row {
+        grid-template-columns: 70px repeat(7, 110px);
+        min-width: 840px;
+    }
+
+    .calendar-day {
+        min-height: 60px;
+        padding: 8px 4px;
+    }
+
+    .calendar-day-number {
+        font-size: 16px;
+    }
+
+    .citas-calendar {
+        min-height: 600px;
+    }
+}
+
+@media (max-width: 500px) {
+
+    .citas-top-actions {
+        gap: 4px;
+    }
+
+    .citas-top-action {
+        width: 32px;
+        height: 32px;
+    }
+
+    .citas-user-button {
+        width: 32px;
+        height: 32px;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .new-appointment-sidebar {
+        max-width: 100%;
+    }
+
+    .new-appointment-body {
+        padding: 16px;
+    }
+
+    .new-appointment-header,
+    .new-appointment-footer {
+        padding: 16px;
+    }
+}

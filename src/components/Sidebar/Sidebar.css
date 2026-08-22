@@ -1,0 +1,275 @@
+.sidebar {
+    width: 260px;
+    height: 100vh;
+
+    position: fixed;
+    left: 0;
+    top: 0;
+
+    display: flex;
+    flex-direction: column;
+
+    background: #111827;
+    color: #ffffff;
+
+    border-right: 1px solid #1f2937;
+
+    z-index: 1000;
+}
+
+/* =========================
+   MARCA
+========================= */
+
+.sidebar-brand {
+    height: 75px;
+
+    display: flex;
+    align-items: center;
+
+    padding: 0 22px;
+
+    border-bottom: 1px solid #1f2937;
+}
+
+.brand-icon {
+    width: 40px;
+    height: 40px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background: #2563eb;
+
+    border-radius: 9px;
+
+    font-size: 14px;
+    font-weight: 800;
+
+    margin-right: 11px;
+}
+
+.brand-info h2 {
+    margin: 0;
+
+    font-size: 16px;
+    font-weight: 800;
+
+    letter-spacing: 0.8px;
+}
+
+.brand-info span {
+    display: block;
+
+    margin-top: 2px;
+
+    color: #9ca3af;
+
+    font-size: 11px;
+    letter-spacing: 1.5px;
+}
+
+/* =========================
+   MENÚ
+========================= */
+
+.sidebar-menu {
+    flex: 1;
+
+    padding: 20px 12px;
+
+    overflow-y: auto;
+}
+
+.menu-section {
+    margin-bottom: 24px;
+}
+
+.menu-title {
+    display: block;
+
+    padding: 0 12px;
+    margin-bottom: 8px;
+
+    color: #6b7280;
+
+    font-size: 10px;
+    font-weight: 700;
+
+    letter-spacing: 1.2px;
+}
+
+.menu-item {
+    height: 43px;
+
+    display: flex;
+    align-items: center;
+
+    padding: 0 12px;
+
+    margin-bottom: 3px;
+
+    color: #9ca3af;
+
+    text-decoration: none;
+
+    border-radius: 7px;
+
+    font-size: 13px;
+    font-weight: 500;
+
+    transition: all 0.2s ease;
+}
+
+.menu-item:hover {
+    background: #1f2937;
+    color: #ffffff;
+}
+
+.menu-item.active {
+    background: #2563eb;
+    color: #ffffff;
+}
+
+.menu-icon {
+    width: 28px;
+
+    display: flex;
+    align-items: center;
+
+    font-size: 17px;
+
+    color: #9ca3af;
+}
+
+.menu-item.active .menu-icon {
+    color: #ffffff;
+}
+
+.menu-item:hover .menu-icon {
+    color: #ffffff;
+}
+
+/* =========================
+   USUARIO
+========================= */
+
+.sidebar-user {
+    min-height: 70px;
+
+    display: flex;
+    align-items: center;
+
+    padding: 12px 15px;
+
+    border-top: 1px solid #1f2937;
+}
+
+.user-avatar {
+    width: 36px;
+    height: 36px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex-shrink: 0;
+
+    background: #1d4ed8;
+
+    border-radius: 50%;
+
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.user-info {
+    flex: 1;
+
+    margin-left: 10px;
+
+    overflow: hidden;
+}
+
+.user-info strong {
+    display: block;
+
+    color: #ffffff;
+
+    font-size: 12px;
+
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.user-info span {
+    display: block;
+
+    margin-top: 3px;
+
+    color: #6b7280;
+
+    font-size: 10px;
+}
+
+.logout-button {
+    width: 32px;
+    height: 32px;
+
+    border: none;
+
+    background: transparent;
+
+    color: #9ca3af;
+
+    border-radius: 6px;
+
+    font-size: 18px;
+
+    cursor: pointer;
+
+    transition: all 0.2s ease;
+}
+
+.logout-button:hover {
+    background: #1f2937;
+    color: #ffffff;
+}
+
+/* =========================
+   SCROLL
+========================= */
+
+.sidebar-menu::-webkit-scrollbar {
+    width: 4px;
+}
+
+.sidebar-menu::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sidebar-menu::-webkit-scrollbar-thumb {
+    background: #374151;
+    border-radius: 10px;
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+
+@media (max-width: 768px) {
+
+    .sidebar {
+        width: 220px;
+    }
+
+    .menu-item {
+        font-size: 12px;
+    }
+
+    .brand-info h2 {
+        font-size: 14px;
+    }
+}
