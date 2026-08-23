@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { RoleProvider } from "./context/RoleContext";
 
 import MainLayout from "./layouts/MainLayout";
 
@@ -18,8 +19,9 @@ import Configuracion from "./pages/Configuracion/Configuracion";
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
+    <RoleProvider>
+      <BrowserRouter>
+        <Routes>
 
         <Route
           path="/dashboard"
@@ -150,6 +152,7 @@ function App() {
 
       </Routes>
     </BrowserRouter>
+  </RoleProvider>
   );
 }
 

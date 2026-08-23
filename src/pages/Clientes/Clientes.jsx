@@ -5,6 +5,10 @@ function Clientes() {
     const [clienteSeleccionado, setClienteSeleccionado] = useState(0);
     const [busqueda, setBusqueda] = useState("");
     const [mostrarFormulario, setMostrarFormulario] = useState(false);
+    const [tipoPersona, setTipoPersona] = useState("persona");
+    const [ubigeoDept, setUbigeoDept] = useState("Lima");
+    const [ubigeoProv, setUbigeoProv] = useState("Lima");
+    const [ubigeoDist, setUbigeoDist] = useState("San Isidro");
 
     const clientes = [
         {
@@ -723,7 +727,10 @@ function Clientes() {
                                             Tipo de cliente
                                         </label>
 
-                                        <select defaultValue="persona">
+                                        <select 
+                                            value={tipoPersona}
+                                            onChange={(e) => setTipoPersona(e.target.value)}
+                                        >
 
                                             <option value="persona">
                                                 Persona natural
@@ -741,12 +748,12 @@ function Clientes() {
                                     <div className="form-group">
 
                                         <label>
-                                            DNI / RUC
+                                            {tipoPersona === "persona" ? "DNI (8 dígitos)" : "RUC (11 dígitos)"}
                                         </label>
 
                                         <input
                                             type="text"
-                                            placeholder="Ingrese DNI o RUC"
+                                            placeholder={tipoPersona === "persona" ? "Ingrese DNI" : "Ingrese RUC"}
                                         />
 
                                     </div>
@@ -755,35 +762,37 @@ function Clientes() {
                                     <div className="form-group">
 
                                         <label>
-                                            Nombres
+                                            {tipoPersona === "persona" ? "Nombres" : "Razón Social"}
                                         </label>
 
                                         <input
                                             type="text"
-                                            placeholder="Ingrese nombres"
+                                            placeholder={tipoPersona === "persona" ? "Ingrese nombres" : "Ingrese Razón Social"}
                                         />
 
                                     </div>
 
 
+                                    {tipoPersona === "persona" && (
+                                        <div className="form-group">
+
+                                            <label>
+                                                Apellidos
+                                            </label>
+
+                                            <input
+                                                type="text"
+                                                placeholder="Ingrese apellidos"
+                                            />
+
+                                        </div>
+                                    )}
+
+
                                     <div className="form-group">
 
                                         <label>
-                                            Apellidos
-                                        </label>
-
-                                        <input
-                                            type="text"
-                                            placeholder="Ingrese apellidos"
-                                        />
-
-                                    </div>
-
-
-                                    <div className="form-group">
-
-                                        <label>
-                                            Teléfono
+                                            Teléfono / Celular
                                         </label>
 
                                         <input
@@ -811,12 +820,18 @@ function Clientes() {
                                     <div className="form-group form-group-full">
 
                                         <label>
-                                            Dirección
+                                            Dirección Ubigeo (Departamento, Provincia, Distrito - Autoguarda última)
                                         </label>
+
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '8px' }}>
+                                            <input type="text" value={ubigeoDept} onChange={(e) => setUbigeoDept(e.target.value)} placeholder="Departamento" />
+                                            <input type="text" value={ubigeoProv} onChange={(e) => setUbigeoProv(e.target.value)} placeholder="Provincia" />
+                                            <input type="text" value={ubigeoDist} onChange={(e) => setUbigeoDist(e.target.value)} placeholder="Distrito" />
+                                        </div>
 
                                         <input
                                             type="text"
-                                            placeholder="Ingrese dirección"
+                                            placeholder="Av. Principal N° 123, Urb..."
                                         />
 
                                     </div>

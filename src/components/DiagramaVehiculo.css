@@ -1,0 +1,458 @@
+/* =========================================
+   DIAGRAMA DEL VEHÍCULO
+   VERAMOTORS
+   ========================================= */
+
+.diagrama-vehiculo {
+    width: 100%;
+    background: #ffffff;
+    border: 1px solid #c5c6cd;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+/* =========================================
+   CABECERA
+   ========================================= */
+
+.diagrama-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 24px;
+    background: #f2f4f6;
+    border-bottom: 1px solid #c5c6cd;
+}
+
+.diagrama-header h3 {
+    margin: 0;
+    color: #191c1e;
+    font-size: 20px;
+    line-height: 28px;
+    font-weight: 600;
+}
+
+.diagrama-header p {
+    margin: 5px 0 0;
+    color: #45474c;
+    font-size: 14px;
+    line-height: 20px;
+}
+
+/* =========================================
+   CONTADOR
+   ========================================= */
+
+.contador-danos {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border: 1px solid #c5c6cd;
+    border-radius: 6px;
+    background: #ffffff;
+    color: #45474c;
+    white-space: nowrap;
+}
+
+.contador-danos .material-symbols-outlined {
+    color: #0058be;
+    font-size: 20px;
+}
+
+.contador-danos strong {
+    color: #191c1e;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+/* =========================================
+   CONTENIDO
+   ========================================= */
+
+.diagrama-contenido {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 40px;
+    padding: 32px;
+}
+
+/* =========================================
+   VEHÍCULO
+   ========================================= */
+
+.vehiculo-wrapper {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px 50px;
+}
+
+.vehiculo-svg {
+    width: 400px;
+    max-width: 100%;
+    height: auto;
+    overflow: visible;
+}
+
+/* Sombra */
+
+.vehiculo-sombra {
+    fill: #d8dadc;
+    opacity: 0.45;
+}
+
+/* Cuerpo principal */
+
+.carro-base {
+    fill: #e6e8ea;
+    stroke: #75777d;
+    stroke-width: 3;
+}
+
+/* =========================================
+   ZONAS CLICKEABLES
+   ========================================= */
+
+.zona-vehiculo {
+    fill: #d8e3fb;
+    stroke: #0058be;
+    stroke-width: 2;
+    cursor: pointer;
+    transition:
+        fill 0.2s ease,
+        stroke 0.2s ease,
+        opacity 0.2s ease,
+        transform 0.2s ease;
+}
+
+.zona-vehiculo:hover {
+    fill: #adc6ff;
+    stroke: #004395;
+    stroke-width: 3;
+    opacity: 0.9;
+}
+
+/* =========================================
+   DAÑO LEVE
+   ========================================= */
+
+.zona-leve {
+    fill: #ffdad7;
+    stroke: #ba1a1a;
+    stroke-width: 3;
+}
+
+.zona-leve:hover {
+    fill: #ffb3ad;
+    stroke: #93000a;
+}
+
+/* =========================================
+   DAÑO GRAVE
+   ========================================= */
+
+.zona-grave {
+    fill: #ba1a1a;
+    stroke: #5a0008;
+    stroke-width: 3;
+}
+
+.zona-grave:hover {
+    fill: #93000a;
+}
+
+/* =========================================
+   RUEDAS
+   ========================================= */
+
+.rueda {
+    fill: #191c1e;
+    stroke: #45474c;
+    stroke-width: 3;
+}
+
+/* =========================================
+   INDICADOR DELANTERO
+   ========================================= */
+
+.indicador-delante {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+
+    color: #45474c;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+}
+
+.indicador-delante .material-symbols-outlined {
+    font-size: 18px;
+}
+
+/* =========================================
+   LEYENDA
+   ========================================= */
+
+.diagrama-leyenda {
+    width: 190px;
+    min-width: 190px;
+    padding: 18px;
+    border: 1px solid #c5c6cd;
+    border-radius: 6px;
+    background: #f7f9fb;
+}
+
+.diagrama-leyenda h4 {
+    margin: 0 0 16px;
+    color: #191c1e;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.leyenda-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    color: #45474c;
+    font-size: 13px;
+}
+
+.leyenda-color {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    border-radius: 3px;
+    border: 1px solid #75777d;
+}
+
+.leyenda-color.normal {
+    background: #d8e3fb;
+    border-color: #0058be;
+}
+
+.leyenda-color.leve {
+    background: #ffdad7;
+    border-color: #ba1a1a;
+}
+
+.leyenda-color.grave {
+    background: #ba1a1a;
+    border-color: #5a0008;
+}
+
+/* =========================================
+   AYUDA
+   ========================================= */
+
+.diagrama-ayuda {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid #c5c6cd;
+}
+
+.diagrama-ayuda .material-symbols-outlined {
+    flex-shrink: 0;
+    color: #0058be;
+    font-size: 18px;
+}
+
+.diagrama-ayuda p {
+    margin: 0;
+    color: #45474c;
+    font-size: 12px;
+    line-height: 17px;
+}
+
+/* =========================================
+   DAÑOS REGISTRADOS
+   ========================================= */
+
+.danos-registrados {
+    padding: 20px 24px 24px;
+    border-top: 1px solid #c5c6cd;
+    background: #f7f9fb;
+}
+
+.danos-registrados-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+
+.danos-registrados-header h4 {
+    margin: 0;
+    color: #191c1e;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.danos-registrados-header>span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 26px;
+    height: 26px;
+
+    padding: 0 7px;
+
+    border-radius: 50%;
+    background: #0058be;
+    color: #ffffff;
+
+    font-size: 12px;
+    font-weight: 700;
+}
+
+/* =========================================
+   LISTA DE DAÑOS
+   ========================================= */
+
+.danos-lista {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.danio-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    padding: 12px;
+
+    border: 1px solid #c5c6cd;
+    border-radius: 6px;
+    background: #ffffff;
+}
+
+.danio-icono {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+
+    border-radius: 5px;
+}
+
+.danio-icono .material-symbols-outlined {
+    font-size: 20px;
+}
+
+.danio-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.danio-info strong {
+    color: #191c1e;
+    font-size: 13px;
+    line-height: 18px;
+}
+
+.danio-info span {
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* Daño leve */
+
+.danio-leve {
+    border-left: 4px solid #ba1a1a;
+}
+
+.danio-leve .danio-icono {
+    background: #ffdad7;
+    color: #ba1a1a;
+}
+
+.danio-leve .danio-info span {
+    color: #ba1a1a;
+}
+
+/* Daño grave */
+
+.danio-grave {
+    border-left: 4px solid #5a0008;
+}
+
+.danio-grave .danio-icono {
+    background: #ffdad7;
+    color: #93000a;
+}
+
+.danio-grave .danio-info span {
+    color: #93000a;
+}
+
+/* =========================================
+   RESPONSIVE
+   ========================================= */
+
+@media (max-width: 900px) {
+
+    .diagrama-contenido {
+        flex-direction: column;
+        gap: 24px;
+    }
+
+    .diagrama-leyenda {
+        width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+
+    .danos-lista {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 600px) {
+
+    .diagrama-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .contador-danos {
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .diagrama-contenido {
+        padding: 20px 12px;
+    }
+
+    .vehiculo-wrapper {
+        padding: 25px 25px;
+    }
+
+    .vehiculo-svg {
+        width: 330px;
+    }
+
+    .danos-registrados {
+        padding: 18px;
+    }
+}

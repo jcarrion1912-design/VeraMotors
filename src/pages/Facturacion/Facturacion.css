@@ -1,0 +1,138 @@
+.facturacion-page {
+    width: 100%;
+    box-sizing: border-box;
+    font-family: 'Inter', sans-serif;
+}
+
+.facturacion-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.facturacion-header h2 {
+    margin: 0;
+    font-size: 1.6rem;
+    font-weight: 650;
+    color: #101827;
+}
+
+.facturacion-header p {
+    margin: 4px 0 0;
+    color: #64748b;
+    font-size: 0.9rem;
+}
+
+.btn-nueva-factura {
+    background: #075bbd;
+    color: white;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    transition: background 0.15s ease;
+}
+
+.btn-nueva-factura:hover {
+    background: #004b9f;
+}
+
+.fact-tabs-nav {
+    display: flex;
+    gap: 8px;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 8px;
+    overflow-x: auto;
+    background: #ffffff;
+    padding: 10px 14px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
+.fact-tab-btn {
+    background: transparent;
+    border: none;
+    color: #64748b;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.fact-tab-btn:hover {
+    background: #f1f5f9;
+    color: #1e293b;
+}
+
+.fact-tab-btn.active {
+    background: #075bbd;
+    color: #ffffff;
+}
+
+/* WIZARD DE FACTURACIÓN CON TEMA CLARO Y LIMPIO */
+.wizard-modal {
+    background: #ffffff !important;
+    color: #1e293b !important;
+    border: 1px solid #e2e8f0 !important;
+}
+
+.wizard-modal .modal-header {
+    background: #f8fafc !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    color: #0f172a !important;
+}
+
+.wizard-modal .modal-header h2 {
+    color: #0f172a !important;
+}
+
+.wizard-modal .modal-header p {
+    color: #64748b !important;
+}
+
+.wizard-steps-bar {
+    display: flex;
+    background: #f1f5f9 !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+}
+
+.wizard-steps-bar .step-item {
+    color: #64748b !important;
+    border-right: 1px solid #e2e8f0;
+}
+
+.wizard-steps-bar .step-item.active {
+    background: #075bbd !important;
+    color: #ffffff !important;
+}
+
+.wizard-modal .modal-footer {
+    background: #f8fafc !important;
+    border-top: 1px solid #e2e8f0 !important;
+}
+
+.wizard-modal input, .wizard-modal select, .wizard-modal textarea {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 6px;
+    padding: 8px 12px;
+}
+
+.wizard-modal label {
+    color: #334155 !important;
+    font-weight: 600;
+    font-size: 0.85rem;
+    margin-bottom: 4px;
+    display: block;
+}
