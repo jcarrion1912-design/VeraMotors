@@ -1,0 +1,65 @@
+.proveedores-page {
+    padding: 24px;
+    background-color: #f8fafc;
+    min-height: 100vh;
+    color: #0f172a;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.proveedores-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.proveedores-header h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+}
+
+.proveedores-header p {
+    color: #64748b;
+    font-size: 0.875rem;
+    margin: 4px 0 0 0;
+}
+
+.btn-nuevo-proveedor {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #2563eb;
+    color: #ffffff;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.btn-nuevo-proveedor:hover {
+    background: #1d4ed8;
+}
+
+.prov-modal {
+    background: #ffffff !important;
+    color: #0f172a !important;
+}
+
+.prov-modal input,
+.prov-modal select {
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #0f172a;
+    font-size: 0.9rem;
+    box-sizing: border-box;
+}

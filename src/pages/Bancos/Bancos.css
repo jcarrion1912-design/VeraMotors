@@ -1,0 +1,96 @@
+.bancos-page {
+    padding: 24px;
+    background-color: #f8fafc;
+    min-height: 100vh;
+    color: #0f172a;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.bancos-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.bancos-header h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+}
+
+.bancos-header p {
+    color: #64748b;
+    font-size: 0.875rem;
+    margin: 4px 0 0 0;
+}
+
+.btn-nuevo-movimiento {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #2563eb;
+    color: #ffffff;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.btn-nuevo-movimiento:hover {
+    background: #1d4ed8;
+}
+
+.bancos-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.banco-card {
+    background: #ffffff;
+    padding: 18px;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.banco-card span {
+    font-size: 0.8rem;
+    color: #64748b;
+    font-weight: 600;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.banco-card h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+}
+
+.bancos-modal {
+    background: #ffffff !important;
+    color: #0f172a !important;
+}
+
+.bancos-modal input,
+.bancos-modal select,
+.bancos-modal textarea {
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #0f172a;
+    font-size: 0.9rem;
+    box-sizing: border-box;
+}

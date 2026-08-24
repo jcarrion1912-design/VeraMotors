@@ -1,0 +1,111 @@
+.config-page {
+    padding: 24px;
+    background-color: #f8fafc;
+    min-height: 100vh;
+    color: #0f172a;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.config-header {
+    margin-bottom: 20px;
+}
+
+.config-header h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+}
+
+.config-header p {
+    color: #64748b;
+    font-size: 0.875rem;
+    margin: 4px 0 0 0;
+}
+
+.config-tabs {
+    display: flex;
+    gap: 8px;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 8px;
+    margin-bottom: 20px;
+}
+
+.config-tab-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    background: #f1f5f9;
+    color: #475569;
+    font-weight: 600;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.config-tab-btn.active {
+    background: #2563eb;
+    color: #ffffff;
+}
+
+.config-card {
+    background: #ffffff;
+    border-radius: 10px;
+    padding: 24px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    margin-bottom: 24px;
+}
+
+.config-card h3 {
+    font-size: 1.1rem;
+    margin: 0 0 16px 0;
+    color: #0f172a;
+    border-bottom: 1px solid #f1f5f9;
+    padding-bottom: 10px;
+}
+
+.config-form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+}
+
+.config-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.config-field label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #475569;
+}
+
+.config-field input,
+.config-field select {
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #0f172a;
+    font-size: 0.9rem;
+}
+
+.config-modal {
+    background: #ffffff !important;
+    color: #0f172a !important;
+}
+
+.config-modal input,
+.config-modal select {
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #0f172a;
+    font-size: 0.9rem;
+    box-sizing: border-box;
+}
