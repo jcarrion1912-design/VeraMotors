@@ -16,143 +16,155 @@ import Proveedores from "./pages/Proveedores/Proveedores";
 import Compras from "./pages/Compras/Compras";
 import Bancos from "./pages/Bancos/Bancos";
 import Configuracion from "./pages/Configuracion/Configuracion";
+import Asistencia from "./pages/Asistencia/Asistencia";
+import Login from "./pages/Login/Login";
 
 function App() {
   return (
     <RoleProvider>
       <BrowserRouter>
         <Routes>
+          <Route path="/login" element={<Login />} />
 
-        <Route
-          path="/dashboard"
-          element={
-            <MainLayout>
-              <Dashboard />
-            </MainLayout>
-          }
-        />
+          <Route
+            path="/dashboard"
+            element={
+              <MainLayout>
+                <Dashboard />
+              </MainLayout>
+            }
+          />
 
-        <Route
-          path="/citas"
-          element={
-            <MainLayout>
-              <Citas />
-            </MainLayout>
-          }
-        />
+          <Route
+            path="/citas"
+            element={
+              <MainLayout>
+                <Citas />
+              </MainLayout>
+            }
+          />
 
-        <Route
-          path="/kanban"
-          element={
-            <MainLayout>
-              <Kanban />
-            </MainLayout>
-          }
-        />
+          <Route
+            path="/kanban"
+            element={
+              <MainLayout>
+                <Kanban />
+              </MainLayout>
+            }
+          />
 
-        <Route
-          path="/clientes"
-          element={
-            <MainLayout>
-              <Clientes />
-            </MainLayout>
-          }
-        />
+          <Route
+            path="/clientes"
+            element={
+              <MainLayout>
+                <Clientes />
+              </MainLayout>
+            }
+          />
 
-        <Route
-          path="/inventario"
-          element={
-            <MainLayout>
-              <Inventario />
-            </MainLayout>
-          }
-        />
+          <Route
+            path="/inventario"
+            element={
+              <MainLayout>
+                <Inventario />
+              </MainLayout>
+            }
+          />
 
-        <Route
-          path="/ordenes-servicio"
-          element={
-            <MainLayout>
-              <OrdenesServicio />
-            </MainLayout>
-          }
-        />
+          <Route
+            path="/ordenes-servicio"
+            element={
+              <MainLayout>
+                <OrdenesServicio />
+              </MainLayout>
+            }
+          />
 
-        <Route
-          path="/facturacion"
-          element={
-            <MainLayout>
-              <Facturacion />
-            </MainLayout>
-          }
-        />
+          <Route
+            path="/facturacion"
+            element={
+              <MainLayout>
+                <Facturacion />
+              </MainLayout>
+            }
+          />
 
-        <Route
-          path="/reportes"
-          element={
-            <MainLayout>
-              <Reportes />
-            </MainLayout>
-          }
-        />
+          <Route
+            path="/reportes"
+            element={
+              <MainLayout>
+                <Reportes />
+              </MainLayout>
+            }
+          />
 
-        <Route
-          path="/metricas"
-          element={
-            <MainLayout>
-              <Metricas />
-            </MainLayout>
-          }
-        />
+          <Route
+            path="/metricas"
+            element={
+              <MainLayout>
+                <Metricas />
+              </MainLayout>
+            }
+          />
 
-        <Route
-          path="/proveedores"
-          element={
-            <MainLayout>
-              <Proveedores />
-            </MainLayout>
-          }
-        />
+          <Route
+            path="/proveedores"
+            element={
+              <MainLayout>
+                <Proveedores />
+              </MainLayout>
+            }
+          />
 
-        <Route
-          path="/compras"
-          element={
-            <MainLayout>
-              <Compras />
-            </MainLayout>
-          }
-        />
+          <Route
+            path="/compras"
+            element={
+              <MainLayout>
+                <Compras />
+              </MainLayout>
+            }
+          />
 
-        <Route
-          path="/bancos"
-          element={
-            <MainLayout>
-              <Bancos />
-            </MainLayout>
-          }
-        />
+          <Route
+            path="/bancos"
+            element={
+              <MainLayout>
+                <Bancos />
+              </MainLayout>
+            }
+          />
 
-        <Route
-          path="/configuracion"
-          element={
-            <MainLayout>
-              <Configuracion />
-            </MainLayout>
-          }
-        />
+          <Route
+            path="/configuracion"
+            element={
+              <MainLayout>
+                <Configuracion />
+              </MainLayout>
+            }
+          />
 
-        <Route
-          path="/"
-          element={<Navigate to="/dashboard" replace />}
-        />
+          <Route
+            path="/asistencia"
+            element={
+              <MainLayout>
+                <Asistencia />
+              </MainLayout>
+            }
+          />
 
-        <Route
-          path="*"
-          element={<Navigate to="/dashboard" replace />}
-        />
+          <Route
+            path="/"
+            element={<Navigate to="/dashboard" replace />}
+          />
 
-      </Routes>
-    </BrowserRouter>
-  </RoleProvider>
+          <Route
+            path="*"
+            element={<Navigate to="/dashboard" replace />}
+          />
+
+        </Routes>
+      </BrowserRouter>
+    </RoleProvider>
   );
 }
 

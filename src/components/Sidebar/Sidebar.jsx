@@ -142,6 +142,23 @@ function Sidebar() {
                     </NavLink>
                 </div>
 
+                {/* RRHH (SOLO SI NO ES TÉCNICO) */}
+                {!esTecnico && (
+                    <div className="menu-section">
+                        <span className="menu-title">RRHH</span>
+
+                        <NavLink
+                            to="/asistencia"
+                            className={({ isActive }) =>
+                                `menu-item ${isActive ? "active" : ""}`
+                            }
+                        >
+                            <span className="menu-icon">◷</span>
+                            <span>Asistencia</span>
+                        </NavLink>
+                    </div>
+                )}
+
                 {/* ADMINISTRACIÓN (SOLO SI NO ES TÉCNICO) */}
                 {!esTecnico && (
                     <div className="menu-section">
@@ -195,8 +212,8 @@ function Sidebar() {
             <div className="sidebar-user-container">
                 <div className="role-selector-box" style={{ padding: '8px 12px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', marginBottom: '8px' }}>
                     <label style={{ fontSize: '0.75rem', color: '#8e9baf', display: 'block', marginBottom: '4px' }}>Perfil de Usuario:</label>
-                    <select 
-                        value={rolActivo} 
+                    <select
+                        value={rolActivo}
                         onChange={(e) => setRolActivo(e.target.value)}
                         style={{ width: '100%', background: '#1e293b', color: '#fff', border: '1px solid #334155', borderRadius: '4px', padding: '6px', fontSize: '0.85rem' }}
                     >

@@ -1,0 +1,159 @@
+.asistencia-page {
+    padding: 24px;
+    background-color: #f8fafc;
+    min-height: 100vh;
+    color: #0f172a;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.asistencia-header h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+}
+
+.asistencia-header p {
+    color: #64748b;
+    font-size: 0.875rem;
+    margin: 4px 0 0 0;
+}
+
+.asistencia-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin: 20px 0;
+}
+
+.fecha-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.fecha-nav input[type="date"] {
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+}
+
+.btn-nav {
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.btn-nav:hover {
+    background: #f1f5f9;
+}
+
+.btn-hoy {
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid #2563eb;
+    background: #eff6ff;
+    color: #2563eb;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+.regla-tardanza {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 260px;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    color: #92400e;
+}
+
+.regla-tardanza input {
+    padding: 4px 6px;
+    border-radius: 6px;
+    border: 1px solid #fde68a;
+}
+
+.acciones-masivas {
+    display: flex;
+    gap: 8px;
+}
+
+.asistencia-kpis {
+    margin-bottom: 20px;
+}
+
+.input-hora {
+    padding: 6px 8px;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+    font-size: 0.85rem;
+    width: 110px;
+}
+
+.input-observaciones {
+    padding: 6px 8px;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+    font-size: 0.85rem;
+    width: 170px;
+}
+
+.select-estado {
+    padding: 6px 10px;
+    border-radius: 20px;
+    border: 1px solid #cbd5e1;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.select-estado.estadoPresente {
+    background: #dcfce7;
+    color: #16a34a;
+    border-color: #86efac;
+}
+
+.select-estado.estadoTardanza {
+    background: #fef3c7;
+    color: #d97706;
+    border-color: #fcd34d;
+}
+
+.select-estado.estadoAusente {
+    background: #fee2e2;
+    color: #dc2626;
+    border-color: #fca5a5;
+}
+
+.select-estado.estadoPermiso {
+    background: #dbeafe;
+    color: #2563eb;
+    border-color: #93c5fd;
+}
+
+.select-estado.estadoSinRegistrar {
+    background: #f1f5f9;
+    color: #64748b;
+    border-color: #cbd5e1;
+}
+
+.trazabilidad {
+    font-size: 0.8rem;
+    color: #64748b;
+    font-style: italic;
+}
