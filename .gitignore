@@ -1,31 +1,26 @@
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
+# Python
+__pycache__/
+*.py[cod]
 
-# Dependencies
-node_modules/
+# Entornos virtuales
+venv/
+.venv/
+env/
+veramotors-backend/venv/
 
-# Build
-dist/
-dist-ssr/
-
-# Local env files
-*.local
+# Variables de entorno
 .env
 .env.*
 
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+# PyCharm
+.idea/
+
+# VS Code
+.vscode/
+
+# Logs
+*.log
+
+# Frontend React / Vite
+node_modules/
+dist/
