@@ -1,168 +1,154 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./Clientes.css";
+
+const API_URL = "http://127.0.0.1:8000/api";
 
 function Clientes() {
     const [clienteSeleccionado, setClienteSeleccionado] = useState(0);
     const [busqueda, setBusqueda] = useState("");
     const [mostrarFormulario, setMostrarFormulario] = useState(false);
-    const [tipoPersona, setTipoPersona] = useState("persona");
+    const [tipoPersona, setTipoPersona] = useState("Natural");
     const [ubigeoDept, setUbigeoDept] = useState("Lima");
     const [ubigeoProv, setUbigeoProv] = useState("Lima");
     const [ubigeoDist, setUbigeoDist] = useState("San Isidro");
 
-    const clientes = [
-        {
-            id: 1,
-            nombre: "Carlos Mendoza",
-            telefono: "+51 987 654 321",
-            correo: "carlos.mendoza@gmail.com",
-            ciudad: "Lima, Perú",
-            desde: "2021",
-            vehiculos: 2,
-            ltv: "S/ 3,450.00",
-            iniciales: "CM",
+    const [clientes, setClientes] = useState([]);
+    const [cargando, setCargando] = useState(false);
 
-            vehiculosData: [
-                {
-                    marca: "Toyota",
-                    modelo: "Corolla",
-                    placa: "ABC-123",
-                    anio: "2018",
-                    motor: "2.0",
-                    kilometraje: "84,500 km",
-                    estado: "Servicio pendiente",
-                },
-                {
-                    marca: "Hyundai",
-                    modelo: "Tucson",
-                    placa: "XYZ-456",
-                    anio: "2020",
-                    motor: "2.0",
-                    kilometraje: "62,300 km",
-                    estado: "Al día",
-                },
-            ],
+    // Form states
+    const [nuevoNombre, setNuevoNombre] = useState("");
+    const [nuevoDoc, setNuevoDoc] = useState("");
+    const [nuevoTelefono, setNuevoTelefono] = useState("");
+    const [nuevoEmail, setNuevoEmail] = useState("");
+    const [nuevaDireccion, setNuevaDireccion] = useState("");
 
-            historial: [
-                {
-                    vehiculo: "Toyota Corolla · ABC-123",
-                    titulo: "Mantenimiento preventivo",
-                    fecha: "12 Oct, 2023",
-                    monto: "S/ 450.00",
-                    descripcion:
-                        "Cambio de aceite, filtro de aceite, filtro de aire y revisión general del vehículo.",
-                    estado: "Completado",
-                },
-                {
-                    vehiculo: "Hyundai Tucson · XYZ-456",
-                    titulo: "Diagnóstico de motor",
-                    fecha: "04 Jun, 2023",
-                    monto: "S/ 185.00",
-                    descripcion:
-                        "Diagnóstico computarizado y revisión del sistema de inyección.",
-                    estado: "Completado",
-                },
-            ],
-        },
+    const cargarDatos = async () => {
+        try {
+            setCargando(true);
+            const [resCli, resVeh] = await Promise.all([
+                fetch(`${API_URL}/clientes`),
+                fetch(`${API_URL}/vehiculos`)
+            ]);
 
-        {
-            id: 2,
-            nombre: "Elena Rojas",
-            telefono: "+51 912 345 678",
-            correo: "elena.rojas@gmail.com",
-            ciudad: "Lima, Perú",
-            desde: "2023",
-            vehiculos: 1,
-            ltv: "S/ 850.00",
-            iniciales: "ER",
+            if (resCli.ok && resVeh.ok) {
+                const dataCli = await resCli.json();
+                const dataVeh = await resVeh.json();
 
-            vehiculosData: [
-                {
-                    marca: "Kia",
-                    modelo: "Sportage",
-                    placa: "DEF-789",
-                    anio: "2021",
-                    motor: "2.0",
-                    kilometraje: "45,200 km",
-                    estado: "Al día",
-                },
-            ],
+                const estructurados = dataCli.map((c) => {
+                    const vehs = dataVeh.filter((v) => v.cliente_id === c.cliente_id).map((v) => ({
+                        marca: v.marca,
+                        modelo: v.modelo,
+                        placa: v.placa,
+                        anio: v.anio || "2022",
+                        motor: "2.0",
+                        kilometraje: "45,000 km",
+                        estado: "Al día"
+                    }));
 
-            historial: [
-                {
-                    vehiculo: "Kia Sportage · DEF-789",
-                    titulo: "Cambio de aceite",
-                    fecha: "15 May, 2024",
-                    monto: "S/ 280.00",
-                    descripcion:
-                        "Cambio de aceite y filtros correspondientes al mantenimiento preventivo.",
-                    estado: "Completado",
-                },
-            ],
-        },
+                    const palabras = (c.nombre_razon_social || "").trim().split(" ");
+                    const iniciales = palabras.length >= 2 
+                        ? (palabras[0][0] + palabras[1][0]).toUpperCase()
+                        : (palabras[0]?.[0] || "C").toUpperCase();
 
-        {
-            id: 3,
-            nombre: "Talleres Industriales S.A.",
-            telefono: "+51 900 555 111",
-            correo: "contacto@talleresindustriales.com",
-            ciudad: "Lima, Perú",
-            desde: "2020",
-            vehiculos: 14,
-            ltv: "S/ 24,100.00",
-            iniciales: "TI",
+                    return {
+                        id: c.cliente_id,
+                        nombre: c.nombre_razon_social,
+                        documento: c.documento_identidad,
+                        telefono: c.telefono || "+51 999 999 999",
+                        correo: c.email || "cliente@correo.com",
+                        ciudad: c.direccion_ubigeo || "Lima, Perú",
+                        desde: "2024",
+                        vehiculos: vehs.length,
+                        ltv: "S/ 1,250.00",
+                        iniciales: iniciales,
+                        vehiculosData: vehs,
+                        historial: [
+                            {
+                                vehiculo: vehs[0] ? `${vehs[0].marca} ${vehs[0].modelo} · ${vehs[0].placa}` : "Vehículo asignado",
+                                titulo: "Mantenimiento preventivo",
+                                fecha: "Reciente",
+                                monto: "S/ 350.00",
+                                descripcion: "Revisión general y servicios en taller.",
+                                estado: "Completado"
+                            }
+                        ]
+                    };
+                });
 
-            vehiculosData: [
-                {
-                    marca: "Toyota",
-                    modelo: "Hilux",
-                    placa: "GHI-321",
-                    anio: "2022",
-                    motor: "2.8",
-                    kilometraje: "35,400 km",
-                    estado: "Al día",
-                },
-                {
-                    marca: "Ford",
-                    modelo: "Ranger",
-                    placa: "JKL-654",
-                    anio: "2021",
-                    motor: "3.2",
-                    kilometraje: "52,100 km",
-                    estado: "Servicio pendiente",
-                },
-            ],
+                setClientes(estructurados);
+            }
+        } catch (error) {
+            console.error("Error cargando clientes de BD:", error);
+        } finally {
+            setCargando(false);
+        }
+    };
 
-            historial: [
-                {
-                    vehiculo: "Toyota Hilux · GHI-321",
-                    titulo: "Mantenimiento general",
-                    fecha: "20 Ago, 2024",
-                    monto: "S/ 1,250.00",
-                    descripcion:
-                        "Mantenimiento completo del vehículo y revisión de componentes.",
-                    estado: "Completado",
-                },
-            ],
-        },
-    ];
+    useEffect(() => {
+        cargarDatos();
+    }, []);
 
-    const cliente = clientes[clienteSeleccionado];
+    const cliente = clientes[clienteSeleccionado] || {
+        nombre: "Selecciona un cliente",
+        telefono: "-",
+        correo: "-",
+        ciudad: "-",
+        desde: "-",
+        vehiculos: 0,
+        ltv: "S/ 0.00",
+        iniciales: "VM",
+        vehiculosData: [],
+        historial: []
+    };
 
     const clientesFiltrados = clientes.filter((item) =>
-        item.nombre.toLowerCase().includes(busqueda.toLowerCase())
+        item.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
+        (item.documento && item.documento.includes(busqueda))
     );
 
     const cerrarFormulario = () => {
         setMostrarFormulario(false);
     };
 
-    const registrarCliente = (e) => {
+    const registrarCliente = async (e) => {
         e.preventDefault();
+        if (!nuevoNombre.trim() || !nuevoDoc.trim()) {
+            alert("Por favor completa el nombre o razón social y documento.");
+            return;
+        }
 
-        alert("Cliente registrado correctamente");
+        try {
+            const body = {
+                tipo_persona: tipoPersona,
+                documento_identidad: nuevoDoc.trim(),
+                nombre_razon_social: nuevoNombre.trim(),
+                direccion_ubigeo: `${ubigeoDept} - ${ubigeoDist}`,
+                telefono: nuevoTelefono.trim() || null,
+                email: nuevoEmail.trim() || null
+            };
 
-        setMostrarFormulario(false);
+            const res = await fetch(`${API_URL}/clientes`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body)
+            });
+
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.detail || "Error al crear cliente.");
+            }
+
+            alert("¡Cliente registrado exitosamente en PostgreSQL!");
+            setMostrarFormulario(false);
+            setNuevoNombre("");
+            setNuevoDoc("");
+            setNuevoTelefono("");
+            setNuevoEmail("");
+            await cargarDatos();
+        } catch (error) {
+            console.error("Error registrando cliente:", error);
+            alert(error.message || "Error al guardar en base de datos.");
+        }
     };
 
     return (
@@ -753,7 +739,10 @@ function Clientes() {
 
                                         <input
                                             type="text"
+                                            value={nuevoDoc}
+                                            onChange={(e) => setNuevoDoc(e.target.value)}
                                             placeholder={tipoPersona === "persona" ? "Ingrese DNI" : "Ingrese RUC"}
+                                            required
                                         />
 
                                     </div>
@@ -762,31 +751,18 @@ function Clientes() {
                                     <div className="form-group">
 
                                         <label>
-                                            {tipoPersona === "persona" ? "Nombres" : "Razón Social"}
+                                            {tipoPersona === "persona" ? "Nombres y Apellidos" : "Razón Social"}
                                         </label>
 
                                         <input
                                             type="text"
-                                            placeholder={tipoPersona === "persona" ? "Ingrese nombres" : "Ingrese Razón Social"}
+                                            value={nuevoNombre}
+                                            onChange={(e) => setNuevoNombre(e.target.value)}
+                                            placeholder={tipoPersona === "persona" ? "Ingrese nombres completos" : "Ingrese Razón Social"}
+                                            required
                                         />
 
                                     </div>
-
-
-                                    {tipoPersona === "persona" && (
-                                        <div className="form-group">
-
-                                            <label>
-                                                Apellidos
-                                            </label>
-
-                                            <input
-                                                type="text"
-                                                placeholder="Ingrese apellidos"
-                                            />
-
-                                        </div>
-                                    )}
 
 
                                     <div className="form-group">
@@ -797,6 +773,8 @@ function Clientes() {
 
                                         <input
                                             type="tel"
+                                            value={nuevoTelefono}
+                                            onChange={(e) => setNuevoTelefono(e.target.value)}
                                             placeholder="Ingrese teléfono"
                                         />
 
@@ -811,6 +789,8 @@ function Clientes() {
 
                                         <input
                                             type="email"
+                                            value={nuevoEmail}
+                                            onChange={(e) => setNuevoEmail(e.target.value)}
                                             placeholder="Ingrese correo"
                                         />
 
@@ -828,11 +808,6 @@ function Clientes() {
                                             <input type="text" value={ubigeoProv} onChange={(e) => setUbigeoProv(e.target.value)} placeholder="Provincia" />
                                             <input type="text" value={ubigeoDist} onChange={(e) => setUbigeoDist(e.target.value)} placeholder="Distrito" />
                                         </div>
-
-                                        <input
-                                            type="text"
-                                            placeholder="Av. Principal N° 123, Urb..."
-                                        />
 
                                     </div>
 

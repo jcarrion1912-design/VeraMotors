@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./Inventario.css";
+
+const API_URL = "http://127.0.0.1:8000/api";
 
 function Inventario() {
     const [submodulo, setSubmodulo] = useState("Ítem de venta");
@@ -7,21 +9,49 @@ function Inventario() {
     const [mostrarFormulario, setMostrarFormulario] = useState(false);
     const [mostrarAyudaNomenclatura, setMostrarAyudaNomenclatura] = useState(false);
     const [busqueda, setBusqueda] = useState("");
+    const [cargando, setCargando] = useState(false);
 
-    const [productos, setProductos] = useState([
-        { id: 1, tipo: "Producto", nombre: "Pastillas de Freno Brembo", codigo: "BRK-892-C", unidad: "Juego", marca: "Brembo", categoria: "Frenos", stock: 45, minimo: 15, costo: 55.0, precio: 85.0, igv: "18%" },
-        { id: 2, tipo: "Producto", nombre: "Bujías NGK Iridium", codigo: "ENG-SP-441", unidad: "Pieza", marca: "NGK", categoria: "Motor", stock: 8, minimo: 20, costo: 8.0, precio: 12.5, igv: "18%" },
-        { id: 3, tipo: "Servicio", nombre: "Servicio de Escáner y Diagnóstico", codigo: "SRV-DIAG-01", unidad: "Hora Hombre", marca: "VeraMotors", categoria: "Servicios", stock: 999, minimo: 0, costo: 30.0, precio: 120.0, igv: "18%" },
-        { id: 4, tipo: "Compuestos", nombre: "Kit de Cambio de Aceite Sintético", codigo: "KIT-OIL-5W30", unidad: "Kit", marca: "Mobil1", categoria: "Mantenimiento", stock: 25, minimo: 5, costo: 90.0, precio: 145.0, igv: "18%" },
-        { id: 5, tipo: "Producto", nombre: "Disco de Freno Bosch", codigo: "BRK-ROT-88", unidad: "Pieza", marca: "Bosch", categoria: "Frenos", stock: 32, minimo: 10, costo: 42.0, precio: 65.0, igv: "18%" }
-    ]);
+    const [productos, setProductos] = useState([]);
+
+    const cargarInventario = async () => {
+        try {
+            setCargando(true);
+            const res = await fetch(`${API_URL}/inventario`);
+            if (res.ok) {
+                const data = await res.json();
+                const transformados = data.map((item) => ({
+                    id: item.item_id,
+                    tipo: item.tipo,
+                    nombre: item.nombre_nomenclatura,
+                    codigo: item.codigo_referencia,
+                    unidad: item.unidad_medida,
+                    marca: "VeraMotors",
+                    categoria: item.categoria_nombre || "General",
+                    stock: 50,
+                    minimo: 10,
+                    costo: Number(item.costo_compra || 0),
+                    precio: Number(item.precio_venta || 0),
+                    igv: "18%"
+                }));
+                setProductos(transformados);
+            }
+        } catch (error) {
+            console.error("Error cargando inventario:", error);
+        } finally {
+            setCargando(false);
+        }
+    };
+
+    useEffect(() => {
+        cargarInventario();
+    }, []);
 
     const [nuevoProducto, setNuevoProducto] = useState({
-        tipo: "Producto",
+        tipo: "Repuesto",
         nombre: "",
         codigo: "",
-        categoria: "Motor",
-        unidad: "Pieza",
+        categoria_id: 1,
+        unidad: "Unidad",
         marca: "",
         costo: "",
         precio: "",
@@ -45,34 +75,47 @@ function Inventario() {
         setNuevoProducto({ ...nuevoProducto, [name]: value });
     };
 
-    const agregarProducto = (e) => {
+    const agregarProducto = async (e) => {
         e.preventDefault();
         if (!nuevoProducto.nombre || !nuevoProducto.codigo || !nuevoProducto.precio) {
             alert("Por favor completa los campos obligatorios.");
             return;
         }
 
-        const nuevo = {
-            id: productos.length + 1,
-            tipo: nuevoProducto.tipo,
-            nombre: nuevoProducto.nombre,
-            codigo: nuevoProducto.codigo,
-            categoria: nuevoProducto.categoria,
-            unidad: nuevoProducto.unidad,
-            marca: nuevoProducto.marca || "Genérico",
-            stock: Number(nuevoProducto.stock) || 0,
-            minimo: Number(nuevoProducto.minimo) || 5,
-            costo: Number(nuevoProducto.costo) || 0,
-            precio: Number(nuevoProducto.precio),
-            igv: "18%"
-        };
+        try {
+            const body = {
+                tipo: nuevoProducto.tipo,
+                categoria_id: Number(nuevoProducto.categoria_id) || 1,
+                codigo_referencia: nuevoProducto.codigo,
+                nombre_nomenclatura: nuevoProducto.nombre,
+                unidad_medida: nuevoProducto.unidad,
+                costo_compra: Number(nuevoProducto.costo) || 0,
+                margen_ganancia: 30,
+                precio_venta: Number(nuevoProducto.precio),
+                impuesto: 18
+            };
 
-        setProductos([...productos, nuevo]);
-        setMostrarFormulario(false);
-        setNuevoProducto({
-            tipo: "Producto", nombre: "", codigo: "", categoria: "Motor", unidad: "Pieza", marca: "", costo: "", precio: "", stock: "", minimo: "", igv: "18%"
-        });
-        alert("¡Ítem registrado en inventario exitosamente!");
+            const res = await fetch(`${API_URL}/inventario`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body)
+            });
+
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.detail || "Error al crear el ítem.");
+            }
+
+            alert("¡Ítem registrado en inventario exitosamente en PostgreSQL!");
+            setMostrarFormulario(false);
+            setNuevoProducto({
+                tipo: "Repuesto", nombre: "", codigo: "", categoria_id: 1, unidad: "Unidad", marca: "", costo: "", precio: "", stock: "", minimo: "", igv: "18%"
+            });
+            await cargarInventario();
+        } catch (error) {
+            console.error("Error agregando item:", error);
+            alert(error.message || "Error al registrar en base de datos.");
+        }
     };
 
     const exportarExcel = () => {

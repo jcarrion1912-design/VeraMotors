@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { RoleProvider } from "./context/RoleContext";
 
+import ProtectedRoute from "./components/ProtectedRoute/ProtectedRoute";
+
 import MainLayout from "./layouts/MainLayout";
 
 import Dashboard from "./pages/Dashboard/Dashboard";
@@ -23,146 +25,209 @@ function App() {
   return (
     <RoleProvider>
       <BrowserRouter>
+
         <Routes>
-          <Route path="/login" element={<Login />} />
+
+          {/* =========================================
+                        LOGIN
+                    ========================================= */}
+
+          <Route
+            path="/login"
+            element={<Login />}
+          />
+
+
+          {/* =========================================
+                        RUTAS PROTEGIDAS
+                    ========================================= */}
 
           <Route
             path="/dashboard"
             element={
-              <MainLayout>
-                <Dashboard />
-              </MainLayout>
+              <ProtectedRoute>
+                <MainLayout>
+                  <Dashboard />
+                </MainLayout>
+              </ProtectedRoute>
             }
           />
 
           <Route
             path="/citas"
             element={
-              <MainLayout>
-                <Citas />
-              </MainLayout>
+              <ProtectedRoute>
+                <MainLayout>
+                  <Citas />
+                </MainLayout>
+              </ProtectedRoute>
             }
           />
 
           <Route
             path="/kanban"
             element={
-              <MainLayout>
-                <Kanban />
-              </MainLayout>
+              <ProtectedRoute>
+                <MainLayout>
+                  <Kanban />
+                </MainLayout>
+              </ProtectedRoute>
             }
           />
 
           <Route
             path="/clientes"
             element={
-              <MainLayout>
-                <Clientes />
-              </MainLayout>
+              <ProtectedRoute>
+                <MainLayout>
+                  <Clientes />
+                </MainLayout>
+              </ProtectedRoute>
             }
           />
 
           <Route
             path="/inventario"
             element={
-              <MainLayout>
-                <Inventario />
-              </MainLayout>
+              <ProtectedRoute>
+                <MainLayout>
+                  <Inventario />
+                </MainLayout>
+              </ProtectedRoute>
             }
           />
 
           <Route
             path="/ordenes-servicio"
             element={
-              <MainLayout>
-                <OrdenesServicio />
-              </MainLayout>
+              <ProtectedRoute>
+                <MainLayout>
+                  <OrdenesServicio />
+                </MainLayout>
+              </ProtectedRoute>
             }
           />
 
           <Route
             path="/facturacion"
             element={
-              <MainLayout>
-                <Facturacion />
-              </MainLayout>
+              <ProtectedRoute>
+                <MainLayout>
+                  <Facturacion />
+                </MainLayout>
+              </ProtectedRoute>
             }
           />
 
           <Route
             path="/reportes"
             element={
-              <MainLayout>
-                <Reportes />
-              </MainLayout>
+              <ProtectedRoute>
+                <MainLayout>
+                  <Reportes />
+                </MainLayout>
+              </ProtectedRoute>
             }
           />
 
           <Route
             path="/metricas"
             element={
-              <MainLayout>
-                <Metricas />
-              </MainLayout>
+              <ProtectedRoute>
+                <MainLayout>
+                  <Metricas />
+                </MainLayout>
+              </ProtectedRoute>
             }
           />
 
           <Route
             path="/proveedores"
             element={
-              <MainLayout>
-                <Proveedores />
-              </MainLayout>
+              <ProtectedRoute>
+                <MainLayout>
+                  <Proveedores />
+                </MainLayout>
+              </ProtectedRoute>
             }
           />
 
           <Route
             path="/compras"
             element={
-              <MainLayout>
-                <Compras />
-              </MainLayout>
+              <ProtectedRoute>
+                <MainLayout>
+                  <Compras />
+                </MainLayout>
+              </ProtectedRoute>
             }
           />
 
           <Route
             path="/bancos"
             element={
-              <MainLayout>
-                <Bancos />
-              </MainLayout>
+              <ProtectedRoute>
+                <MainLayout>
+                  <Bancos />
+                </MainLayout>
+              </ProtectedRoute>
             }
           />
 
           <Route
             path="/configuracion"
             element={
-              <MainLayout>
-                <Configuracion />
-              </MainLayout>
+              <ProtectedRoute>
+                <MainLayout>
+                  <Configuracion />
+                </MainLayout>
+              </ProtectedRoute>
             }
           />
 
           <Route
             path="/asistencia"
             element={
-              <MainLayout>
-                <Asistencia />
-              </MainLayout>
+              <ProtectedRoute>
+                <MainLayout>
+                  <Asistencia />
+                </MainLayout>
+              </ProtectedRoute>
             }
           />
 
+
+          {/* =========================================
+                        RUTA INICIAL
+                    ========================================= */}
+
           <Route
             path="/"
-            element={<Navigate to="/dashboard" replace />}
+            element={
+              <Navigate
+                to="/login"
+                replace
+              />
+            }
           />
+
+
+          {/* =========================================
+                        RUTA NO EXISTENTE
+                    ========================================= */}
 
           <Route
             path="*"
-            element={<Navigate to="/dashboard" replace />}
+            element={
+              <Navigate
+                to="/login"
+                replace
+              />
+            }
           />
 
         </Routes>
+
       </BrowserRouter>
     </RoleProvider>
   );
