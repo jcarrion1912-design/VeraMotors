@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import "./Clientes.css";
+import { actualizarCliente, obtenerClientes } from "../../services/clientesService";
 
 const API_URL = "http://127.0.0.1:8000/api";
 
@@ -14,6 +15,8 @@ function Clientes() {
 
     const [clientes, setClientes] = useState([]);
     const [cargando, setCargando] = useState(false);
+    const [mostrarEdicion, setMostrarEdicion] = useState(false);
+    const [clienteEditar, setClienteEditar] = useState(null);
 
     // Form states
     const [nuevoNombre, setNuevoNombre] = useState("");
@@ -108,6 +111,48 @@ function Clientes() {
 
     const cerrarFormulario = () => {
         setMostrarFormulario(false);
+        setMostrarEdicion(false);
+        setClienteEditar(null);
+    };
+
+    const abrirEdicionCliente = () => {
+        if (!cliente || !cliente.id) return;
+
+        setClienteEditar({
+            cliente_id: cliente.id,
+            tipo_persona: "Natural",
+            documento_identidad: cliente.documento || "",
+            nombre_razon_social: cliente.nombre || "",
+            telefono: cliente.telefono || "",
+            email: cliente.correo || "",
+            direccion_ubigeo: cliente.ciudad || ""
+        });
+        setMostrarEdicion(true);
+    };
+
+    const guardarEdicionCliente = async (e) => {
+        e.preventDefault();
+
+        if (!clienteEditar || !clienteEditar.cliente_id) return;
+
+        try {
+            await actualizarCliente(clienteEditar.cliente_id, {
+                tipo_persona: clienteEditar.tipo_persona,
+                documento_identidad: clienteEditar.documento_identidad,
+                nombre_razon_social: clienteEditar.nombre_razon_social,
+                direccion_ubigeo: clienteEditar.direccion_ubigeo,
+                telefono: clienteEditar.telefono || null,
+                email: clienteEditar.email || null
+            });
+
+            setMostrarEdicion(false);
+            setClienteEditar(null);
+            await cargarDatos();
+            alert("Perfil del cliente actualizado correctamente.");
+        } catch (error) {
+            console.error("Error actualizando cliente:", error);
+            alert(error.message || "No se pudo actualizar el cliente.");
+        }
     };
 
     const registrarCliente = async (e) => {
@@ -410,11 +455,7 @@ function Clientes() {
 
                                         <button
                                             className="btn-cliente"
-                                            onClick={() =>
-                                                alert(
-                                                    "Aquí se abrirá la edición del cliente"
-                                                )
-                                            }
+                                            onClick={abrirEdicionCliente}
                                         >
 
                                             <span className="material-symbols-outlined">
@@ -643,6 +684,64 @@ function Clientes() {
             {/* =========================================
                 MODAL NUEVO CLIENTE
             ========================================= */}
+
+            {mostrarEdicion && clienteEditar && (
+                <div className="modal-overlay" onMouseDown={(e) => {
+                    if (e.target === e.currentTarget) cerrarFormulario();
+                }}>
+                    <div className="modal-cliente">
+                        <div className="modal-cliente-header">
+                            <div>
+                                <h2>Editar cliente</h2>
+                                <p>Actualiza la información del cliente seleccionado.</p>
+                            </div>
+                            <button type="button" className="btn-cerrar-modal" onClick={cerrarFormulario}>
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+
+                        <form className="form-cliente" onSubmit={guardarEdicionCliente}>
+                            <div className="form-section">
+                                <h3>Información del cliente</h3>
+                                <div className="form-grid">
+                                    <div className="form-group">
+                                        <label>Tipo de cliente</label>
+                                        <select value={clienteEditar.tipo_persona} onChange={(e) => setClienteEditar({ ...clienteEditar, tipo_persona: e.target.value })}>
+                                            <option value="Natural">Persona natural</option>
+                                            <option value="Empresa">Empresa</option>
+                                        </select>
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Documento</label>
+                                        <input type="text" value={clienteEditar.documento_identidad} onChange={(e) => setClienteEditar({ ...clienteEditar, documento_identidad: e.target.value })} required />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Nombre / Razón Social</label>
+                                        <input type="text" value={clienteEditar.nombre_razon_social} onChange={(e) => setClienteEditar({ ...clienteEditar, nombre_razon_social: e.target.value })} required />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Teléfono</label>
+                                        <input type="tel" value={clienteEditar.telefono} onChange={(e) => setClienteEditar({ ...clienteEditar, telefono: e.target.value })} />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Correo</label>
+                                        <input type="email" value={clienteEditar.email} onChange={(e) => setClienteEditar({ ...clienteEditar, email: e.target.value })} />
+                                    </div>
+                                    <div className="form-group form-group-full">
+                                        <label>Dirección</label>
+                                        <input type="text" value={clienteEditar.direccion_ubigeo} onChange={(e) => setClienteEditar({ ...clienteEditar, direccion_ubigeo: e.target.value })} />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="modal-cliente-footer">
+                                <button type="button" className="btn-cancelar" onClick={cerrarFormulario}>Cancelar</button>
+                                <button type="submit" className="btn-guardar-cliente"><span className="material-symbols-outlined">save</span>Guardar cambios</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
 
             {mostrarFormulario && (
 

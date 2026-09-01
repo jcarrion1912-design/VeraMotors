@@ -58,10 +58,12 @@ def login(
         )
 
     # Login correcto
+    rol_nombre = usuario.rol.nombre if getattr(usuario, "rol", None) else "Sin rol"
+
     return {
         "user_id": usuario.user_id,
         "nombre": usuario.nombre,
         "email": usuario.email,
-        "rol": usuario.rol,
+        "rol": rol_nombre,
         "activo": usuario.activo
     }

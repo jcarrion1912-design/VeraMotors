@@ -23,48 +23,53 @@ const zonasVehiculo = [
     { id: "guardabarros_trasero_der", nombre: "Guardabarros trasero derecho", x: 300, y: 365, width: 45, height: 65 }
 ];
 
-function DiagramaVehiculo({ onChange }) {
-    const [danos, setDanos] = useState({});
+function DiagramaVehiculo({ danios, setDanios, onChange }) {
+    const [danoLocal, setDanoLocal] = useState({});
+    const datosActivos = danios ?? danoLocal;
+    const actualizarDanos = (nuevosDanos) => {
+        if (setDanios) {
+            setDanios(nuevosDanos);
+        } else {
+            setDanoLocal(nuevosDanos);
+        }
+
+        if (onChange) {
+            onChange(nuevosDanos);
+        }
+    };
 
     const cambiarEstado = (zonaId) => {
-        setDanos((prev) => {
-            const estadoActual = prev[zonaId] || "normal";
+        const estadoActual = datosActivos[zonaId] || "intacto";
 
-            let nuevoEstado;
+        let nuevoEstado;
 
-            if (estadoActual === "normal") {
-                nuevoEstado = "leve";
-            } else if (estadoActual === "leve") {
-                nuevoEstado = "grave";
-            } else {
-                nuevoEstado = "normal";
-            }
+        if (estadoActual === "intacto") {
+            nuevoEstado = "rayado";
+        } else if (estadoActual === "rayado") {
+            nuevoEstado = "golpeado";
+        } else {
+            nuevoEstado = "intacto";
+        }
 
-            const nuevosDanos = {
-                ...prev,
-                [zonaId]: nuevoEstado
-            };
+        const nuevosDanos = { ...datosActivos };
 
-            if (nuevoEstado === "normal") {
-                delete nuevosDanos[zonaId];
-            }
+        if (nuevoEstado === "intacto") {
+            delete nuevosDanos[zonaId];
+        } else {
+            nuevosDanos[zonaId] = nuevoEstado;
+        }
 
-            if (onChange) {
-                onChange(nuevosDanos);
-            }
-
-            return nuevosDanos;
-        });
+        actualizarDanos(nuevosDanos);
     };
 
     const obtenerClase = (zonaId) => {
-        const estado = danos[zonaId] || "normal";
+        const estado = datosActivos[zonaId] || "intacto";
 
-        if (estado === "leve") {
+        if (estado === "rayado") {
             return "zona-vehiculo zona-leve";
         }
 
-        if (estado === "grave") {
+        if (estado === "golpeado") {
             return "zona-vehiculo zona-grave";
         }
 
@@ -72,10 +77,10 @@ function DiagramaVehiculo({ onChange }) {
     };
 
     const obtenerEstado = (zonaId) => {
-        return danos[zonaId] || "normal";
+        return datosActivos[zonaId] || "intacto";
     };
 
-    const cantidadDanos = Object.keys(danos).length;
+    const cantidadDanos = Object.keys(datosActivos).length;
 
     return (
         <div className="diagrama-vehiculo">

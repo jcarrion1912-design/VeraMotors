@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./Compras.css";
+import { obtenerCompras, crearCompra } from "../../services/comprasService";
+import { obtenerProveedores } from "../../services/proveedoresService";
 
 const SUBMENUS_COMPRAS = [
     "Órdenes de Compra",
@@ -11,22 +13,46 @@ function Compras() {
     const [submodulo, setSubmodulo] = useState("Órdenes de Compra");
     const [estadoFiltro, setEstadoFiltro] = useState("Todos");
     const [mostrarModal, setMostrarModal] = useState(false);
+    const [cargando, setCargando] = useState(false);
 
-    // Órdenes de Compra Simuladas
-    const [ordenesCompra, setOrdenesCompra] = useState([
-        { id: "ODC-2026-081", proveedor: "Brembo Perú S.A.C.", fechaEmision: "2026-08-20", fechaEntrega: "2026-08-23", subtotal: 2640.00, igv: 475.20, total: 3115.20, estado: "Recibido" },
-        { id: "ODC-2026-082", proveedor: "Distribuidora Mobil1", fechaEmision: "2026-08-22", fechaEntrega: "2026-08-25", subtotal: 1800.00, igv: 324.00, total: 2124.00, estado: "Aprobado" },
-        { id: "ODC-2026-083", proveedor: "Bosch Autopartes del Perú", fechaEmision: "2026-08-24", fechaEntrega: "2026-08-27", subtotal: 1260.00, igv: 226.80, total: 1486.80, estado: "Solicitado" },
-    ]);
+    // Órdenes de Compra
+    const [ordenesCompra, setOrdenesCompra] = useState([]);
+    const [proveedores, setProveedores] = useState([]);
+
+    const cargarDatos = async () => {
+        try {
+            setCargando(true);
+            const [compras, provs] = await Promise.all([
+                obtenerCompras(),
+                obtenerProveedores()
+            ]);
+            setOrdenesCompra(compras);
+            setProveedores(provs);
+        } catch (error) {
+            console.error("Error cargando datos:", error);
+        } finally {
+            setCargando(false);
+        }
+    };
+
+    useEffect(() => {
+        cargarDatos();
+    }, []);
 
     // Modal Nueva Compra
-    const [proveedorSel, setProveedorSel] = useState("Brembo Perú S.A.C.");
+    const [proveedorSel, setProveedorSel] = useState("");
     const [itemsCompra, setItemsCompra] = useState([
         { descripcion: "Pastillas de Freno Brembo BRK-892-C", cantidad: 20, costoUnitario: 55.00 }
     ]);
     const [itemDesc, setItemDesc] = useState("");
     const [itemCant, setItemCant] = useState("");
     const [itemCosto, setItemCosto] = useState("");
+
+    useEffect(() => {
+        if (proveedores.length > 0 && !proveedorSel) {
+            setProveedorSel(proveedores[0].proveedor_id);
+        }
+    }, [proveedores]);
 
     const subtotalBruto = itemsCompra.reduce((t, i) => t + (i.cantidad * i.costoUnitario), 0);
     const igvCalculado = subtotalBruto * 0.18;
@@ -40,21 +66,28 @@ function Compras() {
         setItemCosto("");
     };
 
-    const emitirOrdenCompra = (e) => {
+    const emitirOrdenCompra = async (e) => {
         e.preventDefault();
-        const nuevaODC = {
-            id: `ODC-2026-0${84 + ordenesCompra.length}`,
-            proveedor: proveedorSel,
-            fechaEmision: new Date().toISOString().substring(0, 10),
-            fechaEntrega: "2026-08-28",
-            subtotal: subtotalBruto,
-            igv: igvCalculado,
-            total: totalCompra,
-            estado: "Solicitado"
-        };
-        setOrdenesCompra([nuevaODC, ...ordenesCompra]);
-        setMostrarModal(false);
-        alert(`¡Orden de Compra ${nuevaODC.id} registrada y notificada al proveedor ${proveedorSel}!`);
+        try {
+            const nuevaCompra = {
+                codigo_compra: `CMP-${Date.now()}`,
+                proveedor_id: proveedorSel,
+                usuario_id: 1,
+                subtotal: subtotalBruto,
+                impuestos: igvCalculado,
+                descuentos: 0,
+                total: totalCompra,
+                estado: "Registrada"
+            };
+            await crearCompra(nuevaCompra);
+            setMostrarModal(false);
+            setItemsCompra([]);
+            cargarDatos();
+            alert("¡Orden de Compra registrada exitosamente!");
+        } catch (error) {
+            console.error("Error registrando compra:", error);
+            alert("Error al registrar la compra");
+        }
     };
 
     const ordenesFiltradas = ordenesCompra.filter(o => 
@@ -121,27 +154,25 @@ function Compras() {
                         </thead>
                         <tbody>
                             {ordenesFiltradas.map(o => (
-                                <tr key={o.id}>
-                                    <td><strong>{o.id}</strong></td>
-                                    <td>{o.proveedor}</td>
-                                    <td>{o.fechaEmision}</td>
-                                    <td>{o.fechaEntrega}</td>
-                                    <td>S/ {o.subtotal.toFixed(2)}</td>
-                                    <td>S/ {o.igv.toFixed(2)}</td>
-                                    <td><strong>S/ {o.total.toFixed(2)}</strong></td>
+                                <tr key={o.compra_id}>
+                                    <td><strong>{o.codigo_compra}</strong></td>
+                                    <td>{o.proveedor?.razon_social || 'Proveedor'}</td>
+                                    <td>{new Date(o.fecha_compra).toLocaleDateString()}</td>
+                                    <td>{new Date(o.fecha_compra).toLocaleDateString()}</td>
+                                    <td>S/ {parseFloat(o.subtotal).toFixed(2)}</td>
+                                    <td>S/ {parseFloat(o.impuestos).toFixed(2)}</td>
+                                    <td><strong>S/ {parseFloat(o.total).toFixed(2)}</strong></td>
                                     <td>
-                                        <span className={`proc-tag ${o.estado === "Recibido" ? "preventivo" : o.estado === "Aprobado" ? "link" : "correctivo"}`}>
+                                        <span className={`proc-tag ${o.estado === "Recibida" ? "preventivo" : o.estado === "Registrada" ? "link" : "correctivo"}`}>
                                             {o.estado}
                                         </span>
                                     </td>
                                     <td>
                                         <div className="table-actions">
                                             <button className="btn-act-table link">📄 ODC PDF</button>
-                                            {o.estado !== "Recibido" && (
+                                            {o.estado !== "Recibida" && (
                                                 <button className="btn-act-table nps" onClick={() => {
-                                                    const actualizadas = ordenesCompra.map(item => item.id === o.id ? { ...item, estado: "Recibido" } : item);
-                                                    setOrdenesCompra(actualizadas);
-                                                    alert(`¡Mercadería de la ${o.id} ingresada a stock en Almacén!`);
+                                                    console.log("Recibir compra:", o.compra_id);
                                                 }}>
                                                     📦 Recibir en Stock
                                                 </button>
@@ -179,10 +210,12 @@ function Compras() {
                                 <div style={{ marginBottom: '14px' }}>
                                     <label style={{ fontSize: '0.85rem', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>Proveedor Homologado *</label>
                                     <select value={proveedorSel} onChange={(e) => setProveedorSel(e.target.value)}>
-                                        <option value="Brembo Perú S.A.C.">Brembo Perú S.A.C.</option>
-                                        <option value="Distribuidora Mobil1">Distribuidora Mobil1</option>
-                                        <option value="Bosch Autopartes del Perú">Bosch Autopartes del Perú</option>
-                                        <option value="NGK Spark Plugs Perú">NGK Spark Plugs Perú</option>
+                                        <option value="">Selecciona proveedor</option>
+                                        {proveedores.map(p => (
+                                            <option key={p.proveedor_id} value={p.proveedor_id}>
+                                                {p.razon_social}
+                                            </option>
+                                        ))}
                                     </select>
                                 </div>
 

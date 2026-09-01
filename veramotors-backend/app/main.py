@@ -22,7 +22,11 @@ from app.routers import (
     ia_rag,
     notas_credito,
     remisiones,
-    cierre_caja
+    cierre_caja,
+    compras,
+    proveedores,
+    bancos,
+    reportes
 )
 
 
@@ -179,6 +183,38 @@ app.include_router(
     cierre_caja.router,
     prefix=f"{settings.API_V1_STR}/cierre-caja",
     tags=["Cierre de Caja"]
+)
+
+
+# Compras
+app.include_router(
+    compras.router,
+    prefix=f"{settings.API_V1_STR}/compras",
+    tags=["Compras"]
+)
+
+
+# Proveedores
+app.include_router(
+    proveedores.router,
+    prefix=f"{settings.API_V1_STR}/proveedores",
+    tags=["Proveedores"]
+)
+
+
+# Bancos y Tesorería
+app.include_router(
+    bancos.router,
+    prefix=f"{settings.API_V1_STR}/bancos",
+    tags=["Bancos y Tesorería"]
+)
+
+
+# Reportes y Métricas
+app.include_router(
+    reportes.router,
+    prefix=f"{settings.API_V1_STR}/reportes",
+    tags=["Reportes y Métricas"]
 )
 
 

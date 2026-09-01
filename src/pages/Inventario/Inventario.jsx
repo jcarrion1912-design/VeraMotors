@@ -1,5 +1,9 @@
 import { useState, useEffect } from "react";
 import "./Inventario.css";
+import {
+    obtenerInventario,
+    crearItem
+} from "../../services/inventarioService";
 
 const API_URL = "http://127.0.0.1:8000/api";
 
@@ -16,25 +20,24 @@ function Inventario() {
     const cargarInventario = async () => {
         try {
             setCargando(true);
-            const res = await fetch(`${API_URL}/inventario`);
-            if (res.ok) {
-                const data = await res.json();
-                const transformados = data.map((item) => ({
-                    id: item.item_id,
-                    tipo: item.tipo,
-                    nombre: item.nombre_nomenclatura,
-                    codigo: item.codigo_referencia,
-                    unidad: item.unidad_medida,
-                    marca: "VeraMotors",
-                    categoria: item.categoria_nombre || "General",
-                    stock: 50,
-                    minimo: 10,
-                    costo: Number(item.costo_compra || 0),
-                    precio: Number(item.precio_venta || 0),
-                    igv: "18%"
-                }));
-                setProductos(transformados);
-            }
+            const data = await obtenerInventario();
+
+            const transformados = data.map((item) => ({
+                id: item.item_id,
+                tipo: item.tipo,
+                nombre: item.nombre_nomenclatura,
+                codigo: item.codigo_referencia,
+                unidad: item.unidad_medida,
+                marca: item.marca || "",
+                categoria: item.categoria_nombre || "",
+                stock: Number(item.stock_actual || 0),
+                minimo: Number(item.stock_minimo || 0),
+                costo: Number(item.costo_compra || 0),
+                precio: Number(item.precio_venta || 0),
+                igv: `${Number(item.impuesto || 0)}%`
+            }));
+
+            setProductos(transformados);
         } catch (error) {
             console.error("Error cargando inventario:", error);
         } finally {
@@ -47,17 +50,18 @@ function Inventario() {
     }, []);
 
     const [nuevoProducto, setNuevoProducto] = useState({
-        tipo: "Repuesto",
-        nombre: "",
-        codigo: "",
-        categoria_id: 1,
-        unidad: "Unidad",
-        marca: "",
-        costo: "",
-        precio: "",
-        stock: "",
-        minimo: "",
-        igv: "18%"
+    tipo: "Repuesto",
+    nombre: "",
+    codigo: "",
+    categoria_id: 1,
+    unidad: "Unidad",
+    marca: "",
+    costo: "",
+    margenGanancia: "",
+    precio: "",
+    stock: "",
+    minimo: "",
+    igv: "18%"
     });
 
     const totalProductos = productos.reduce((t, p) => t + Number(p.stock), 0);
@@ -86,30 +90,34 @@ function Inventario() {
             const body = {
                 tipo: nuevoProducto.tipo,
                 categoria_id: Number(nuevoProducto.categoria_id) || 1,
-                codigo_referencia: nuevoProducto.codigo,
-                nombre_nomenclatura: nuevoProducto.nombre,
+                codigo_referencia: nuevoProducto.codigo.trim(),
+                nombre_nomenclatura: nuevoProducto.nombre.trim(),
                 unidad_medida: nuevoProducto.unidad,
+                marca: nuevoProducto.marca.trim() || null,
+                stock_actual: Number(nuevoProducto.stock) || 0,
+                stock_minimo: Number(nuevoProducto.minimo) || 0,
                 costo_compra: Number(nuevoProducto.costo) || 0,
-                margen_ganancia: 30,
-                precio_venta: Number(nuevoProducto.precio),
-                impuesto: 18
+                margen_ganancia: Number(nuevoProducto.margenGanancia) || 0,
+                precio_venta: Number(nuevoProducto.precio) || 0,
+                impuesto: Number(String(nuevoProducto.igv).replace("%", "")) || 0
             };
 
-            const res = await fetch(`${API_URL}/inventario`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(body)
-            });
-
-            if (!res.ok) {
-                const err = await res.json();
-                throw new Error(err.detail || "Error al crear el ítem.");
-            }
-
-            alert("¡Ítem registrado en inventario exitosamente en PostgreSQL!");
+            await crearItem(body);
+            alert("¡Ítem registrado en inventario exitosamente!");
             setMostrarFormulario(false);
             setNuevoProducto({
-                tipo: "Repuesto", nombre: "", codigo: "", categoria_id: 1, unidad: "Unidad", marca: "", costo: "", precio: "", stock: "", minimo: "", igv: "18%"
+                tipo: "Repuesto",
+                nombre: "",
+                codigo: "",
+                categoria_id: 1,
+                unidad: "Unidad",
+                marca: "",
+                costo: "",
+                margenGanancia: "",
+                precio: "",
+                stock: "",
+                minimo: "",
+                igv: "18%"
             });
             await cargarInventario();
         } catch (error) {

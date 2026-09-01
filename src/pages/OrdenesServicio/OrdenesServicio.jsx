@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRole } from "../../context/RoleContext";
 import DiagramaVehiculo from "../../components/DiagramaVehiculo";
+import { obtenerODS } from "../../services/odsService";
+import { obtenerUsuarios } from "../../services/usuariosService";
 import "./OrdenesServicio.css";
 
 function OrdenesServicio() {
@@ -32,7 +34,7 @@ function OrdenesServicio() {
     const [cotizacionPrevia, setCotizacionPrevia] = useState("Sin Cotización");
     const [procedimiento, setProcedimiento] = useState("Preventivo");
     const [motivoDetallado, setMotivoDetallado] = useState("Ruido inusual en frenos traseros al desacelerar.");
-    const [fotosMotivo, setFotosMotivo] = useState(["foto_frontal.jpg", "foto_lateral.jpg"]);
+    const [fotosMotivo, setFotosMotivo] = useState([]);
 
     // Checklist de Inspección
     const [nivelCombustible, setNivelCombustible] = useState("1/2");
@@ -55,7 +57,7 @@ function OrdenesServicio() {
         soat: true,
         revisionTecnica: false
     });
-    const [danios, setDanios] = useState([]);
+    const [danios, setDanios] = useState({});
 
     // Modales de Flujos Especiales (Cliente, Diagnóstico Técnico, Entrega NPS, Trazabilidad)
     const [mostrarModalCliente, setMostrarModalCliente] = useState(false);
@@ -79,16 +81,148 @@ function OrdenesServicio() {
     const [npsPuntaje, setNpsPuntaje] = useState(10);
     const [npsComentario, setNpsComentario] = useState("Excelente servicio y atención puntual.");
 
-    // Lista de ODS Similadas
-    const [listaODS, setListaODS] = useState([
-        { id: "ODS-1001", cliente: "Carlos Mendoza", placa: "ABC-123", marca: "Toyota Corolla", estado: "Recepción", fecha: "2026-08-23 09:30", tecnico: "Luis García", asignadoHaceMinutos: 3, procedimiento: "Preventivo" },
-        { id: "ODS-1002", cliente: "Elena Rojas", placa: "DEF-789", marca: "Kia Sportage", estado: "Diagnóstico", fecha: "2026-08-23 10:15", tecnico: "Luis García", asignadoHaceMinutos: 8, procedimiento: "Correctivo" },
-        { id: "ODS-1003", cliente: "Talleres Industriales", placa: "GHI-321", marca: "Toyota Hilux", estado: "Repuestos", fecha: "2026-08-23 11:00", tecnico: "Pedro Ramírez", asignadoHaceMinutos: 15, procedimiento: "Correctivo" },
-        { id: "ODS-1004", cliente: "Juan Pérez", placa: "XYZ-987", marca: "Ford Transit", estado: "Aprobación", fecha: "2026-08-23 11:45", tecnico: "Luis García", asignadoHaceMinutos: 2, procedimiento: "Preventivo" },
-        { id: "ODS-1005", cliente: "María Torres", placa: "JKL-654", marca: "Hyundai Tucson", estado: "Reparación", fecha: "2026-08-23 12:20", tecnico: "Pedro Ramírez", asignadoHaceMinutos: 30, procedimiento: "Correctivo" },
-        { id: "ODS-1006", cliente: "Roberto Gomez", placa: "MNO-456", marca: "Nissan Frontier", estado: "Control de Calidad", fecha: "2026-08-23 13:00", tecnico: "Jorge Salazar", asignadoHaceMinutos: 45, procedimiento: "Preventivo" },
-        { id: "ODS-1007", cliente: "Lucía Fernández", placa: "PQR-111", marca: "Honda CR-V", estado: "Entrega", fecha: "2026-08-23 14:10", tecnico: "Luis García", asignadoHaceMinutos: 60, procedimiento: "Preventivo" },
-    ]);
+    const [listaODS, setListaODS] = useState([]);
+    const [usuariosAPI, setUsuariosAPI] = useState([]);
+    const [clientesAPI, setClientesAPI] = useState([]);
+    const [vehiculosCliente, setVehiculosCliente] = useState([]);
+    const [clienteSeleccionadoId, setClienteSeleccionadoId] = useState("");
+    const [vehiculoSeleccionadoId, setVehiculoSeleccionadoId] = useState("");
+    const [asesorSeleccionadoId, setAsesorSeleccionadoId] = useState("");
+    const [tecnicoSeleccionadoId, setTecnicoSeleccionadoId] = useState("");
+
+    const cargarDatosODS = async () => {
+        try {
+            const [odsData, usuariosData, clientesData] = await Promise.all([
+                obtenerODS(),
+                obtenerUsuarios(),
+                fetch("http://127.0.0.1:8000/api/clientes").then((res) => res.ok ? res.json() : [])
+            ]);
+
+            const listaNormalizada = Array.isArray(odsData)
+                ? odsData.map((item) => {
+                    const tecnico = Array.isArray(usuariosData)
+                        ? usuariosData.find((u) => Number(u.user_id) === Number(item.tecnico_id))
+                        : null;
+
+                    const fechaIngreso = item.fecha_ingreso ? new Date(item.fecha_ingreso) : new Date();
+
+                    return {
+                        id: `ODS-${item.ods_id}`,
+                        cliente: item.cliente_nombre || "Cliente sin nombre",
+                        placa: item.vehiculo_placa || "Sin placa",
+                        marca: item.tipo_procedimiento || "Servicio",
+                        estado: item.estado_actual || "Recepción",
+                        fecha: fechaIngreso.toLocaleString("es-PE", { dateStyle: "short", timeStyle: "short" }),
+                        tecnico: tecnico ? tecnico.nombre : `Técnico ${item.tecnico_id || "sin asignar"}`,
+                        asignadoHaceMinutos: Math.max(1, Math.round((Date.now() - fechaIngreso.getTime()) / 60000)),
+                        procedimiento: item.tipo_procedimiento || "Preventivo"
+                    };
+                })
+                : [];
+
+            const asesores = Array.isArray(usuariosData)
+                ? usuariosData.filter((u) => u.rol === "Asesor de Servicio" || Number(u.rol_id) === 2)
+                : [];
+            const tecnicos = Array.isArray(usuariosData)
+                ? usuariosData.filter((u) => u.rol === "Técnico Automotriz" || Number(u.rol_id) === 4)
+                : [];
+
+            setListaODS(listaNormalizada);
+            setUsuariosAPI(Array.isArray(usuariosData) ? usuariosData : []);
+            setClientesAPI(Array.isArray(clientesData) ? clientesData : []);
+
+            if (Array.isArray(clientesData) && clientesData.length > 0 && !clienteSeleccionadoId) {
+                setClienteSeleccionadoId(String(clientesData[0].cliente_id));
+            }
+
+            if (asesores.length > 0 && !asesorSeleccionadoId) {
+                setAsesorSeleccionadoId(String(asesores[0].user_id));
+            }
+
+            if (tecnicos.length > 0 && !tecnicoSeleccionadoId) {
+                setTecnicoSeleccionadoId(String(tecnicos[0].user_id));
+            }
+        } catch (error) {
+            console.error("Error cargando ODS reales:", error);
+            setListaODS([]);
+            setUsuariosAPI([]);
+            setClientesAPI([]);
+        }
+    };
+
+    useEffect(() => {
+        cargarDatosODS();
+    }, []);
+
+    useEffect(() => {
+        const cargarVehiculosDelCliente = async () => {
+            if (!clienteSeleccionadoId) {
+                setVehiculosCliente([]);
+                setVehiculoSeleccionadoId("");
+                return;
+            }
+
+            try {
+                const res = await fetch(`http://127.0.0.1:8000/api/vehiculos?cliente_id=${clienteSeleccionadoId}`);
+                const data = await res.json();
+                const vehiculos = Array.isArray(data) ? data : [];
+                setVehiculosCliente(vehiculos);
+
+                if (vehiculos.length > 0) {
+                    const primerVehiculo = vehiculos[0];
+                    setVehiculoSeleccionadoId(String(primerVehiculo.vehiculo_id));
+                    setTipoVehiculo(primerVehiculo.tipo_vehiculo || "Automóvil");
+                    setPlaca(primerVehiculo.placa || "");
+                    setMarca(primerVehiculo.marca || "");
+                    setModelo(primerVehiculo.modelo || "");
+                    setAnio(primerVehiculo.anio ? String(primerVehiculo.anio) : "");
+                    setColor(primerVehiculo.color || "");
+                    setVin(primerVehiculo.vin || "");
+                    setKilometraje("84500");
+                } else {
+                    setVehiculoSeleccionadoId("");
+                    setTipoVehiculo("Automóvil");
+                    setPlaca("");
+                    setMarca("");
+                    setModelo("");
+                    setAnio("");
+                    setColor("");
+                    setVin("");
+                    setKilometraje("");
+                }
+            } catch (error) {
+                console.error("Error cargando vehículos del cliente:", error);
+                setVehiculosCliente([]);
+                setVehiculoSeleccionadoId("");
+            }
+        };
+
+        cargarVehiculosDelCliente();
+    }, [clienteSeleccionadoId]);
+
+    const manejarCambioVehiculo = (vehiculoId) => {
+        const vehiculo = vehiculosCliente.find((item) => String(item.vehiculo_id) === String(vehiculoId));
+        setVehiculoSeleccionadoId(String(vehiculoId));
+
+        if (!vehiculo) {
+            setTipoVehiculo("Automóvil");
+            setPlaca("");
+            setMarca("");
+            setModelo("");
+            setAnio("");
+            setColor("");
+            setVin("");
+            return;
+        }
+
+        setTipoVehiculo(vehiculo.tipo_vehiculo || "Automóvil");
+        setPlaca(vehiculo.placa || "");
+        setMarca(vehiculo.marca || "");
+        setModelo(vehiculo.modelo || "");
+        setAnio(vehiculo.anio ? String(vehiculo.anio) : "");
+        setColor(vehiculo.color || "");
+        setVin(vehiculo.vin || "");
+    };
 
     // Función formato de tiempo asignado
     const formatearTiempoAsignacion = (minutos, fechaExacta) => {
@@ -139,24 +273,81 @@ function OrdenesServicio() {
         setDocumentos(prev => ({ ...prev, [campo]: !prev[campo] }));
     };
 
-    const guardarODS = () => {
-        const nuevaODS = {
-            id: `ODS-${1000 + listaODS.length + 1}`,
-            cliente,
-            placa,
-            marca: `${marca} ${modelo}`,
-            estado: "Recepción",
-            fecha: new Date().toISOString().replace('T', ' ').substring(0, 16),
-            tecnico,
-            asignadoHaceMinutos: 1,
-            procedimiento
+    const guardarODS = async () => {
+        if (!clienteSeleccionadoId || !vehiculoSeleccionadoId || !asesorSeleccionadoId || !tecnicoSeleccionadoId) {
+            alert("Debes seleccionar un cliente, un vehículo, un asesor y un técnico para registrar la ODS.");
+            return;
+        }
+
+        const usuarioActual = JSON.parse(localStorage.getItem("usuario") || "null");
+
+        const clienteSeleccionadoNombre = clientesAPI.find((item) => String(item.cliente_id) === String(clienteSeleccionadoId))?.nombre_razon_social || "Cliente";
+        const asesorSeleccionadoNombre = usuariosAPI.find((item) => String(item.user_id) === String(asesorSeleccionadoId))?.nombre || "Asesor";
+        const tecnicoSeleccionadoNombre = usuariosAPI.find((item) => String(item.user_id) === String(tecnicoSeleccionadoId))?.nombre || "Técnico";
+
+        const payload = {
+            codigo_ods: `ODS-${Date.now()}`,
+            numero_ticket: `TK-${Date.now()}`,
+            cita_id: null,
+            cliente_id: Number(clienteSeleccionadoId),
+            vehiculo_id: Number(vehiculoSeleccionadoId),
+            cotizacion_id: null,
+            asesor_id: Number(asesorSeleccionadoId),
+            tecnico_id: Number(tecnicoSeleccionadoId),
+            estado_actual: "Recepción",
+            tipo_procedimiento: procedimiento,
+            kilometraje_ingreso: kilometraje ? Number(kilometraje) : null,
+            inspeccion_json: {
+                checklist_inspeccion: {
+                    nivel_combustible: nivelCombustible,
+                    fluidos: fluidos,
+                    inventario_vehicular: inventarioVehicular,
+                    documentacion: documentos,
+                    fotos_ingreso: fotosMotivo
+                },
+                motivo_servicio: {
+                    requiere_diagnostico: realizaraDiagnostico === "Sí",
+                    cotizacion_previa: cotizacionPrevia,
+                    tipo_procedimiento: procedimiento,
+                    motivo_detallado: motivoDetallado,
+                    fotos_ingreso: fotosMotivo,
+                    cliente: clienteSeleccionadoNombre,
+                    asesor_asignado: asesorSeleccionadoNombre,
+                    tecnico_asignado: tecnicoSeleccionadoNombre
+                },
+                danos_carroceria: Object.entries(danios || {}).map(([zona, tipo]) => ({
+                    zona,
+                    tipo: tipo === "rayado" ? "rayado" : tipo === "golpeado" ? "golpeado" : "intacto",
+                    detalle: tipo === "golpeado" ? "Daño visible en zona del vehículo" : "Rayado visible en zona del vehículo"
+                })),
+                inspectado_por: usuarioActual?.nombre || "Sistema"
+            },
+            observaciones: motivoDetallado,
+            estado_aprobacion_cliente: "Pendiente"
         };
-        setListaODS([nuevaODS, ...listaODS]);
-        // Notificar al Asesor de Servicio / Técnico
-        agregarNotificacion(`Nueva ODS ${nuevaODS.id} creada para el cliente ${cliente}`, ROLES.ASESOR_SERVICIO);
-        agregarNotificacion(`Se le ha asignado la ODS ${nuevaODS.id} (${placa})`, ROLES.TECNICO);
-        alert(`¡Orden de Servicio ${nuevaODS.id} registrada con éxito!`);
-        setModoEdicion(false);
+
+        try {
+            const res = await fetch("http://127.0.0.1:8000/api/ods", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.detail || "No se pudo registrar la orden de servicio.");
+            }
+
+            await cargarDatosODS();
+            agregarNotificacion(`Nueva ODS ${data.codigo_ods} creada para el cliente ${clienteSeleccionadoId}`, ROLES.ASESOR_SERVICIO);
+            agregarNotificacion(`Se le ha asignado la ODS ${data.codigo_ods} al técnico seleccionado`, ROLES.TECNICO);
+            alert(`¡Orden de Servicio ${data.codigo_ods} registrada con éxito!`);
+            setModoEdicion(false);
+        } catch (error) {
+            console.error("Error creando ODS:", error);
+            alert(error.message || "Error al guardar la orden de servicio.");
+        }
     };
 
     const odsFiltradas = listaODS.filter(o => 
@@ -354,49 +545,62 @@ function OrdenesServicio() {
                             <div className="os-form">
                                 <div className="campo">
                                     <label>Cliente / Propietario</label>
-                                    <input type="text" value={cliente} onChange={(e) => setCliente(e.target.value)} placeholder="Nombres o Razón Social" />
+                                    <select value={clienteSeleccionadoId} onChange={(e) => setClienteSeleccionadoId(e.target.value)}>
+                                        <option value="">Seleccione un cliente</option>
+                                        {clientesAPI.map((clienteItem) => (
+                                            <option key={clienteItem.cliente_id} value={clienteItem.cliente_id}>
+                                                {clienteItem.nombre_razon_social}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="campo">
+                                    <label>Vehículo del Cliente</label>
+                                    <select value={vehiculoSeleccionadoId} onChange={(e) => manejarCambioVehiculo(e.target.value)} disabled={!clienteSeleccionadoId || vehiculosCliente.length === 0}>
+                                        <option value="">Seleccione un vehículo</option>
+                                        {vehiculosCliente.map((vehiculo) => (
+                                            <option key={vehiculo.vehiculo_id} value={vehiculo.vehiculo_id}>
+                                                {vehiculo.marca} {vehiculo.modelo} - {vehiculo.placa}
+                                            </option>
+                                        ))}
+                                    </select>
                                 </div>
 
                                 <div className="campo-group">
                                     <div className="campo">
                                         <label>Tipo de Vehículo</label>
-                                        <select value={tipoVehiculo} onChange={(e) => setTipoVehiculo(e.target.value)}>
-                                            <option>Automóvil</option>
-                                            <option>SUV</option>
-                                            <option>Pick up</option>
-                                            <option>Van</option>
-                                            <option>Camión</option>
-                                        </select>
+                                        <input type="text" value={tipoVehiculo} readOnly placeholder="Automóvil" />
                                     </div>
                                     <div className="campo">
                                         <label>Placa</label>
-                                        <input type="text" value={placa} onChange={(e) => setPlaca(e.target.value)} placeholder="ABC-123" />
+                                        <input type="text" value={placa} readOnly placeholder="ABC-123" />
                                     </div>
                                 </div>
 
                                 <div className="campo-group">
                                     <div className="campo">
                                         <label>Marca</label>
-                                        <input type="text" value={marca} onChange={(e) => setMarca(e.target.value)} />
+                                        <input type="text" value={marca} readOnly />
                                     </div>
                                     <div className="campo">
                                         <label>Modelo</label>
-                                        <input type="text" value={modelo} onChange={(e) => setModelo(e.target.value)} />
+                                        <input type="text" value={modelo} readOnly />
                                     </div>
                                     <div className="campo">
                                         <label>Año</label>
-                                        <input type="number" value={anio} onChange={(e) => setAnio(e.target.value)} />
+                                        <input type="number" value={anio} readOnly />
                                     </div>
                                 </div>
 
                                 <div className="campo-group">
                                     <div className="campo">
                                         <label>Color</label>
-                                        <input type="text" value={color} onChange={(e) => setColor(e.target.value)} />
+                                        <input type="text" value={color} readOnly />
                                     </div>
                                     <div className="campo">
                                         <label>VIN (N° Chasis)</label>
-                                        <input type="text" value={vin} onChange={(e) => setVin(e.target.value)} />
+                                        <input type="text" value={vin} readOnly />
                                     </div>
                                     <div className="campo">
                                         <label>Kilometraje Ingreso</label>
@@ -408,11 +612,30 @@ function OrdenesServicio() {
                                 </div>
 
                                 <div className="campo">
+                                    <label>Asesor de Servicio Asignado</label>
+                                    <select value={asesorSeleccionadoId} onChange={(e) => setAsesorSeleccionadoId(e.target.value)}>
+                                        <option value="">Seleccione un asesor</option>
+                                        {usuariosAPI
+                                            .filter((usuario) => usuario.rol === "Asesor de Servicio" || Number(usuario.rol_id) === 2)
+                                            .map((usuario) => (
+                                                <option key={usuario.user_id} value={usuario.user_id}>
+                                                    {usuario.nombre}
+                                                </option>
+                                            ))}
+                                    </select>
+                                </div>
+
+                                <div className="campo">
                                     <label>Técnico Automotriz Asignado</label>
-                                    <select value={tecnico} onChange={(e) => setTecnico(e.target.value)}>
-                                        <option>Luis García</option>
-                                        <option>Pedro Ramírez</option>
-                                        <option>Jorge Salazar</option>
+                                    <select value={tecnicoSeleccionadoId} onChange={(e) => setTecnicoSeleccionadoId(e.target.value)}>
+                                        <option value="">Seleccione un técnico</option>
+                                        {usuariosAPI
+                                            .filter((usuario) => usuario.rol === "Técnico Automotriz" || Number(usuario.rol_id) === 4)
+                                            .map((usuario) => (
+                                                <option key={usuario.user_id} value={usuario.user_id}>
+                                                    {usuario.nombre}
+                                                </option>
+                                            ))}
                                     </select>
                                 </div>
                             </div>

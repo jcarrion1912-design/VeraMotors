@@ -7,6 +7,7 @@ import {
     marcarSalida,
     actualizarAsistencia
 } from "../../services/asistenciaService";
+import { obtenerUsuarios } from "../../services/usuariosService";
 
 
 // ======================================================
@@ -154,6 +155,9 @@ function Asistencia() {
     const [asistenciasAPI, setAsistenciasAPI] =
         useState([]);
 
+    const [usuariosAPI, setUsuariosAPI] =
+        useState([]);
+
     const [cargando, setCargando] =
         useState(true);
 
@@ -186,17 +190,20 @@ function Asistencia() {
             setCargando(true);
             setErrorAPI("");
 
-            const datos =
-                await obtenerAsistencias();
-
-            console.log(
-                "Asistencias recibidas:",
-                datos
-            );
+            const [datosAsistencia, datosUsuarios] = await Promise.all([
+                obtenerAsistencias(),
+                obtenerUsuarios()
+            ]);
 
             setAsistenciasAPI(
-                Array.isArray(datos)
-                    ? datos
+                Array.isArray(datosAsistencia)
+                    ? datosAsistencia
+                    : []
+            );
+
+            setUsuariosAPI(
+                Array.isArray(datosUsuarios)
+                    ? datosUsuarios
                     : []
             );
 
@@ -239,6 +246,16 @@ function Asistencia() {
 
         const usuarios = new Map();
 
+        usuariosAPI.forEach((u) => {
+            if (!usuarios.has(u.user_id)) {
+                usuarios.set(u.user_id, {
+                    id: u.user_id,
+                    nombre: u.nombre || `Usuario ${u.user_id}`,
+                    cargo: u.rol || "Sin cargo"
+                });
+            }
+        });
+
         asistenciasAPI.forEach((a) => {
 
             if (!usuarios.has(a.user_id)) {
@@ -266,7 +283,7 @@ function Asistencia() {
             usuarios.values()
         );
 
-    }, [asistenciasAPI]);
+    }, [asistenciasAPI, usuariosAPI]);
 
 
     // ==================================================

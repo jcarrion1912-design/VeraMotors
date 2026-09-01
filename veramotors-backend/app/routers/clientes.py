@@ -29,3 +29,17 @@ def crear_cliente(datos: ClienteCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(cliente)
     return cliente
+
+
+@router.put("/{cliente_id}", response_model=ClienteResponse)
+def actualizar_cliente(cliente_id: int, datos: ClienteCreate, db: Session = Depends(get_db)):
+    cliente = db.query(Cliente).filter(Cliente.cliente_id == cliente_id).first()
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado.")
+
+    for campo, valor in datos.model_dump().items():
+        setattr(cliente, campo, valor)
+
+    db.commit()
+    db.refresh(cliente)
+    return cliente

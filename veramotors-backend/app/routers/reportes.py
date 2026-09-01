@@ -1,0 +1,184 @@
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+from sqlalchemy import func
+from decimal import Decimal
+from datetime import datetime, timedelta
+
+from app.database import get_db
+from app.models.factura import Factura
+from app.models.inventario import Inventario
+from app.models.ods import OrdenServicio
+from app.models.usuario import Usuario
+from app.models.asistencia import Asistencia
+
+router = APIRouter()
+
+
+@router.get("/dashboard")
+def obtener_dashboard_metricas(db: Session = Depends(get_db)):
+    """
+    Retorna métricas principales para el dashboard
+    """
+    
+    # Ventas totales (últimos 30 días)
+    fecha_hace_30 = datetime.now() - timedelta(days=30)
+    ventas_totales = db.query(func.sum(Factura.total)).filter(
+        Factura.fecha_emision >= fecha_hace_30
+    ).scalar() or Decimal("0")
+
+    # Órdenes de servicio completadas
+    ods_completadas = db.query(func.count(OrdenServicio.ods_id)).filter(
+        OrdenServicio.estado_actual == "Completado"
+    ).scalar() or 0
+
+    # Inventario stock bajo
+    stock_bajo = db.query(func.count(Inventario.item_id)).filter(
+        Inventario.stock_actual <= Inventario.stock_minimo
+    ).scalar() or 0
+
+    # Valor total de inventario
+    valor_inventario = db.query(
+        func.sum(Inventario.stock_actual * Inventario.precio_venta)
+    ).scalar() or Decimal("0")
+
+    return {
+        "ventas_totales": float(ventas_totales),
+        "ods_completadas": ods_completadas,
+        "items_stock_bajo": stock_bajo,
+        "valor_inventario": float(valor_inventario),
+        "fecha_actualizacion": datetime.now().isoformat()
+    }
+
+
+@router.get("/ventasPeriodo")
+def obtener_ventas_periodo(
+    fecha_inicio: str,
+    fecha_fin: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Retorna ventas en un período específico
+    """
+    try:
+        inicio = datetime.fromisoformat(fecha_inicio)
+        fin = datetime.fromisoformat(fecha_fin)
+    except ValueError:
+        return {"error": "Formato de fecha inválido. Use ISO format"}
+
+    ventas = db.query(Factura).filter(
+        Factura.fecha_emision.between(inicio, fin)
+    ).all()
+
+    total = sum(float(f.total) for f in ventas)
+
+    return {
+        "periodo": {
+            "inicio": fecha_inicio,
+            "fin": fecha_fin
+        },
+        "cantidad_facturas": len(ventas),
+        "total_ventas": total,
+        "promedio_venta": total / len(ventas) if ventas else 0
+    }
+
+
+@router.get("/rentabilidad")
+def obtener_rentabilidad(db: Session = Depends(get_db)):
+    """
+    Retorna análisis de rentabilidad
+    """
+    # Ingresos totales
+    ingresos = db.query(func.sum(Factura.total)).scalar() or Decimal("0")
+
+    # Costos (suma de costos en inventario)
+    costos = db.query(
+        func.sum(Inventario.stock_actual * Inventario.costo_compra)
+    ).scalar() or Decimal("0")
+
+    ingresos_float = float(ingresos)
+    costos_float = float(costos)
+    margen = ((ingresos_float - costos_float) / ingresos_float * 100) if ingresos_float > 0 else 0
+
+    return {
+        "ingresos_totales": ingresos_float,
+        "costos_totales": costos_float,
+        "margen_bruto": margen,
+        "ganancia": ingresos_float - costos_float
+    }
+
+
+@router.get("/inventario-resumen")
+def obtener_inventario_resumen(db: Session = Depends(get_db)):
+    """
+    Retorna resumen del inventario
+    """
+    items_totales = db.query(func.count(Inventario.item_id)).scalar() or 0
+    stock_bajo = db.query(func.count(Inventario.item_id)).filter(
+        Inventario.stock_actual <= Inventario.stock_minimo
+    ).scalar() or 0
+
+    valor_total = db.query(
+        func.sum(Inventario.stock_actual * Inventario.precio_venta)
+    ).scalar() or Decimal("0")
+
+    return {
+        "items_totales": items_totales,
+        "items_stock_bajo": stock_bajo,
+        "valor_inventario": float(valor_total),
+        "porcentaje_bajo": (stock_bajo / items_totales * 100) if items_totales > 0 else 0
+    }
+
+
+@router.get("/asistencia-resumen")
+def obtener_asistencia_resumen(db: Session = Depends(get_db)):
+    """
+    Retorna resumen de asistencia del mes
+    """
+    hoy = datetime.now().date()
+    primer_dia = hoy.replace(day=1)
+
+    asistencias = db.query(Asistencia).filter(
+        Asistencia.fecha >= primer_dia
+    ).all()
+
+    puntual = sum(1 for a in asistencias if a.estado == "Puntual")
+    tardanzas = sum(1 for a in asistencias if a.estado == "Tardanza")
+    faltas = sum(1 for a in asistencias if a.estado == "Inasistencia")
+
+    return {
+        "puntual": puntual,
+        "tardanzas": tardanzas,
+        "faltas": faltas,
+        "total": len(asistencias)
+    }
+
+
+@router.get("/tecnicos-desempenio")
+def obtener_tecnicos_desempenio(db: Session = Depends(get_db)):
+    """
+    Retorna desempeño de técnicos
+    """
+    tecnicos = db.query(Usuario).filter(
+        Usuario.rol_id == 4  # Técnico Automotriz
+    ).all()
+
+    desempenio = []
+    for tecnico in tecnicos:
+        ods = db.query(func.count(OrdenServicio.ods_id)).filter(
+            OrdenServicio.tecnico_id == tecnico.user_id
+        ).scalar() or 0
+
+        ods_completadas = db.query(func.count(OrdenServicio.ods_id)).filter(
+            OrdenServicio.tecnico_id == tecnico.user_id,
+            OrdenServicio.estado_actual == "Completado"
+        ).scalar() or 0
+
+        desempenio.append({
+            "tecnico_id": tecnico.user_id,
+            "nombre": tecnico.nombre,
+            "ods_totales": ods,
+            "ods_completadas": ods_completadas,
+            "tasa_completacion": (ods_completadas / ods * 100) if ods > 0 else 0
+        })
+
+    return desempenio

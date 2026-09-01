@@ -1,698 +1,288 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./Citas.css";
+import { obtenerCitas, crearCita } from "../../services/citaService";
+import { obtenerClientes } from "../../services/clientesService";
+
+const estadoInicial = {
+    cliente_id: "",
+    vehiculo_id: "",
+    fecha_hora_inicio: "",
+    fecha_hora_fin: "",
+    estado: "Pendiente",
+    observaciones: ""
+};
 
 function Citas() {
+    const [citas, setCitas] = useState([]);
+    const [clientes, setClientes] = useState([]);
     const [showNewAppointment, setShowNewAppointment] = useState(false);
-    const [esNuevoCliente, setEsNuevoCliente] = useState(false);
-    const [tipoCliente, setTipoCliente] = useState("Natural");
-    const [ubigeoDept, setUbigeoDept] = useState("Lima");
-    const [ubigeoProv, setUbigeoProv] = useState("Lima");
-    const [ubigeoDist, setUbigeoDist] = useState("Miraflores");
-    const [duracionHoras, setDuracionHoras] = useState("3");
+    const [guardando, setGuardando] = useState(false);
+    const [formData, setFormData] = useState(estadoInicial);
+
+    const cargarCitas = async () => {
+        try {
+            const data = await obtenerCitas();
+            setCitas(Array.isArray(data) ? data : []);
+        } catch (error) {
+            console.error("Error cargando citas:", error);
+        }
+    };
+
+    const cargarClientes = async () => {
+        try {
+            const data = await obtenerClientes();
+            setClientes(Array.isArray(data) ? data : []);
+        } catch (error) {
+            console.error("Error cargando clientes:", error);
+        }
+    };
+
+    useEffect(() => {
+        cargarCitas();
+        cargarClientes();
+    }, []);
+
+    const citasOrdenadas = [...citas].sort((a, b) => new Date(a.fecha_hora_inicio) - new Date(b.fecha_hora_inicio));
+
+    const manejarCambio = (e) => {
+        const { name, value } = e.target;
+        setFormData((prev) => ({ ...prev, [name]: value }));
+    };
+
+    const guardarCita = async (e) => {
+        e.preventDefault();
+
+        if (!formData.cliente_id) {
+            alert("Debe seleccionar un cliente para registrar la cita.");
+            return;
+        }
+
+        if (!formData.fecha_hora_inicio || !formData.fecha_hora_fin) {
+            alert("Debe indicar la fecha y hora de inicio y fin.");
+            return;
+        }
+
+        try {
+            setGuardando(true);
+
+            const payload = {
+                cliente_id: Number(formData.cliente_id),
+                vehiculo_id: formData.vehiculo_id ? Number(formData.vehiculo_id) : null,
+                fecha_hora_inicio: new Date(formData.fecha_hora_inicio).toISOString(),
+                fecha_hora_fin: new Date(formData.fecha_hora_fin).toISOString(),
+                estado: formData.estado,
+                observaciones: formData.observaciones || null
+            };
+
+            await crearCita(payload);
+            setFormData(estadoInicial);
+            setShowNewAppointment(false);
+            await cargarCitas();
+            alert("Cita registrada correctamente.");
+        } catch (error) {
+            console.error("Error creando cita:", error);
+            alert(error.message || "No se pudo guardar la cita.");
+        } finally {
+            setGuardando(false);
+        }
+    };
 
     return (
         <div className="citas-content">
-
-            {/* TOPBAR */}
             <header className="citas-topbar">
-
                 <div className="citas-mobile-brand">
                     <span>VERAMOTORS</span>
                 </div>
 
-                {/* BUSCADOR */}
                 <div className="citas-search">
                     <div className="citas-search-box">
-                        <span className="material-symbols-outlined">
-                            search
-                        </span>
-
-                        <input
-                            type="text"
-                            placeholder="Buscar órdenes, clientes..."
-                        />
+                        <span className="material-symbols-outlined">search</span>
+                        <input type="text" placeholder="Buscar órdenes, clientes..." />
                     </div>
                 </div>
 
-                {/* ACCIONES */}
                 <div className="citas-top-actions">
-                    <button className="citas-top-action">
-                        <span className="material-symbols-outlined">
-                            settings
-                        </span>
+                    <button className="citas-top-action" onClick={() => setShowNewAppointment(true)} title="Registrar cita">
+                        <span className="material-symbols-outlined">add_circle</span>
+                    </button>
+                    <button className="citas-top-action" title="Configuración">
+                        <span className="material-symbols-outlined">settings</span>
                     </button>
                 </div>
-
             </header>
 
-
-            {/* CONTENIDO PRINCIPAL */}
             <main className="citas-main">
-
                 <div className="citas-container">
-
-                    {/* CABECERA */}
                     <div className="citas-header">
-
                         <div className="citas-header-title">
                             <h2>Citas</h2>
-
-                            <p>
-                                Gestión de mantenimiento semanal
-                            </p>
+                            <p>Gestión de mantenimiento semanal</p>
                         </div>
 
-                        {/* FILTROS */}
                         <div className="citas-filters">
-
-                            {/* FECHA */}
                             <div className="citas-date-selector">
-
-                                <button>
-                                    <span className="material-symbols-outlined">
-                                        chevron_left
-                                    </span>
-                                </button>
-
-                                <span className="citas-date">
-                                    16 - 22 Oct, 2023
-                                </span>
-
-                                <button>
-                                    <span className="material-symbols-outlined">
-                                        chevron_right
-                                    </span>
-                                </button>
-
+                                <button><span className="material-symbols-outlined">chevron_left</span></button>
+                                <span className="citas-date">Calendario</span>
+                                <button><span className="material-symbols-outlined">chevron_right</span></button>
                             </div>
 
-
-                            {/* TÉCNICO */}
                             <select className="citas-filter-select">
-                                <option>
-                                    Todos los Técnicos
-                                </option>
-
-                                <option>
-                                    Carlos M.
-                                </option>
-
-                                <option>
-                                    Ana P.
-                                </option>
+                                <option>Todos los Técnicos</option>
                             </select>
 
-
-                            {/* ESTADO */}
                             <select className="citas-filter-select">
-                                <option>
-                                    Todos los Estados
-                                </option>
-
-                                <option>
-                                    Confirmada
-                                </option>
-
-                                <option>
-                                    En Progreso
-                                </option>
-
-                                <option>
-                                    Pendiente
-                                </option>
+                                <option>Todos los Estados</option>
+                                <option>Pendiente</option>
+                                <option>Confirmada</option>
+                                <option>Completada</option>
                             </select>
 
-
-                            {/* NUEVA CITA */}
-                            <button
-                                className="citas-new-button"
-                                onClick={() => setShowNewAppointment(true)}
-                            >
-                                <span className="material-symbols-outlined">
-                                    add
-                                </span>
-
+                            <button className="citas-new-button" onClick={() => setShowNewAppointment(true)}>
+                                <span className="material-symbols-outlined">add</span>
                                 Nueva Cita
                             </button>
-
                         </div>
-
                     </div>
 
-
-                    {/* CALENDARIO */}
                     <div className="citas-calendar">
-
-                        {/* DÍAS */}
                         <div className="calendar-days">
-
-                            <div className="calendar-day">
-                                <span className="calendar-day-label">
-                                    Hora
-                                </span>
-                            </div>
-
-                            <div className="calendar-day">
-                                <span className="calendar-day-label">
-                                    Lun
-                                </span>
-
-                                <span className="calendar-day-number">
-                                    16
-                                </span>
-                            </div>
-
-                            <div className="calendar-day today">
-                                <span className="calendar-day-label">
-                                    Mar
-                                </span>
-
-                                <span className="calendar-day-number">
-                                    17
-                                </span>
-                            </div>
-
-                            <div className="calendar-day">
-                                <span className="calendar-day-label">
-                                    Mié
-                                </span>
-
-                                <span className="calendar-day-number">
-                                    18
-                                </span>
-                            </div>
-
-                            <div className="calendar-day">
-                                <span className="calendar-day-label">
-                                    Jue
-                                </span>
-
-                                <span className="calendar-day-number">
-                                    19
-                                </span>
-                            </div>
-
-                            <div className="calendar-day">
-                                <span className="calendar-day-label">
-                                    Vie
-                                </span>
-
-                                <span className="calendar-day-number">
-                                    20
-                                </span>
-                            </div>
-
-                            <div className="calendar-day">
-                                <span className="calendar-day-label">
-                                    Sáb
-                                </span>
-
-                                <span className="calendar-day-number">
-                                    21
-                                </span>
-                            </div>
-
-                            <div className="calendar-day">
-                                <span className="calendar-day-label">
-                                    Dom
-                                </span>
-
-                                <span className="calendar-day-number">
-                                    22
-                                </span>
-                            </div>
-
+                            <div className="calendar-day"><span className="calendar-day-label">Hora</span></div>
+                            <div className="calendar-day"><span className="calendar-day-label">Lun</span><span className="calendar-day-number">-</span></div>
+                            <div className="calendar-day today"><span className="calendar-day-label">Mar</span><span className="calendar-day-number">-</span></div>
+                            <div className="calendar-day"><span className="calendar-day-label">Mié</span><span className="calendar-day-number">-</span></div>
+                            <div className="calendar-day"><span className="calendar-day-label">Jue</span><span className="calendar-day-number">-</span></div>
+                            <div className="calendar-day"><span className="calendar-day-label">Vie</span><span className="calendar-day-number">-</span></div>
+                            <div className="calendar-day"><span className="calendar-day-label">Sáb</span><span className="calendar-day-number">-</span></div>
+                            <div className="calendar-day"><span className="calendar-day-label">Dom</span><span className="calendar-day-number">-</span></div>
                         </div>
 
-
-                        {/* CUERPO */}
                         <div className="calendar-body">
-
                             <div className="calendar-grid">
+                                {citasOrdenadas.length > 0 ? citasOrdenadas.map((cita) => {
+                                    const inicio = new Date(cita.fecha_hora_inicio);
+                                    const fin = new Date(cita.fecha_hora_fin);
+                                    const hora = inicio.toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", hour12: false });
+                                    const estado = cita.estado || "Pendiente";
 
-                                {/* 08:00 */}
-                                <div className="calendar-row">
-
-                                    <div className="calendar-time">
-                                        08:00
-                                    </div>
-
-                                    <div className="calendar-cell"></div>
-
-                                    <div className="calendar-cell today">
-
-                                        <div className="calendar-appointment appointment-confirmed">
-
-                                            <div className="appointment-status">
-                                                <span className="appointment-dot"></span>
-                                                Confirmada
+                                    return (
+                                        <div key={cita.cita_id} className="calendar-row">
+                                            <div className="calendar-time">{hora}</div>
+                                            <div className="calendar-cell today">
+                                                <div className="calendar-appointment appointment-confirmed">
+                                                    <div className="appointment-status"><span className="appointment-dot"></span>{estado}</div>
+                                                    <h4 className="appointment-name">{cita.cliente_nombre || "Cliente"}</h4>
+                                                    <p className="appointment-vehicle">{cita.vehiculo_placa || "Sin vehículo"}</p>
+                                                    <div className="appointment-technician"><span className="material-symbols-outlined">schedule</span>{fin.toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", hour12: false })}</div>
+                                                </div>
                                             </div>
-
-                                            <h4 className="appointment-name">
-                                                Juan Pérez
-                                            </h4>
-
-                                            <p className="appointment-vehicle">
-                                                Toyota Hilux • ABC-123
-                                            </p>
-
-                                            <div className="appointment-technician">
-                                                <span className="material-symbols-outlined">
-                                                    build
-                                                </span>
-
-                                                Rev. 50k - Carlos M.
-                                            </div>
-
+                                            <div className="calendar-cell"></div>
+                                            <div className="calendar-cell"></div>
+                                            <div className="calendar-cell"></div>
+                                            <div className="calendar-cell"></div>
+                                            <div className="calendar-cell"></div>
+                                            <div className="calendar-cell"></div>
                                         </div>
-
+                                    );
+                                }) : (
+                                    <div className="calendar-row">
+                                        <div className="calendar-cell" style={{ gridColumn: "1 / -1" }}>No hay citas registradas en la base de datos.</div>
                                     </div>
-
-                                    <div className="calendar-cell"></div>
-                                    <div className="calendar-cell"></div>
-                                    <div className="calendar-cell"></div>
-                                    <div className="calendar-cell"></div>
-                                    <div className="calendar-cell"></div>
-
-                                </div>
-
-
-                                {/* 09:00 */}
-                                <div className="calendar-row">
-
-                                    <div className="calendar-time">
-                                        09:00
-                                    </div>
-
-                                    <div className="calendar-cell"></div>
-                                    <div className="calendar-cell today"></div>
-                                    <div className="calendar-cell"></div>
-                                    <div className="calendar-cell"></div>
-                                    <div className="calendar-cell"></div>
-                                    <div className="calendar-cell"></div>
-                                    <div className="calendar-cell"></div>
-
-                                </div>
-
-
-                                {/* 10:00 */}
-                                <div className="calendar-row">
-
-                                    <div className="calendar-time">
-                                        10:00
-                                    </div>
-
-                                    <div className="calendar-cell"></div>
-                                    <div className="calendar-cell today"></div>
-
-                                    <div className="calendar-cell">
-
-                                        <div className="calendar-appointment appointment-pending">
-
-                                            <div className="appointment-status">
-                                                <span className="appointment-dot"></span>
-                                                Pendiente
-                                            </div>
-
-                                            <h4 className="appointment-name">
-                                                María G.
-                                            </h4>
-
-                                            <p className="appointment-vehicle">
-                                                Honda Civic
-                                            </p>
-
-                                        </div>
-
-                                    </div>
-
-                                    <div className="calendar-cell"></div>
-                                    <div className="calendar-cell"></div>
-                                    <div className="calendar-cell"></div>
-                                    <div className="calendar-cell"></div>
-
-                                </div>
-
-
-                                {/* 11:00 */}
-                                <div className="calendar-row">
-
-                                    <div className="calendar-time">
-                                        11:00
-                                    </div>
-
-                                    <div className="calendar-cell"></div>
-                                    <div className="calendar-cell today"></div>
-                                    <div className="calendar-cell"></div>
-                                    <div className="calendar-cell"></div>
-                                    <div className="calendar-cell"></div>
-                                    <div className="calendar-cell"></div>
-                                    <div className="calendar-cell"></div>
-
-                                </div>
-
-
-                                {/* 12:00 */}
-                                <div className="calendar-row">
-
-                                    <div className="calendar-time">
-                                        12:00
-                                    </div>
-
-                                    <div className="calendar-cell"></div>
-                                    <div className="calendar-cell today"></div>
-                                    <div className="calendar-cell"></div>
-
-                                    <div className="calendar-cell">
-
-                                        <div className="calendar-appointment appointment-urgent">
-
-                                            <div className="appointment-status">
-                                                <span className="appointment-dot"></span>
-                                                Urgente
-                                            </div>
-
-                                            <h4 className="appointment-name">
-                                                Empresa X
-                                            </h4>
-
-                                            <p className="appointment-vehicle">
-                                                Ford Transit • XYZ-987
-                                            </p>
-
-                                            <div className="appointment-technician">
-
-                                                <span className="material-symbols-outlined">
-                                                    warning
-                                                </span>
-
-                                                Frenos - Ana P.
-
-                                            </div>
-
-                                        </div>
-
-                                    </div>
-
-                                    <div className="calendar-cell"></div>
-                                    <div className="calendar-cell"></div>
-                                    <div className="calendar-cell"></div>
-
-                                </div>
-
-
-                                {/* 13:00 */}
-                                <div className="calendar-row">
-
-                                    <div className="calendar-time">
-                                        13:00
-                                    </div>
-
-                                    <div className="calendar-cell"></div>
-                                    <div className="calendar-cell today"></div>
-                                    <div className="calendar-cell"></div>
-                                    <div className="calendar-cell"></div>
-                                    <div className="calendar-cell"></div>
-                                    <div className="calendar-cell"></div>
-                                    <div className="calendar-cell"></div>
-
-                                </div>
-
-
-                                {/* 14:00 */}
-                                <div className="calendar-row">
-
-                                    <div className="calendar-time">
-                                        14:00
-                                    </div>
-
-                                    <div className="calendar-cell"></div>
-                                    <div className="calendar-cell today"></div>
-                                    <div className="calendar-cell"></div>
-                                    <div className="calendar-cell"></div>
-                                    <div className="calendar-cell"></div>
-                                    <div className="calendar-cell"></div>
-                                    <div className="calendar-cell"></div>
-
-                                </div>
-
-
-                                {/* 15:00 */}
-                                <div className="calendar-row">
-
-                                    <div className="calendar-time">
-                                        15:00
-                                    </div>
-
-                                    <div className="calendar-cell"></div>
-                                    <div className="calendar-cell today"></div>
-                                    <div className="calendar-cell"></div>
-                                    <div className="calendar-cell"></div>
-                                    <div className="calendar-cell"></div>
-                                    <div className="calendar-cell"></div>
-                                    <div className="calendar-cell"></div>
-
-                                </div>
-
+                                )}
                             </div>
-
                         </div>
-
                     </div>
-
                 </div>
-
             </main>
 
+            <div className={`appointment-overlay ${showNewAppointment ? "open" : ""}`} onClick={() => setShowNewAppointment(false)}></div>
 
-            {/* OVERLAY */}
-            <div
-                className={`appointment-overlay ${showNewAppointment ? "open" : ""}`}
-                onClick={() => setShowNewAppointment(false)}
-            ></div>
-
-
-            {/* NUEVA CITA / NUEVO CLIENTE SIDEBAR */}
-            <aside
-                className={`new-appointment-sidebar ${showNewAppointment ? "open" : ""}`}
-                style={{ width: '420px', maxWidth: '90vw' }}
-            >
-
+            <aside className={`new-appointment-sidebar ${showNewAppointment ? "open" : ""}`} style={{ width: "420px", maxWidth: "90vw" }}>
                 <div className="new-appointment-header">
-
-                    <h3>
-                        Nueva Cita Programada
-                    </h3>
-
-                    <button
-                        className="new-appointment-close"
-                        onClick={() => setShowNewAppointment(false)}
-                    >
-                        <span className="material-symbols-outlined">
-                            close
-                        </span>
+                    <h3>Nueva Cita Programada</h3>
+                    <button className="new-appointment-close" onClick={() => setShowNewAppointment(false)}>
+                        <span className="material-symbols-outlined">close</span>
                     </button>
-
                 </div>
 
-
-                <div className="new-appointment-body">
-
-                    {/* CLIENTE & SUB-FORMULARIO NUEVO CLIENTE */}
+                <form className="new-appointment-body" onSubmit={guardarCita}>
                     <div className="form-section">
-
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                            <h4 className="form-section-title" style={{ margin: 0 }}>
-                                <span className="material-symbols-outlined">person</span>
-                                Cliente
-                            </h4>
-                            <button 
-                                type="button" 
-                                style={{ background: '#3b82f6', color: '#fff', border: 'none', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer' }}
-                                onClick={() => setEsNuevoCliente(!esNuevoCliente)}
-                            >
-                                {esNuevoCliente ? "🔍 Buscar Cliente" : "+ Nuevo Cliente"}
-                            </button>
+                        <h4 className="form-section-title">
+                            <span className="material-symbols-outlined">person</span>
+                            Cliente
+                        </h4>
+                        <div className="form-field">
+                            <label>Seleccionar cliente</label>
+                            <select name="cliente_id" value={formData.cliente_id} onChange={manejarCambio} required>
+                                <option value="">Seleccione un cliente</option>
+                                {clientes.map((cliente) => (
+                                    <option key={cliente.cliente_id} value={cliente.cliente_id}>
+                                        {cliente.nombre_razon_social} - {cliente.documento_identidad}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
-
-                        {!esNuevoCliente ? (
-                            <div className="form-field">
-                                <label>Seleccionar Cliente Existente</label>
-                                <input
-                                    type="text"
-                                    placeholder="Buscar por DNI, RUC o Nombre..."
-                                    defaultValue="Carlos Mendoza (DNI: 45892341)"
-                                />
-                            </div>
-                        ) : (
-                            <div className="sub-form-nuevo-cliente" style={{ background: '#1e293b', padding: '12px', borderRadius: '8px', border: '1px solid #334155' }}>
-                                <div className="form-field">
-                                    <label>Tipo de Cliente</label>
-                                    <select value={tipoCliente} onChange={(e) => setTipoCliente(e.target.value)}>
-                                        <option value="Natural">Persona Natural</option>
-                                        <option value="Empresa">Empresa</option>
-                                    </select>
-                                </div>
-
-                                <div className="form-grid">
-                                    <div className="form-field">
-                                        <label>{tipoCliente === "Natural" ? "DNI" : "RUC"}</label>
-                                        <input type="text" placeholder={tipoCliente === "Natural" ? "8 dígitos" : "11 dígitos"} />
-                                    </div>
-
-                                    <div className="form-field">
-                                        <label>{tipoCliente === "Natural" ? "Nombres" : "Razón Social"}</label>
-                                        <input type="text" placeholder="Ingrese nombre..." />
-                                    </div>
-                                </div>
-
-                                <div className="form-grid">
-                                    <div className="form-field">
-                                        <label>Email</label>
-                                        <input type="email" placeholder="correo@ejemplo.com" />
-                                    </div>
-                                    <div className="form-field">
-                                        <label>Celular</label>
-                                        <input type="tel" placeholder="+51 987..." />
-                                    </div>
-                                </div>
-
-                                <div className="form-field">
-                                    <label>Dirección (Ubigeo - Auto-guardado de última ubicación)</label>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '4px', marginTop: '4px' }}>
-                                        <input type="text" value={ubigeoDept} onChange={(e) => setUbigeoDept(e.target.value)} placeholder="Departamento" />
-                                        <input type="text" value={ubigeoProv} onChange={(e) => setUbigeoProv(e.target.value)} placeholder="Provincia" />
-                                        <input type="text" value={ubigeoDist} onChange={(e) => setUbigeoDist(e.target.value)} placeholder="Distrito" />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
                     </div>
 
-
-                    {/* VEHÍCULO */}
                     <div className="form-section">
-
                         <h4 className="form-section-title">
-                            <span className="material-symbols-outlined">
-                                directions_car
-                            </span>
+                            <span className="material-symbols-outlined">directions_car</span>
                             Vehículo
                         </h4>
-
-                        <div className="form-grid">
-
-                            <div className="form-field">
-                                <label>Modelo / Marca</label>
-                                <input
-                                    type="text"
-                                    placeholder="Ej. Toyota Corolla"
-                                    defaultValue="Toyota Corolla 2021"
-                                />
-                            </div>
-
-                            <div className="form-field">
-                                <label>Placa</label>
-                                <input
-                                    type="text"
-                                    placeholder="ABC-123"
-                                    defaultValue="ABC-123"
-                                />
-                            </div>
-
-                        </div>
-
-                    </div>
-
-
-                    {/* SERVICIO & DURACIÓN */}
-                    <div className="form-section">
-
-                        <h4 className="form-section-title">
-                            <span className="material-symbols-outlined">
-                                build_circle
-                            </span>
-                            Detalles de la Cita
-                        </h4>
-
-                        <div className="form-grid">
-
-                            <div className="form-field">
-                                <label>Fecha</label>
-                                <input type="date" defaultValue="2026-08-23" />
-                            </div>
-
-                            <div className="form-field">
-                                <label>Hora de Inicio</label>
-                                <input type="time" defaultValue="09:00" />
-                            </div>
-
-                        </div>
-
                         <div className="form-grid">
                             <div className="form-field">
-                                <label>Duración Estimada (Por defecto 3 horas)</label>
-                                <input 
-                                    type="number" 
-                                    value={duracionHoras}
-                                    onChange={(e) => setDuracionHoras(e.target.value)}
-                                    placeholder="3" 
-                                />
+                                <label>Placa / vehículo</label>
+                                <input type="text" name="vehiculo_id" value={formData.vehiculo_id} onChange={manejarCambio} placeholder="Opcional: vehículo asignado" />
                             </div>
-
                             <div className="form-field">
-                                <label>Técnico Asignado</label>
-                                <select>
-                                    <option>Carlos M.</option>
-                                    <option>Ana P.</option>
-                                    <option>Luis García</option>
+                                <label>Estado</label>
+                                <select name="estado" value={formData.estado} onChange={manejarCambio}>
+                                    <option value="Pendiente">Pendiente</option>
+                                    <option value="Atendida">Atendida</option>
+                                    <option value="Cancelada">Cancelada</option>
                                 </select>
                             </div>
                         </div>
-
-
-                        <div className="form-field">
-                            <label>Comentarios / Observaciones de la Cita</label>
-                            <textarea
-                                rows="3"
-                                placeholder="Indique observaciones generales para la recepción..."
-                                defaultValue="Mantenimiento de 80,000 km y revisión de frenos."
-                            ></textarea>
-                        </div>
-
                     </div>
 
-                </div>
+                    <div className="form-section">
+                        <h4 className="form-section-title">
+                            <span className="material-symbols-outlined">schedule</span>
+                            Fecha y hora
+                        </h4>
+                        <div className="form-grid">
+                            <div className="form-field">
+                                <label>Inicio</label>
+                                <input type="datetime-local" name="fecha_hora_inicio" value={formData.fecha_hora_inicio} onChange={manejarCambio} required />
+                            </div>
+                            <div className="form-field">
+                                <label>Fin</label>
+                                <input type="datetime-local" name="fecha_hora_fin" value={formData.fecha_hora_fin} onChange={manejarCambio} required />
+                            </div>
+                        </div>
+                    </div>
 
+                    <div className="form-section">
+                        <h4 className="form-section-title">
+                            <span className="material-symbols-outlined">note_alt</span>
+                            Observaciones
+                        </h4>
+                        <div className="form-field">
+                            <label>Comentarios</label>
+                            <textarea name="observaciones" rows="3" value={formData.observaciones} onChange={manejarCambio} placeholder="Describa el motivo o servicio de la cita..."></textarea>
+                        </div>
+                    </div>
 
-                {/* FOOTER */}
-                <div className="new-appointment-footer">
-
-                    <button
-                        className="cancel-button"
-                        onClick={() => setShowNewAppointment(false)}
-                    >
-                        Cancelar
-                    </button>
-
-                    <button 
-                        className="save-button"
-                        onClick={() => {
-                            alert("¡Cita agendada correctamente! Notificación enviada automáticamente al cliente por WhatsApp y Mail.");
-                            setShowNewAppointment(false);
-                        }}
-                    >
-                        <span className="material-symbols-outlined">
-                            send
-                        </span>
-                        Agendar & Notificar Cliente
-                    </button>
-
-                </div>
-
+                    <div className="new-appointment-footer">
+                        <button type="button" className="cancel-button" onClick={() => setShowNewAppointment(false)}>
+                            Cancelar
+                        </button>
+                        <button type="submit" className="save-button" disabled={guardando}>
+                            <span className="material-symbols-outlined">send</span>
+                            {guardando ? "Guardando..." : "Agendar cita"}
+                        </button>
+                    </div>
+                </form>
             </aside>
-
         </div>
     );
 }

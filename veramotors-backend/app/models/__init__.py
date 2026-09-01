@@ -14,6 +14,10 @@ from app.models.detalle_remision import DetalleRemision
 from app.models.cierre_caja import CierreCaja
 from app.models.asistencia import Asistencia
 from app.models.configuracion_correlativo import ConfiguracionCorrelativo
+from app.models.compra import Compra
+from app.models.proveedor import Proveedor
+from app.models.cuenta_bancaria import CuentaBancaria
+from app.models.movimiento_bancario import MovimientoBancario
 
 __all__ = [
     "Rol",
@@ -32,4 +36,8 @@ __all__ = [
     "CierreCaja",
     "Asistencia",
     "ConfiguracionCorrelativo",
+    "Compra",
+    "Proveedor",
+    "CuentaBancaria",
+    "MovimientoBancario",
 ]

@@ -64,6 +64,16 @@ function Facturacion() {
 
     const [emitiendoFactura, setEmitiendoFactura] = useState(false);
 
+    const [mostrarModalCotizacion, setMostrarModalCotizacion] = useState(false);
+    const [cotizacionCliente, setCotizacionCliente] = useState("");
+    const [cotizacionVehiculo, setCotizacionVehiculo] = useState("");
+    const [itemsCotizacion, setItemsCotizacion] = useState([]);
+    const [nuevoItemCotizacionDesc, setNuevoItemCotizacionDesc] = useState("");
+    const [nuevoItemCotizacionPrecio, setNuevoItemCotizacionPrecio] = useState("");
+    const [nuevoItemCotizacionCantidad, setNuevoItemCotizacionCantidad] = useState(1);
+    const [nuevoItemCotizacionDescuento, setNuevoItemCotizacionDescuento] = useState(0);
+    const [guardandoCotizacion, setGuardandoCotizacion] = useState(false);
+
     // =========================================================
     // MODAL NOTA DE CRÉDITO
     // =========================================================
@@ -426,6 +436,159 @@ function Facturacion() {
         } finally {
 
             setCargandoCierresCaja(false);
+
+        }
+    };
+
+    // =========================================================
+    // COTIZACIONES
+    // =========================================================
+
+    const abrirModalCotizacion = () => {
+
+        setMostrarModalCotizacion(true);
+        setCotizacionCliente("");
+        setCotizacionVehiculo("");
+        setItemsCotizacion([]);
+        setNuevoItemCotizacionDesc("");
+        setNuevoItemCotizacionPrecio("");
+        setNuevoItemCotizacionCantidad(1);
+        setNuevoItemCotizacionDescuento(0);
+    };
+
+    const cerrarModalCotizacion = () => {
+
+        if (guardandoCotizacion) return;
+
+        setMostrarModalCotizacion(false);
+        setCotizacionCliente("");
+        setCotizacionVehiculo("");
+        setItemsCotizacion([]);
+        setNuevoItemCotizacionDesc("");
+        setNuevoItemCotizacionPrecio("");
+        setNuevoItemCotizacionCantidad(1);
+        setNuevoItemCotizacionDescuento(0);
+    };
+
+    const vehiculosClienteCotizacion = vehiculos.filter(
+        (vehiculo) =>
+            String(vehiculo.cliente_id) === String(cotizacionCliente)
+    );
+
+    const totalCotizacion = itemsCotizacion.reduce(
+        (total, item) =>
+            total +
+            (Number(item.cantidad) * Number(item.precio_unitario)) -
+            Number(item.descuento || 0),
+        0
+    );
+
+    const agregarItemCotizacion = () => {
+
+        if (!nuevoItemCotizacionDesc.trim()) {
+            alert("Ingresa la descripción del item de la cotización.");
+            return;
+        }
+
+        if (!nuevoItemCotizacionPrecio || Number(nuevoItemCotizacionPrecio) <= 0) {
+            alert("Ingresa un precio válido.");
+            return;
+        }
+
+        if (!nuevoItemCotizacionCantidad || Number(nuevoItemCotizacionCantidad) <= 0) {
+            alert("Ingresa una cantidad válida.");
+            return;
+        }
+
+        const nuevoItem = {
+            id: Date.now(),
+            item_id: null,
+            descripcion: nuevoItemCotizacionDesc.trim(),
+            cantidad: Number(nuevoItemCotizacionCantidad),
+            precio_unitario: Number(nuevoItemCotizacionPrecio),
+            descuento: Number(nuevoItemCotizacionDescuento) || 0
+        };
+
+        setItemsCotizacion((prev) => [...prev, nuevoItem]);
+        setNuevoItemCotizacionDesc("");
+        setNuevoItemCotizacionPrecio("");
+        setNuevoItemCotizacionCantidad(1);
+        setNuevoItemCotizacionDescuento(0);
+    };
+
+    const eliminarItemCotizacion = (id) => {
+        setItemsCotizacion((prev) => prev.filter((item) => item.id !== id));
+    };
+
+    const guardarCotizacion = async () => {
+
+        if (!cotizacionCliente) {
+            alert("Selecciona un cliente para la cotización.");
+            return;
+        }
+
+        if (!cotizacionVehiculo) {
+            alert("Selecciona un vehículo para la cotización.");
+            return;
+        }
+
+        if (itemsCotizacion.length === 0) {
+            alert("Agrega al menos un item para guardar la cotización.");
+            return;
+        }
+
+        try {
+
+            setGuardandoCotizacion(true);
+
+            const payload = {
+                cliente_id: Number(cotizacionCliente),
+                vehiculo_id: Number(cotizacionVehiculo),
+                total: Number(totalCotizacion.toFixed(2)),
+                estado: "Pendiente",
+                detalles: itemsCotizacion.map((item) => {
+                    const subtotal = Number(item.cantidad) * Number(item.precio_unitario);
+                    const descuento = Number(item.descuento || 0);
+                    const iva = (subtotal - descuento) * 0.18;
+                    return {
+                        item_id: item.item_id ? Number(item.item_id) : null,
+                        descripcion: item.descripcion,
+                        cantidad: Number(item.cantidad),
+                        precio_unitario: Number(item.precio_unitario),
+                        descuento: descuento,
+                        impuesto: Number(iva.toFixed(2)),
+                        total: Number((subtotal - descuento).toFixed(2))
+                    };
+                })
+            };
+
+            const response = await fetch(`${API_URL}/cotizaciones`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.detail || "No se pudo registrar la cotización.");
+            }
+
+            alert("Cotización registrada correctamente.");
+            setMostrarModalCotizacion(false);
+            setCotizacionCliente("");
+            setCotizacionVehiculo("");
+            setItemsCotizacion([]);
+            await cargarCotizaciones();
+
+        } catch (error) {
+
+            console.error("Error registrando cotización:", error);
+            alert(error.message || "Ocurrió un error al registrar la cotización.");
+
+        } finally {
+
+            setGuardandoCotizacion(false);
 
         }
     };
@@ -1632,11 +1795,193 @@ function Facturacion() {
                             style={{
                                 padding: "8px 16px"
                             }}
+                            type="button"
+                            onClick={abrirModalCotizacion}
                         >
                             + Nueva Cotización
                         </button>
 
                     </div>
+
+                    {mostrarModalCotizacion && (
+                        <div
+                            style={{
+                                background: "#ffffff",
+                                border: "1px solid #e2e8f0",
+                                borderRadius: "12px",
+                                padding: "20px",
+                                margin: "0 0 18px 0"
+                            }}
+                        >
+                            <div
+                                style={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                    marginBottom: "16px"
+                                }}
+                            >
+                                <h3 style={{ margin: 0 }}>Registrar cotización</h3>
+                                <button
+                                    type="button"
+                                    className="btn-act-table nps"
+                                    onClick={cerrarModalCotizacion}
+                                >
+                                    Cerrar
+                                </button>
+                            </div>
+
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                                <div>
+                                    <label style={{ display: "block", marginBottom: "6px", fontWeight: 600 }}>Cliente</label>
+                                    <select
+                                        value={cotizacionCliente}
+                                        onChange={(e) => {
+                                            setCotizacionCliente(e.target.value);
+                                            setCotizacionVehiculo("");
+                                        }}
+                                        style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
+                                    >
+                                        <option value="">Seleccione un cliente</option>
+                                        {clientes.map((cliente) => (
+                                            <option key={cliente.cliente_id ?? cliente.id} value={cliente.cliente_id ?? cliente.id}>
+                                                {cliente.nombre_razon_social || cliente.nombre || cliente.razon_social || `Cliente ${cliente.cliente_id ?? cliente.id}`}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label style={{ display: "block", marginBottom: "6px", fontWeight: 600 }}>Vehículo</label>
+                                    <select
+                                        value={cotizacionVehiculo}
+                                        onChange={(e) => setCotizacionVehiculo(e.target.value)}
+                                        disabled={!cotizacionCliente}
+                                        style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
+                                    >
+                                        <option value="">Seleccione un vehículo</option>
+                                        {vehiculosClienteCotizacion.map((vehiculo) => (
+                                            <option key={vehiculo.vehiculo_id} value={vehiculo.vehiculo_id}>
+                                                {vehiculo.marca} {vehiculo.modelo} - {vehiculo.placa}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div style={{ marginTop: "18px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "14px" }}>
+                                <h4 style={{ margin: "0 0 12px" }}>Items de cotización</h4>
+
+                                <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 0.8fr 0.7fr auto", gap: "10px", alignItems: "end" }}>
+                                    <div>
+                                        <label style={{ display: "block", marginBottom: "6px", fontWeight: 600 }}>Descripción</label>
+                                        <input
+                                            type="text"
+                                            value={nuevoItemCotizacionDesc}
+                                            onChange={(e) => setNuevoItemCotizacionDesc(e.target.value)}
+                                            style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label style={{ display: "block", marginBottom: "6px", fontWeight: 600 }}>Precio</label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            value={nuevoItemCotizacionPrecio}
+                                            onChange={(e) => setNuevoItemCotizacionPrecio(e.target.value)}
+                                            style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label style={{ display: "block", marginBottom: "6px", fontWeight: 600 }}>Cantidad</label>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            step="1"
+                                            value={nuevoItemCotizacionCantidad}
+                                            onChange={(e) => setNuevoItemCotizacionCantidad(e.target.value)}
+                                            style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label style={{ display: "block", marginBottom: "6px", fontWeight: 600 }}>Desc.</label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            value={nuevoItemCotizacionDescuento}
+                                            onChange={(e) => setNuevoItemCotizacionDescuento(e.target.value)}
+                                            style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
+                                        />
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        className="btn-act-table link"
+                                        onClick={agregarItemCotizacion}
+                                    >
+                                        Agregar
+                                    </button>
+                                </div>
+
+                                <div style={{ marginTop: "14px" }}>
+                                    {itemsCotizacion.length === 0 ? (
+                                        <div style={{ color: "#64748b", padding: "8px 0" }}>Todavía no hay items agregados.</div>
+                                    ) : (
+                                        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                                            <thead>
+                                                <tr>
+                                                    <th style={{ textAlign: "left", padding: "8px 6px" }}>Descripción</th>
+                                                    <th style={{ textAlign: "right", padding: "8px 6px" }}>Cant.</th>
+                                                    <th style={{ textAlign: "right", padding: "8px 6px" }}>P. Unit</th>
+                                                    <th style={{ textAlign: "right", padding: "8px 6px" }}>Desc.</th>
+                                                    <th style={{ textAlign: "right", padding: "8px 6px" }}>Total</th>
+                                                    <th style={{ textAlign: "center", padding: "8px 6px" }}>Acción</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {itemsCotizacion.map((item) => {
+                                                    const subtotal = Number(item.cantidad) * Number(item.precio_unitario);
+                                                    const totalItem = subtotal - Number(item.descuento || 0);
+                                                    return (
+                                                        <tr key={item.id}>
+                                                            <td style={{ padding: "8px 6px" }}>{item.descripcion}</td>
+                                                            <td style={{ textAlign: "right", padding: "8px 6px" }}>{item.cantidad}</td>
+                                                            <td style={{ textAlign: "right", padding: "8px 6px" }}>{moneda(item.precio_unitario)}</td>
+                                                            <td style={{ textAlign: "right", padding: "8px 6px" }}>{moneda(item.descuento || 0)}</td>
+                                                            <td style={{ textAlign: "right", padding: "8px 6px" }}>{moneda(totalItem)}</td>
+                                                            <td style={{ textAlign: "center", padding: "8px 6px" }}>
+                                                                <button type="button" className="btn-act-table diag" onClick={() => eliminarItemCotizacion(item.id)}>
+                                                                    Quitar
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "18px" }}>
+                                <strong>Total cotización: {moneda(totalCotizacion)}</strong>
+                                <button
+                                    type="button"
+                                    className="btn-act-table link"
+                                    onClick={guardarCotizacion}
+                                    disabled={guardandoCotizacion}
+                                    style={{ opacity: guardandoCotizacion ? 0.7 : 1 }}
+                                >
+                                    {guardandoCotizacion ? "Guardando..." : "Guardar Cotización"}
+                                </button>
+                            </div>
+                        </div>
+                    )}
 
                     <table className="os-table">
 

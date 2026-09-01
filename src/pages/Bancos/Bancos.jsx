@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./Bancos.css";
+import { obtenerCuentasBancarias, obtenerMovimientosBancarios, registrarMovimiento } from "../../services/bancosService";
 
 const SUBMENUS_BANCOS = [
     "Cuentas Bancarias",
@@ -11,59 +12,78 @@ function Bancos() {
     const [submodulo, setSubmodulo] = useState("Cuentas Bancarias");
     const [mostrarModal, setMostrarModal] = useState(false);
     const [tipoFiltro, setTipoFiltro] = useState("Todos");
+    const [cargando, setCargando] = useState(false);
 
-    // Cuentas Bancarias Simuladas
-    const cuentas = [
-        { banco: "BCP Soles", tipo: "Cuenta Corriente", numero: "191-84930281-0-12", cci: "002-191-0084930281012-54", titular: "VERAMOTORS S.A.C.", saldo: 42850.00 },
-        { banco: "BBVA Soles", tipo: "Cuenta Corriente", numero: "0011-0382-0100039281", cci: "011-382-000100039281-88", titular: "VERAMOTORS S.A.C.", saldo: 28400.00 },
-        { banco: "Interbank Soles", tipo: "Cuenta de Ahorros Empresa", numero: "200-3001827364", cci: "003-200-003001827364-19", titular: "VERAMOTORS S.A.C.", saldo: 15200.00 },
-        { banco: "Caja Chica Taller", tipo: "Efectivo en Caja", numero: "CAJA-001", cci: "N/A", titular: "Caja Chica Taller VeraMotors", saldo: 2500.00 },
-    ];
+    // Cuentas Bancarias
+    const [cuentas, setCuentas] = useState([]);
+    const [movimientos, setMovimientos] = useState([]);
 
-    const saldoTotal = cuentas.reduce((t, c) => t + c.saldo, 0);
+    const cargarDatos = async () => {
+        try {
+            setCargando(true);
+            const [cuentasData, movimientosData] = await Promise.all([
+                obtenerCuentasBancarias(),
+                obtenerMovimientosBancarios()
+            ]);
+            setCuentas(cuentasData);
+            setMovimientos(movimientosData);
+        } catch (error) {
+            console.error("Error cargando datos bancarios:", error);
+        } finally {
+            setCargando(false);
+        }
+    };
 
-    // Movimientos Simulado
-    const [movimientos, setMovimientos] = useState([
-        { id: "TRX-8801", fecha: "2026-08-23", cuenta: "BCP Soles", tipo: "Ingreso", categoria: "Cobro Factura ODS-1001", referencia: "FAC-001-0892", monto: 510.00, estado: "Conciliado" },
-        { id: "TRX-8802", fecha: "2026-08-22", cuenta: "BCP Soles", tipo: "Ingreso", categoria: "Cobro Factura ODS-1003", referencia: "FAC-001-0893", monto: 1000.00, estado: "Conciliado" },
-        { id: "TRX-8803", fecha: "2026-08-21", cuenta: "BBVA Soles", tipo: "Egreso", categoria: "Pago Proveedor Brembo Perú", referencia: "ODC-2026-081", monto: 3115.20, estado: "Conciliado" },
-        { id: "TRX-8804", fecha: "2026-08-20", cuenta: "Caja Chica Taller", tipo: "Egreso", categoria: "Compra de Insumos Menores Limpieza", referencia: "BOLETA-3391", monto: 145.00, estado: "Pendiente" },
-    ]);
+    useEffect(() => {
+        cargarDatos();
+    }, []);
+
+    const saldoTotal = cuentas.reduce((t, c) => t + parseFloat(c.saldo_actual || 0), 0);
 
     // Modal Form State
-    const [cuentaOrigen, setCuentaOrigen] = useState("BCP Soles");
+    const [cuentaOrigen, setCuentaOrigen] = useState("");
     const [tipoMov, setTipoMov] = useState("Ingreso");
     const [categoriaMov, setCategoriaMov] = useState("Cobro ODS / Venta");
     const [montoMov, setMontoMov] = useState("");
     const [referenciaMov, setReferenciaMov] = useState("");
 
-    const registrarMovimiento = (e) => {
+    useEffect(() => {
+        if (cuentas.length > 0 && !cuentaOrigen) {
+            setCuentaOrigen(cuentas[0].cuenta_bancaria_id);
+        }
+    }, [cuentas]);
+
+    const registrarMovimientoFn = async (e) => {
         e.preventDefault();
         if (!montoMov || Number(montoMov) <= 0) {
             alert("Ingresa un monto válido.");
             return;
         }
 
-        const nuevo = {
-            id: `TRX-880${movimientos.length + 1}`,
-            fecha: new Date().toISOString().substring(0, 10),
-            cuenta: cuentaOrigen,
-            tipo: tipoMov,
-            categoria: categoriaMov,
-            referencia: referenciaMov || "N/A",
-            monto: Number(montoMov),
-            estado: "Conciliado"
-        };
-
-        setMovimientos([nuevo, ...movimientos]);
-        setMostrarModal(false);
-        setMontoMov("");
-        setReferenciaMov("");
-        alert(`¡Movimiento bancario ${nuevo.id} por S/ ${nuevo.monto.toFixed(2)} registrado exitosamente!`);
+        try {
+            const nuevoMovimiento = {
+                cuenta_bancaria_id: parseInt(cuentaOrigen),
+                usuario_id: 1,
+                tipo_movimiento: tipoMov,
+                concepto: categoriaMov,
+                monto: parseFloat(montoMov),
+                referencia: referenciaMov || "N/A"
+            };
+            
+            await registrarMovimiento(nuevoMovimiento);
+            setMostrarModal(false);
+            setMontoMov("");
+            setReferenciaMov("");
+            cargarDatos();
+            alert(`¡Movimiento bancario por S/ ${montoMov} registrado exitosamente!`);
+        } catch (error) {
+            console.error("Error registrando movimiento:", error);
+            alert("Error al registrar el movimiento");
+        }
     };
 
     const movFiltrados = movimientos.filter(m => 
-        tipoFiltro === "Todos" || m.tipo === tipoFiltro
+        tipoFiltro === "Todos" || m.tipo_movimiento === tipoFiltro
     );
 
     return (
@@ -88,10 +108,10 @@ function Bancos() {
                     <span>Posición de Caja Total</span>
                     <h3 style={{ color: '#16a34a' }}>S/ {saldoTotal.toFixed(2)}</h3>
                 </div>
-                {cuentas.map((c, i) => (
-                    <div key={i} className="banco-card">
+                {cuentas.map((c) => (
+                    <div key={c.cuenta_bancaria_id} className="banco-card">
                         <span>{c.banco}</span>
-                        <h3>S/ {c.saldo.toFixed(2)}</h3>
+                        <h3>S/ {parseFloat(c.saldo_actual).toFixed(2)}</h3>
                     </div>
                 ))}
             </div>
@@ -118,21 +138,21 @@ function Bancos() {
                                 <th>Entidad Financiera</th>
                                 <th>Tipo de Cuenta</th>
                                 <th>Número de Cuenta</th>
-                                <th>CCI (Interbancario)</th>
-                                <th>Titular Registrado</th>
+                                <th>Nombre Cuenta</th>
+                                <th>Moneda</th>
                                 <th>Saldo Disponible (S/)</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {cuentas.map((c, idx) => (
-                                <tr key={idx}>
+                            {cuentas.map((c) => (
+                                <tr key={c.cuenta_bancaria_id}>
                                     <td><strong>🏦 {c.banco}</strong></td>
-                                    <td>{c.tipo}</td>
-                                    <td>{c.numero}</td>
-                                    <td>{c.cci}</td>
-                                    <td>{c.titular}</td>
-                                    <td><strong style={{ color: '#16a34a', fontSize: '1rem' }}>S/ {c.saldo.toFixed(2)}</strong></td>
+                                    <td>{c.tipo_cuenta}</td>
+                                    <td>{c.numero_cuenta}</td>
+                                    <td>{c.nombre_cuenta}</td>
+                                    <td>{c.moneda}</td>
+                                    <td><strong style={{ color: '#16a34a', fontSize: '1rem' }}>S/ {parseFloat(c.saldo_actual).toFixed(2)}</strong></td>
                                     <td>
                                         <button className="btn-act-table link">📊 Estado de Cuenta</button>
                                     </td>
@@ -171,19 +191,19 @@ function Bancos() {
                             </thead>
                             <tbody>
                                 {movFiltrados.map(m => (
-                                    <tr key={m.id}>
-                                        <td><strong>{m.id}</strong></td>
-                                        <td>{m.fecha}</td>
-                                        <td>{m.cuenta}</td>
+                                    <tr key={m.movimiento_bancario_id}>
+                                        <td><strong>TRX-{m.movimiento_bancario_id}</strong></td>
+                                        <td>{new Date(m.fecha).toLocaleDateString()}</td>
+                                        <td>{m.cuenta?.banco || 'Cuenta'}</td>
                                         <td>
-                                            <span className={`proc-tag ${m.tipo === "Ingreso" ? "preventivo" : "correctivo"}`}>
-                                                {m.tipo === "Ingreso" ? "🟢 + Ingreso" : "🔴 - Egreso"}
+                                            <span className={`proc-tag ${m.tipo_movimiento === "Ingreso" ? "preventivo" : "correctivo"}`}>
+                                                {m.tipo_movimiento === "Ingreso" ? "🟢 + Ingreso" : "🔴 - Egreso"}
                                             </span>
                                         </td>
-                                        <td>{m.categoria}</td>
+                                        <td>{m.concepto}</td>
                                         <td>{m.referencia}</td>
-                                        <td><strong style={{ color: m.tipo === "Ingreso" ? '#16a34a' : '#dc2626' }}>S/ {m.monto.toFixed(2)}</strong></td>
-                                        <td><span className="proc-tag link">{m.estado}</span></td>
+                                        <td><strong style={{ color: m.tipo_movimiento === "Ingreso" ? '#16a34a' : '#dc2626' }}>S/ {parseFloat(m.monto).toFixed(2)}</strong></td>
+                                        <td><span className="proc-tag link">Registrado</span></td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -221,8 +241,11 @@ function Bancos() {
                                     <div>
                                         <label style={{ fontSize: '0.85rem', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>Cuenta Bancaria *</label>
                                         <select value={cuentaOrigen} onChange={(e) => setCuentaOrigen(e.target.value)}>
-                                            {cuentas.map((c, i) => (
-                                                <option key={i} value={c.banco}>{c.banco}</option>
+                                            <option value="">Selecciona cuenta</option>
+                                            {cuentas.map((c) => (
+                                                <option key={c.cuenta_bancaria_id} value={c.cuenta_bancaria_id}>
+                                                    {c.banco} ({c.numero_cuenta})
+                                                </option>
                                             ))}
                                         </select>
                                     </div>
