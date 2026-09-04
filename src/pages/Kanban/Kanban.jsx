@@ -1,17 +1,28 @@
 import { useEffect, useState } from "react";
 import { useRole } from "../../context/RoleContext";
 import { obtenerODS, cambiarEstadoODS } from "../../services/odsService";
+import { obtenerUsuarios } from "../../services/usuariosService";
 import "./Kanban.css";
 
 const COLUMNAS = [
-    { id: "Pendiente", titulo: "Recepción", color: "#3b82f6" },
+    { id: "Recepción", titulo: "Recepción", color: "#3b82f6" },
     { id: "Diagnóstico", titulo: "Diagnóstico", color: "#eab308" },
-    { id: "En Reparación", titulo: "Reparación", color: "#f97316" },
-    { id: "En Espera", titulo: "Repuestos", color: "#a855f7" },
-    { id: "Aprobado", titulo: "Aprobación", color: "#06b6d4" },
+    { id: "Repuestos", titulo: "Repuestos", color: "#a855f7" },
+    { id: "Aprobación", titulo: "Aprobación", color: "#06b6d4" },
+    { id: "Reparación", titulo: "Reparación", color: "#f97316" },
     { id: "Control de Calidad", titulo: "Control Calidad", color: "#8b5cf6" },
-    { id: "Completado", titulo: "Entrega", color: "#22c55e" }
+    { id: "Entrega", titulo: "Entrega", color: "#22c55e" }
 ];
+
+const normalizarEstado = (estado) => {
+    if (!estado) return "Recepción";
+    if (estado === "Pendiente") return "Recepción";
+    if (estado === "En Espera") return "Repuestos";
+    if (estado === "En Reparación") return "Reparación";
+    if (estado === "Aprobado") return "Aprobación";
+    if (estado === "Completado") return "Entrega";
+    return estado;
+};
 
 function Kanban() {
     const { rolActivo, ROLES } = useRole();
@@ -20,29 +31,39 @@ function Kanban() {
     const [busqueda, setBusqueda] = useState("");
     const [tarjetas, setTarjetas] = useState([]);
 
-    useEffect(() => {
-        const cargarODS = async () => {
-            try {
-                const data = await obtenerODS();
-                const lista = Array.isArray(data) ? data : [];
+    const cargarODS = async () => {
+        try {
+            const [dataODS, usuariosData] = await Promise.all([
+                obtenerODS(),
+                obtenerUsuarios().catch(() => [])
+            ]);
 
-                const mapeadas = lista.map((item) => ({
+            const lista = Array.isArray(dataODS) ? dataODS : [];
+            const listaUsuarios = Array.isArray(usuariosData) ? usuariosData : [];
+
+            const mapeadas = lista.map((item) => {
+                const tecnico = listaUsuarios.find((u) => Number(u.user_id) === Number(item.tecnico_id));
+                const estadoLimpio = normalizarEstado(item.estado_actual);
+
+                return {
                     id: item.ods_id,
                     codigo: item.codigo_ods || `ODS-${item.ods_id}`,
                     cliente: item.cliente_nombre || "Cliente",
                     vehiculo: `${item.vehiculo_placa || "Sin placa"}`,
                     motivo: item.tipo_procedimiento || "Servicio general",
-                    personal: `Técnico ${item.tecnico_id || "asignado"}`,
-                    estado: item.estado_actual || "Pendiente",
-                    prioridad: item.estado_actual === "Completado" ? "Normal" : "Alta"
-                }));
+                    personal: tecnico ? tecnico.nombre : `Técnico ${item.tecnico_id || "sin asignar"}`,
+                    estado: estadoLimpio,
+                    prioridad: estadoLimpio === "Entrega" ? "Normal" : "Alta"
+                };
+            });
 
-                setTarjetas(mapeadas);
-            } catch (error) {
-                console.error("Error cargando kanban:", error);
-            }
-        };
+            setTarjetas(mapeadas);
+        } catch (error) {
+            console.error("Error cargando kanban:", error);
+        }
+    };
 
+    useEffect(() => {
         cargarODS();
     }, []);
 
@@ -61,6 +82,7 @@ function Kanban() {
             setTarjetas((prev) => prev.map((t) => (t.id === id ? { ...t, estado: nuevoEstado } : t)));
         } catch (error) {
             console.error("Error cambiando estado de ODS:", error);
+            alert("No se pudo actualizar el estado de la ODS en PostgreSQL.");
         }
     };
 
@@ -118,14 +140,14 @@ function Kanban() {
 
                                             <div className="card-footer">
                                                 <span className="card-tech">👤 {card.personal}</span>
-                                                <div className="card-actions">
+                                                {/*<div className="card-actions">
                                                     {COLUMNAS.findIndex((c) => c.id === col.id) > 0 && (
                                                         <button className="btn-kanban-step" title="Mover al estado anterior" onClick={() => moverEstado(card.id, "atras")}>◀</button>
                                                     )}
                                                     {COLUMNAS.findIndex((c) => c.id === col.id) < COLUMNAS.length - 1 && (
                                                         <button className="btn-kanban-step" title="Avanzar al siguiente estado" onClick={() => moverEstado(card.id, "adelante")}>▶</button>
                                                     )}
-                                                </div>
+                                                </div>*/}
                                             </div>
                                         </div>
                                     ))

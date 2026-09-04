@@ -6,7 +6,6 @@ from app.database import Base
 
 class Usuario(Base):
     __tablename__ = "usuarios"
-    __table_args__ = {"schema": "public"}
 
     user_id = Column(
         BigInteger,
@@ -22,7 +21,7 @@ class Usuario(Base):
     rol_id = Column(
         BigInteger,
         ForeignKey(
-            "public.roles.rol_id",
+            "roles.rol_id",
             onupdate="CASCADE",
             ondelete="RESTRICT"
         ),

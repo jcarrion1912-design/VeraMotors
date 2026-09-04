@@ -6,7 +6,6 @@ from app.database import Base
 
 class Rol(Base):
     __tablename__ = "roles"
-    __table_args__ = {"schema": "public"}
 
     rol_id = Column(
         BigInteger,

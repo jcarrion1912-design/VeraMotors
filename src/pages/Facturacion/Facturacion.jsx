@@ -7,6 +7,7 @@ const API_URL = "http://127.0.0.1:8000/api";
 const SUBMENUS_FACTURACION = [
     "Facturas",
     "Notas de Crédito",
+    "Notas de Débito",
     "Cuentas por Cobrar",
     "Cotizaciones",
     "Remisiones",
@@ -84,6 +85,71 @@ function Facturacion() {
     const [ncMotivo, setNcMotivo] = useState("");
     const [ncMontoTotal, setNcMontoTotal] = useState("");
     const [emitiendoNC, setEmitiendoNC] = useState(false);
+
+    // =========================================================
+    // MODAL NOTA DE DÉBITO
+    // =========================================================
+    const [mostrarModalND, setMostrarModalND] = useState(false);
+    const [ndFacturaId, setNdFacturaId] = useState("");
+    const [ndClienteId, setNdClienteId] = useState("");
+    const [ndTipoNota, setNdTipoNota] = useState("Aumento en el valor del servicio");
+    const [ndMotivo, setNdMotivo] = useState("");
+    const [ndMontoTotal, setNdMontoTotal] = useState("");
+    const [emitiendoND, setEmitiendoND] = useState(false);
+    const [notasDebitoList, setNotasDebitoList] = useState([]);
+    const [cargandoNotasDebito, setCargandoNotasDebito] = useState(false);
+
+    // =========================================================
+    // MODAL REGISTRO DE PAGO / CUENTAS POR COBRAR
+    // =========================================================
+    const [mostrarModalPago, setMostrarModalPago] = useState(false);
+    const [facturaAPagar, setFacturaAPagar] = useState(null);
+    const [metodoPagoRegistro, setMetodoPagoRegistro] = useState("Efectivo");
+    const [observacionesPagoRegistro, setObservacionesPagoRegistro] = useState("");
+    const [procesandoPago, setProcesandoPago] = useState(false);
+    const [busquedaCxC, setBusquedaCxC] = useState("");
+
+    const abrirModalPago = (factura) => {
+        setFacturaAPagar(factura);
+        setMetodoPagoRegistro(factura.metodo_pago || "Efectivo");
+        setObservacionesPagoRegistro(factura.observaciones_pago || "");
+        setMostrarModalPago(true);
+    };
+
+    const confirmarPagoFactura = async () => {
+        if (!facturaAPagar) return;
+
+        try {
+            setProcesandoPago(true);
+            const response = await fetch(`${API_URL}/facturacion/${facturaAPagar.factura_id}/pago`, {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    metodo_pago: metodoPagoRegistro,
+                    estado_pago: "Pagado",
+                    observaciones_pago: observacionesPagoRegistro || null
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.detail || "Error al registrar el pago.");
+            }
+
+            alert(`¡Comprobante ${facturaAPagar.numero_comprobante} marcado como PAGADO con éxito!`);
+            setMostrarModalPago(false);
+            setFacturaAPagar(null);
+            await cargarFacturas();
+        } catch (error) {
+            console.error("Error registrando pago:", error);
+            alert(error.message || "Ocurrió un error al registrar el pago.");
+        } finally {
+            setProcesandoPago(false);
+        }
+    };
 
     // =========================================================
     // CARGAR FACTURAS
@@ -249,6 +315,38 @@ function Facturacion() {
     };
 
     // =========================================================
+    // CARGAR NOTAS DE DÉBITO
+    // =========================================================
+    const cargarNotasDebito = async () => {
+        try {
+            setCargandoNotasDebito(true);
+
+            const response = await fetch(`${API_URL}/notas-debito`);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error(
+                    "Error HTTP notas de débito:",
+                    response.status,
+                    errorText
+                );
+                throw new Error(`Error ${response.status} al cargar notas de débito.`);
+            }
+
+            const data = await response.json();
+
+            console.log("Notas de débito recibidas:", data);
+            setNotasDebitoList(Array.isArray(data) ? data : []);
+        } catch (error) {
+            console.error("Error cargando notas de débito:", error);
+            setNotasDebitoList([]);
+            alert("No se pudieron cargar las notas de débito.");
+        } finally {
+            setCargandoNotasDebito(false);
+        }
+    };
+
+    // =========================================================
     // ABRIR MODAL NOTA DE CRÉDITO
     // =========================================================
     const abrirModalNC = (factura = null) => {
@@ -275,41 +373,77 @@ function Facturacion() {
             alert("Selecciona la factura de referencia.");
             return;
         }
+
         if (!ncMotivo.trim()) {
             alert("Ingresa el motivo o concepto de la nota de crédito.");
             return;
         }
+
         if (!ncMontoTotal || Number(ncMontoTotal) <= 0) {
             alert("Ingresa un monto válido.");
             return;
         }
 
-        const totalNum = Number(ncMontoTotal);
+        const totalNum = Number(Number(ncMontoTotal).toFixed(2));
         const subtotalNum = Number((totalNum / 1.18).toFixed(2));
         const impuestosNum = Number((totalNum - subtotalNum).toFixed(2));
 
+        const codigoMotivoNC = {
+            "Anulación de la operación": "01",
+            "Devolución total": "06",
+            "Devolución parcial": "07",
+            "Descuento global": "04",
+            "Corrección por error en la descripción": "03"
+        };
+
         try {
             setEmitiendoNC(true);
+
+            const payload = {
+                factura_id: Number(ncFacturaId),
+                cliente_id: Number(ncClienteId),
+                tipo_nota: "Crédito",
+                codigo_motivo: codigoMotivoNC[ncTipoNota] || "01",
+                motivo: ncMotivo.trim(),
+                subtotal: subtotalNum,
+                impuestos: impuestosNum,
+                total: totalNum,
+                detalles: [
+                    {
+                        item_id: null,
+                        descripcion: ncMotivo.trim(),
+                        cantidad: 1,
+                        precio_unitario: subtotalNum,
+                        impuesto: impuestosNum,
+                        total: totalNum
+                    }
+                ]
+            };
+
+            console.log("Nota de Crédito enviada al backend:", payload);
+
             const response = await fetch(`${API_URL}/notas-credito`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    factura_id: Number(ncFacturaId),
-                    cliente_id: Number(ncClienteId),
-                    tipo_nota: ncTipoNota,
-                    motivo: ncMotivo.trim(),
-                    subtotal: subtotalNum,
-                    impuestos: impuestosNum,
-                    total: totalNum
-                })
+                body: JSON.stringify(payload)
             });
 
             const data = await response.json();
+
             if (!response.ok) {
-                throw new Error(data.detail || "Error al emitir la nota de crédito.");
+                const mensaje =
+                    typeof data.detail === "string"
+                        ? data.detail
+                        : data.detail?.mensaje ||
+                        data.detail?.error ||
+                        "Error al emitir la nota de crédito.";
+                throw new Error(mensaje);
             }
 
-            alert("Nota de Crédito registrada con éxito en PostgreSQL.");
+            alert(
+                `Nota de Crédito ${data.numero_nota || ""} registrada correctamente.`
+            );
+
             setMostrarModalNC(false);
             await cargarNotasCredito();
         } catch (error) {
@@ -317,6 +451,112 @@ function Facturacion() {
             alert(error.message || "Error al procesar la nota de crédito.");
         } finally {
             setEmitiendoNC(false);
+        }
+    };
+
+    // =========================================================
+    // ABRIR MODAL NOTA DE DÉBITO
+    // =========================================================
+    const abrirModalND = (factura = null) => {
+        if (factura) {
+            setNdFacturaId(factura.factura_id);
+            setNdClienteId(factura.cliente_id);
+            setNdMontoTotal("");
+            setNdMotivo("Cargo adicional por servicio");
+        } else {
+            setNdFacturaId(facturasList.length > 0 ? facturasList[0].factura_id : "");
+            setNdClienteId(facturasList.length > 0 ? facturasList[0].cliente_id : "");
+            setNdMontoTotal("");
+            setNdMotivo("");
+        }
+
+        setNdTipoNota("Aumento en el valor del servicio");
+        setMostrarModalND(true);
+    };
+
+    // =========================================================
+    // EMITIR NOTA DE DÉBITO
+    // =========================================================
+    const emitirNotaDebitoFinal = async () => {
+        if (!ndFacturaId) {
+            alert("Selecciona el comprobante de referencia.");
+            return;
+        }
+
+        if (!ndMotivo.trim()) {
+            alert("Ingresa el motivo o concepto de la nota de débito.");
+            return;
+        }
+
+        if (!ndMontoTotal || Number(ndMontoTotal) <= 0) {
+            alert("Ingresa un monto válido.");
+            return;
+        }
+
+        const totalNum = Number(Number(ndMontoTotal).toFixed(2));
+        const subtotalNum = Number((totalNum / 1.18).toFixed(2));
+        const impuestosNum = Number((totalNum - subtotalNum).toFixed(2));
+
+        try {
+            setEmitiendoND(true);
+
+            const payload = {
+                factura_id: Number(ndFacturaId),
+                cliente_id: Number(ndClienteId),
+                tipo_nota: "Débito",
+                codigo_motivo: "02",
+                motivo: ndMotivo.trim(),
+                subtotal: subtotalNum,
+                impuestos: impuestosNum,
+                total: totalNum,
+                detalles: [
+                    {
+                        item_id: null,
+                        descripcion: ndMotivo.trim(),
+                        cantidad: 1,
+                        precio_unitario: subtotalNum,
+                        impuesto: impuestosNum,
+                        total: totalNum
+                    }
+                ]
+            };
+
+            console.log("Nota de Débito enviada al backend:", payload);
+
+            const response = await fetch(`${API_URL}/notas-debito`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                const mensaje =
+                    typeof data.detail === "string"
+                        ? data.detail
+                        : data.detail?.mensaje ||
+                        data.detail?.error ||
+                        "No se pudo emitir la nota de débito.";
+                throw new Error(mensaje);
+            }
+
+            alert(
+                `Nota de Débito ${data.numero_nota || ""} registrada correctamente.`
+            );
+
+            setMostrarModalND(false);
+            setNdFacturaId("");
+            setNdClienteId("");
+            setNdMontoTotal("");
+            setNdMotivo("");
+
+            await cargarNotasDebito();
+        } catch (error) {
+            console.error("Error registrando nota de débito:", error);
+            alert(error.message || "Error al procesar la nota de débito.");
+        } finally {
+            setEmitiendoND(false);
         }
     };
 
@@ -713,6 +953,7 @@ function Facturacion() {
         cargarFacturas();
         cargarCotizaciones();
         cargarNotasCredito();
+        cargarNotasDebito();
         cargarRemisiones();
         cargarCierresCaja();
 
@@ -772,6 +1013,28 @@ function Facturacion() {
     );
 
     // =========================================================
+    // TIPO DE COMPROBANTE SEGÚN DOCUMENTO DEL CLIENTE
+    // =========================================================
+
+    const obtenerTipoComprobanteCliente = (cliente) => {
+        if (!cliente) return "Factura Electrónica";
+
+        const documento = String(
+            cliente.documento_identidad || ""
+        ).replace(/\D/g, "");
+
+        if (documento.length === 8) {
+            return "Boleta Electrónica";
+        }
+
+        if (documento.length === 11) {
+            return "Factura Electrónica";
+        }
+
+        return "Factura Electrónica";
+    };
+
+    // =========================================================
     // VEHÍCULOS DEL CLIENTE
     // =========================================================
 
@@ -780,6 +1043,14 @@ function Facturacion() {
             String(
                 vehiculo.cliente_id
             ) === String(clienteFactura)
+    );
+
+    // =========================================================
+    // ODS DEL CLIENTE SELECCIONADO
+    // =========================================================
+    const ordenesServicioCliente = ordenesServicio.filter(
+        (ods) =>
+            String(ods.cliente_id) === String(clienteFactura)
     );
 
     // =========================================================
@@ -869,38 +1140,92 @@ function Facturacion() {
 
     // =========================================================
     // CÁLCULOS
+    // El precio_unitario ingresado se considera BASE SIN IGV.
+    // Cada detalle se calcula como:
+    // base = cantidad × precio - descuento
+    // igv  = base × 18%
+    // total = base + igv
     // =========================================================
 
-    const subtotalBruto = itemsFactura.reduce(
-        (total, item) =>
-            total +
-            (
-                Number(item.cantidad) *
-                Number(item.precio_unitario)
-            ),
-        0
+    const detallesFacturaCalculados = itemsFactura.map((item) => {
+        const cantidad = Number(item.cantidad) || 0;
+        const precioUnitario = Number(item.precio_unitario) || 0;
+        const descuento = Number(item.descuento || 0);
+
+        const baseLinea = Number(
+            Math.max(
+                cantidad * precioUnitario - descuento,
+                0
+            ).toFixed(2)
+        );
+
+        const igvLinea = Number(
+            (baseLinea * 0.18).toFixed(2)
+        );
+
+        const totalLinea = Number(
+            (baseLinea + igvLinea).toFixed(2)
+        );
+
+        return {
+            ...item,
+            cantidad,
+            precio_unitario: precioUnitario,
+            descuento,
+            impuesto: igvLinea,
+            total: totalLinea
+        };
+    });
+
+    const subtotalBruto = Number(
+        itemsFactura.reduce(
+            (total, item) =>
+                total +
+                (
+                    Number(item.cantidad) *
+                    Number(item.precio_unitario)
+                ),
+            0
+        ).toFixed(2)
     );
 
-    const totalDescuentos = itemsFactura.reduce(
-        (total, item) =>
-            total +
-            Number(item.descuento || 0),
-        0
+    const totalDescuentos = Number(
+        itemsFactura.reduce(
+            (total, item) =>
+                total + Number(item.descuento || 0),
+            0
+        ).toFixed(2)
     );
 
-    const totalNeto = Math.max(
-        subtotalBruto - totalDescuentos,
-        0
+    const baseImponible = Number(
+        detallesFacturaCalculados.reduce(
+            (total, item) =>
+                total +
+                Math.max(
+                    Number(item.cantidad) *
+                    Number(item.precio_unitario) -
+                    Number(item.descuento || 0),
+                    0
+                ),
+            0
+        ).toFixed(2)
     );
 
-    const baseImponible =
-        totalNeto / 1.18;
+    const igvMonto = Number(
+        detallesFacturaCalculados.reduce(
+            (total, item) =>
+                total + Number(item.impuesto || 0),
+            0
+        ).toFixed(2)
+    );
 
-    const igvMonto =
-        totalNeto - baseImponible;
-
-    const totalPagar =
-        totalNeto;
+    const totalPagar = Number(
+        detallesFacturaCalculados.reduce(
+            (total, item) =>
+                total + Number(item.total || 0),
+            0
+        ).toFixed(2)
+    );
 
     // =========================================================
     // EMITIR FACTURA
@@ -912,6 +1237,43 @@ function Facturacion() {
 
             alert(
                 "Selecciona un cliente."
+            );
+
+            setPasoWizard(1);
+
+            return;
+        }
+
+        const documentoCliente = String(
+            clienteSeleccionado?.documento_identidad || ""
+        ).replace(/\D/g, "");
+
+        if (
+            tipoComprobante === "Factura Electrónica" &&
+            documentoCliente.length !== 11
+        ) {
+            alert(
+                "La Factura Electrónica requiere que el cliente tenga un RUC de 11 dígitos. Para este cliente corresponde emitir una Boleta Electrónica."
+            );
+
+            setTipoComprobante(
+                obtenerTipoComprobanteCliente(
+                    clienteSeleccionado
+                )
+            );
+
+            setPasoWizard(1);
+
+            return;
+        }
+
+        if (
+            tipoComprobante === "Boleta Electrónica" &&
+            documentoCliente.length !== 8 &&
+            documentoCliente.length !== 11
+        ) {
+            alert(
+                "El cliente no tiene un documento válido para emitir el comprobante."
             );
 
             setPasoWizard(1);
@@ -991,53 +1353,27 @@ function Facturacion() {
                 observaciones_pago:
                     observacionesPago || null,
 
-                detalles:
-                    itemsFactura.map(
-                        (item) => ({
+                detalles: detallesFacturaCalculados.map((item) => ({
+                    item_id: item.item_id
+                        ? Number(item.item_id)
+                        : null,
 
-                            item_id:
-                                item.item_id
-                                    ? Number(item.item_id)
-                                    : null,
+                    descripcion: item.descripcion,
 
-                            descripcion:
-                                item.descripcion,
+                    cantidad: Number(item.cantidad),
 
-                            cantidad:
-                                Number(item.cantidad),
+                    precio_unitario:
+                        Number(item.precio_unitario),
 
-                            precio_unitario:
-                                Number(item.precio_unitario),
+                    descuento:
+                        Number(item.descuento || 0),
 
-                            descuento:
-                                Number(
-                                    item.descuento || 0
-                                ),
+                    impuesto:
+                        Number(item.impuesto.toFixed(2)),
 
-                            impuesto:
-                                Number(
-                                    (
-                                        (
-                                            Number(item.cantidad) *
-                                            Number(item.precio_unitario)
-                                        ) -
-                                        Number(item.descuento || 0)
-                                    ) * 0.18
-                                ),
-
-                            total:
-                                Number(
-                                    (
-                                        (
-                                            Number(item.cantidad) *
-                                            Number(item.precio_unitario)
-                                        ) -
-                                        Number(item.descuento || 0)
-                                    ).toFixed(2)
-                                )
-
-                        })
-                    )
+                    total:
+                        Number(item.total.toFixed(2))
+                }))
             };
 
             console.log(
@@ -1452,6 +1788,18 @@ function Facturacion() {
 
                                                 <div className="table-actions">
 
+                                                    {factura.estado_pago !== "Pagado" && (
+                                                        <button
+                                                            className="btn-act-table link"
+                                                            style={{ backgroundColor: "#10b981", color: "#ffffff", borderColor: "#10b981", fontWeight: "bold" }}
+                                                            type="button"
+                                                            onClick={() => abrirModalPago(factura)}
+                                                            title="Registrar cobro / pago de este comprobante"
+                                                        >
+                                                            💳 Cobrar
+                                                        </button>
+                                                    )}
+
                                                     <button
                                                         className="btn-act-table link"
                                                         type="button"
@@ -1473,6 +1821,17 @@ function Facturacion() {
                                                         title="Emitir Nota de Crédito por anulación, devolución o descuento"
                                                     >
                                                         📝 Nota Crédito
+                                                    </button>
+
+                                                    <button
+                                                        className="btn-act-table diag"
+                                                        type="button"
+                                                        onClick={() =>
+                                                            abrirModalND(factura)
+                                                        }
+                                                        title="Emitir Nota de Débito por aumento en el valor del servicio"
+                                                    >
+                                                        📝 Nota Débito
                                                     </button>
 
                                                     <button
@@ -1734,35 +2093,352 @@ function Facturacion() {
             )}
 
             {/* =================================================
-                CUENTAS POR COBRAR
+                NOTAS DE DÉBITO
             ================================================= */}
 
-            {submodulo === "Cuentas por Cobrar" && (
+            {submodulo === "Notas de Débito" && (
 
                 <div
+                    className="os-table-wrapper"
                     style={{
-                        background: "#ffffff",
-                        padding: "40px",
-                        textAlign: "center",
-                        borderRadius: "8px",
-                        marginTop: "16px",
-                        color: "#64748b",
-                        border: "1px solid #e2e8f0"
+                        marginTop: "16px"
                     }}
                 >
 
-                    <h3>
-                        Cuentas por Cobrar
-                    </h3>
+                    <div
+                        style={{
+                            padding: "12px 16px",
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center"
+                        }}
+                    >
 
-                    <p>
-                        Este submódulo se conectará
-                        posteriormente con PostgreSQL.
-                    </p>
+                        <div>
+                            <h3>Notas de Débito</h3>
+                            <p style={{ margin: "4px 0", color: "#64748b" }}>
+                                Notas de débito registradas en PostgreSQL.
+                            </p>
+                        </div>
 
+                        <button
+                            type="button"
+                            className="btn-act-table link"
+                            style={{ padding: "8px 16px" }}
+                            onClick={() => abrirModalND()}
+                        >
+                            + Nueva Nota de Débito
+                        </button>
+                    </div>
+
+                    <table className="os-table">
+                        <thead>
+                            <tr>
+                                <th>N° Nota</th>
+                                <th>Fecha</th>
+                                <th>Factura</th>
+                                <th>Cliente</th>
+                                <th>Tipo</th>
+                                <th>Motivo</th>
+                                <th>Subtotal</th>
+                                <th>IGV</th>
+                                <th>Total</th>
+                                <th>Estado SUNAT</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {cargandoNotasDebito ? (
+                                <tr>
+                                    <td colSpan="10" style={{ textAlign: "center", padding: "30px" }}>
+                                        Cargando notas de débito...
+                                    </td>
+                                </tr>
+                            ) : notasDebitoList.length === 0 ? (
+                                <tr>
+                                    <td colSpan="10" style={{ textAlign: "center", padding: "30px" }}>
+                                        No existen notas de débito registradas.
+                                    </td>
+                                </tr>
+                            ) : (
+                                notasDebitoList.map((nota) => (
+                                    <tr key={nota.nota_debito_id}>
+                                        <td>
+                                            <strong>{nota.numero_nota}</strong>
+                                        </td>
+                                        <td>{fecha(nota.fecha_emision)}</td>
+                                        <td>{nota.numero_factura || nota.factura_id || "-"}</td>
+                                        <td>
+                                            {nota.cliente_nombre ||
+                                                nota.nombre_razon_social ||
+                                                obtenerNombreCliente(nota.cliente_id)}
+                                        </td>
+                                        <td>{nota.tipo_nota || "Débito"}</td>
+                                        <td>{nota.motivo || "-"}</td>
+                                        <td>{moneda(nota.subtotal)}</td>
+                                        <td>{moneda(nota.impuestos)}</td>
+                                        <td><strong>{moneda(nota.total)}</strong></td>
+                                        <td>
+                                            <span
+                                                className={`proc-tag ${nota.estado_sunat === "Aceptado"
+                                                    ? "preventivo"
+                                                    : "correctivo"
+                                                    }`}
+                                            >
+                                                {nota.estado_sunat || "Pendiente"}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
                 </div>
-
             )}
+
+            {/* =================================================
+                CUENTAS POR COBRAR
+            ================================================= */}
+
+            {/* =================================================
+                CUENTAS POR COBRAR
+            ================================================= */}
+
+            {submodulo === "Cuentas por Cobrar" && (() => {
+                const cuentasPendientes = facturasList.filter((f) => {
+                    const est = (f.estado_pago || "Pendiente").toLowerCase();
+                    return est !== "pagado";
+                });
+
+                const cuentasFiltradas = cuentasPendientes.filter((f) => {
+                    const q = busquedaCxC.toLowerCase();
+                    const clienteNom = (f.cliente_nombre || obtenerNombreCliente(f.cliente_id) || "").toLowerCase();
+                    const numComp = (f.numero_comprobante || "").toLowerCase();
+                    return numComp.includes(q) || clienteNom.includes(q);
+                });
+
+                const totalPorCobrar = cuentasPendientes.reduce((acc, f) => acc + Number(f.total || 0), 0);
+
+                return (
+                    <div style={{ marginTop: "16px" }}>
+                        {/* TARJETAS DE RESUMEN KPI */}
+                        <div
+                            style={{
+                                display: "grid",
+                                gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+                                gap: "16px",
+                                marginBottom: "20px"
+                            }}
+                        >
+                            <div
+                                style={{
+                                    background: "#ffffff",
+                                    padding: "18px 20px",
+                                    borderRadius: "10px",
+                                    border: "1px solid #e2e8f0",
+                                    boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                                    borderLeft: "5px solid #ef4444"
+                                }}
+                            >
+                                <span style={{ fontSize: "13px", color: "#64748b", fontWeight: 600, textTransform: "uppercase" }}>
+                                    Total por Cobrar
+                                </span>
+                                <h2 style={{ margin: "8px 0 0", color: "#ef4444", fontSize: "26px", fontWeight: 700 }}>
+                                    {moneda(totalPorCobrar)}
+                                </h2>
+                                <small style={{ color: "#94a3b8" }}>Suma de facturas y boletas pendientes</small>
+                            </div>
+
+                            <div
+                                style={{
+                                    background: "#ffffff",
+                                    padding: "18px 20px",
+                                    borderRadius: "10px",
+                                    border: "1px solid #e2e8f0",
+                                    boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                                    borderLeft: "5px solid #f59e0b"
+                                }}
+                            >
+                                <span style={{ fontSize: "13px", color: "#64748b", fontWeight: 600, textTransform: "uppercase" }}>
+                                    Comprobantes Pendientes
+                                </span>
+                                <h2 style={{ margin: "8px 0 0", color: "#0f172a", fontSize: "26px", fontWeight: 700 }}>
+                                    {cuentasPendientes.length}
+                                </h2>
+                                <small style={{ color: "#94a3b8" }}>Documentos pendientes de cobro</small>
+                            </div>
+
+                            <div
+                                style={{
+                                    background: "#ffffff",
+                                    padding: "18px 20px",
+                                    borderRadius: "10px",
+                                    border: "1px solid #e2e8f0",
+                                    boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                                    borderLeft: "5px solid #10b981"
+                                }}
+                            >
+                                <span style={{ fontSize: "13px", color: "#64748b", fontWeight: 600, textTransform: "uppercase" }}>
+                                    Comprobantes Pagados
+                                </span>
+                                <h2 style={{ margin: "8px 0 0", color: "#10b981", fontSize: "26px", fontWeight: 700 }}>
+                                    {facturasList.filter(f => (f.estado_pago || "").toLowerCase() === "pagado").length}
+                                </h2>
+                                <small style={{ color: "#94a3b8" }}>Operaciones ya saldadas</small>
+                            </div>
+                        </div>
+
+                        {/* TABLA DE CUENTAS POR COBRAR */}
+                        <div className="os-table-wrapper">
+                            <div
+                                style={{
+                                    padding: "14px 18px",
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                    borderBottom: "1px solid #e2e8f0",
+                                    flexWrap: "wrap",
+                                    gap: "12px"
+                                }}
+                            >
+                                <div>
+                                    <h3 style={{ margin: 0, color: "#0f172a" }}>Listado de Cuentas por Cobrar</h3>
+                                    <p style={{ margin: "4px 0 0", color: "#64748b", fontSize: "13px" }}>
+                                        Solo se muestran comprobantes con estado de pago <strong>Pendiente</strong>. Al pagar, se retirarán automáticamente de esta sección.
+                                    </p>
+                                </div>
+
+                                <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                                    <input
+                                        type="text"
+                                        placeholder="Buscar por N° Comprobante o Cliente..."
+                                        value={busquedaCxC}
+                                        onChange={(e) => setBusquedaCxC(e.target.value)}
+                                        style={{
+                                            padding: "8px 12px",
+                                            borderRadius: "6px",
+                                            border: "1px solid #cbd5e1",
+                                            fontSize: "13px",
+                                            minWidth: "260px"
+                                        }}
+                                    />
+                                    {busquedaCxC && (
+                                        <button
+                                            type="button"
+                                            className="btn-act-table link"
+                                            onClick={() => setBusquedaCxC("")}
+                                            style={{ padding: "6px 12px" }}
+                                        >
+                                            Limpiar
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                            <table className="os-table">
+                                <thead>
+                                    <tr>
+                                        <th>N° Comprobante</th>
+                                        <th>Tipo</th>
+                                        <th>Fecha Emisión</th>
+                                        <th>Cliente</th>
+                                        <th>Método Pactado</th>
+                                        <th>Total Pendiente</th>
+                                        <th>Estado de Pago</th>
+                                        <th style={{ textAlign: "center" }}>Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {cargandoFacturas ? (
+                                        <tr>
+                                            <td colSpan="8" style={{ textAlign: "center", padding: "30px" }}>
+                                                Cargando cuentas por cobrar...
+                                            </td>
+                                        </tr>
+                                    ) : cuentasFiltradas.length === 0 ? (
+                                        <tr>
+                                            <td
+                                                colSpan="8"
+                                                style={{
+                                                    textAlign: "center",
+                                                    padding: "45px 20px",
+                                                    color: "#64748b"
+                                                }}
+                                            >
+                                                <div style={{ fontSize: "36px", marginBottom: "8px" }}>✅</div>
+                                                <strong style={{ fontSize: "16px", color: "#0f172a", display: "block" }}>
+                                                    {cuentasPendientes.length === 0
+                                                        ? "¡No hay cuentas pendientes por cobrar!"
+                                                        : "No se encontraron comprobantes con el criterio de búsqueda."}
+                                                </strong>
+                                                <span style={{ fontSize: "13px" }}>
+                                                    {cuentasPendientes.length === 0
+                                                        ? "Todos los comprobantes emitidos han sido pagados y regularizados."
+                                                        : "Intente con otro nombre de cliente o número de serie."}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        cuentasFiltradas.map((factura) => (
+                                            <tr key={factura.factura_id}>
+                                                <td>
+                                                    <strong style={{ color: "#0f172a" }}>
+                                                        {factura.numero_comprobante}
+                                                    </strong>
+                                                </td>
+                                                <td>{factura.tipo_comprobante}</td>
+                                                <td>{fecha(factura.fecha_emision)}</td>
+                                                <td>
+                                                    <strong>
+                                                        {factura.cliente_nombre ||
+                                                            factura.nombre_razon_social ||
+                                                            obtenerNombreCliente(factura.cliente_id)}
+                                                    </strong>
+                                                </td>
+                                                <td>
+                                                    <span style={{ color: "#475569", fontSize: "13px" }}>
+                                                        {factura.metodo_pago || "Efectivo"}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <strong style={{ color: "#ef4444", fontSize: "15px" }}>
+                                                        {moneda(factura.total)}
+                                                    </strong>
+                                                </td>
+                                                <td>
+                                                    <span className="proc-tag correctivo">
+                                                        {factura.estado_pago || "Pendiente"}
+                                                    </span>
+                                                </td>
+                                                <td style={{ textAlign: "center" }}>
+                                                    <button
+                                                        type="button"
+                                                        className="btn-act-table link"
+                                                        style={{
+                                                            background: "#10b981",
+                                                            color: "#ffffff",
+                                                            borderColor: "#10b981",
+                                                            fontWeight: "bold",
+                                                            padding: "8px 16px",
+                                                            borderRadius: "6px",
+                                                            cursor: "pointer",
+                                                            boxShadow: "0 2px 4px rgba(16,185,129,0.2)"
+                                                        }}
+                                                        onClick={() => abrirModalPago(factura)}
+                                                        title="Registrar pago / saldar comprobante"
+                                                    >
+                                                        💳 Registrar Pago
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                );
+            })()}
 
             {/* =================================================
                 COTIZACIONES
@@ -2114,19 +2790,40 @@ function Facturacion() {
                                                     className="btn-act-table nps"
                                                     type="button"
                                                     onClick={() => {
+                                                        setClienteFactura(String(cotizacion.cliente_id));
+                                                        const clienteCotizacion =
+                                                            clientes.find(
+                                                                (cliente) =>
+                                                                    String(
+                                                                        cliente.cliente_id ??
+                                                                        cliente.id
+                                                                    ) ===
+                                                                    String(
+                                                                        cotizacion.cliente_id
+                                                                    )
+                                                            );
 
-                                                        setClienteFactura(
-                                                            cotizacion.cliente_id
+                                                        setTipoComprobante(
+                                                            obtenerTipoComprobanteCliente(
+                                                                clienteCotizacion
+                                                            )
                                                         );
 
-                                                        setMostrarWizard(
-                                                            true
-                                                        );
-
-                                                        setPasoWizard(
-                                                            1
-                                                        );
-
+                                                        if (cotizacion.vehiculo_id) {
+                                                            setVehiculoFactura(String(cotizacion.vehiculo_id));
+                                                        }
+                                                        if (Array.isArray(cotizacion.detalles) && cotizacion.detalles.length > 0) {
+                                                            setItemsFactura(cotizacion.detalles.map((d, index) => ({
+                                                                id: index + 1,
+                                                                item_id: d.item_id || null,
+                                                                descripcion: d.descripcion,
+                                                                cantidad: Number(d.cantidad || 1),
+                                                                precio_unitario: Number(d.precio_unitario || 0),
+                                                                descuento: Number(d.descuento || 0)
+                                                            })));
+                                                        }
+                                                        setMostrarWizard(true);
+                                                        setPasoWizard(1);
                                                     }}
                                                 >
                                                     Facturar
@@ -2663,8 +3360,8 @@ function Facturacion() {
 
                                 <h2>
                                     Wizard de Emisión
-                                    de Factura
-                                    Electrónica
+                                    de{" "}
+                                    {tipoComprobante}
                                 </h2>
 
                                 <p>
@@ -2833,12 +3530,37 @@ function Facturacion() {
                                             onChange={
                                                 (e) => {
 
+                                                    const nuevoClienteId =
+                                                        e.target.value;
+
                                                     setClienteFactura(
-                                                        e.target.value
+                                                        nuevoClienteId
                                                     );
 
                                                     setVehiculoFactura(
                                                         ""
+                                                    );
+
+                                                    setOdsSeleccionada(
+                                                        ""
+                                                    );
+
+                                                    const cliente =
+                                                        clientes.find(
+                                                            (item) =>
+                                                                String(
+                                                                    item.cliente_id ??
+                                                                    item.id
+                                                                ) ===
+                                                                String(
+                                                                    nuevoClienteId
+                                                                )
+                                                        );
+
+                                                    setTipoComprobante(
+                                                        obtenerTipoComprobanteCliente(
+                                                            cliente
+                                                        )
                                                     );
 
                                                 }
@@ -2976,7 +3698,7 @@ function Facturacion() {
                                                 Sin ODS
                                             </option>
 
-                                            {ordenesServicio.map(
+                                            {ordenesServicioCliente.map(
                                                 (ods) => (
 
                                                     <option
@@ -3627,7 +4349,7 @@ function Facturacion() {
                                     {
                                         emitiendoFactura
                                             ? "Registrando..."
-                                            : "🧾 Emitir Factura Electrónica"
+                                            : `🧾 Emitir ${tipoComprobante}`
                                     }
 
                                 </button>
@@ -3736,6 +4458,255 @@ function Facturacion() {
                                 disabled={emitiendoNC}
                             >
                                 {emitiendoNC ? "Emitiendo..." : "📝 Emitir Nota de Crédito"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* =================================================
+                MODAL NOTA DE DÉBITO
+            ================================================= */}
+            {mostrarModalND && (
+                <div className="modal-overlay">
+                    <div className="modal-content" style={{ maxWidth: "600px" }}>
+                        <div className="modal-header">
+                            <div>
+                                <h2>Emitir Nota de Débito</h2>
+                                <p>Generar comprobante de ajuste por aumento en el valor del servicio</p>
+                            </div>
+                            <button
+                                className="btn-close"
+                                onClick={() => setMostrarModalND(false)}
+                                disabled={emitiendoND}
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <div className="modal-body">
+                            <div className="form-group" style={{ marginBottom: "14px" }}>
+                                <label>Comprobante de Referencia *</label>
+                                <select
+                                    value={ndFacturaId}
+                                    onChange={(e) => {
+                                        const fId = e.target.value;
+                                        setNdFacturaId(fId);
+                                        const fac = facturasList.find(
+                                            (f) => String(f.factura_id) === String(fId)
+                                        );
+                                        if (fac) {
+                                            setNdClienteId(fac.cliente_id);
+                                        }
+                                    }}
+                                >
+                                    <option value="">Seleccionar Comprobante...</option>
+                                    {facturasList.map((f) => (
+                                        <option key={f.factura_id} value={f.factura_id}>
+                                            {f.numero_comprobante} - Total: S/ {Number(f.total).toFixed(2)} ({f.cliente_nombre || obtenerNombreCliente(f.cliente_id)})
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="form-group" style={{ marginBottom: "14px" }}>
+                                <label>Tipo de Nota de Débito *</label>
+                                <select
+                                    value={ndTipoNota}
+                                    onChange={(e) => setNdTipoNota(e.target.value)}
+                                >
+                                    <option value="Aumento en el valor del servicio">Aumento en el valor del servicio</option>
+                                </select>
+                            </div>
+
+                            <div className="form-group" style={{ marginBottom: "14px" }}>
+                                <label>Motivo / Sustento de Emisión *</label>
+                                <input
+                                    type="text"
+                                    placeholder="Ej. Cargo adicional por servicio..."
+                                    value={ndMotivo}
+                                    onChange={(e) => setNdMotivo(e.target.value)}
+                                />
+                            </div>
+
+                            <div className="form-group" style={{ marginBottom: "14px" }}>
+                                <label>Monto Total a Ajustar (S/) *</label>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    placeholder="0.00"
+                                    value={ndMontoTotal}
+                                    onChange={(e) => setNdMontoTotal(e.target.value)}
+                                />
+                                <small style={{ color: "#64748b", marginTop: "4px", display: "block" }}>
+                                    Subtotal (base): S/ {(Number(ndMontoTotal || 0) / 1.18).toFixed(2)} | IGV (18%): S/ {(Number(ndMontoTotal || 0) - (Number(ndMontoTotal || 0) / 1.18)).toFixed(2)}
+                                </small>
+                            </div>
+                        </div>
+
+                        <div className="modal-footer">
+                            <button
+                                type="button"
+                                className="btn-cancelar"
+                                onClick={() => setMostrarModalND(false)}
+                                disabled={emitiendoND}
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="button"
+                                className="btn-approve"
+                                onClick={emitirNotaDebitoFinal}
+                                disabled={emitiendoND}
+                            >
+                                {emitiendoND ? "Emitiendo..." : "📝 Emitir Nota de Débito"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* =================================================
+                MODAL DE REGISTRO DE PAGO
+            ================================================= */}
+            {mostrarModalPago && facturaAPagar && (
+                <div className="os-modal-overlay">
+                    <div className="modal-content" style={{ maxWidth: "520px" }}>
+                        <div className="modal-header">
+                            <div>
+                                <h2>Registrar Pago de Comprobante</h2>
+                                <p style={{ margin: "4px 0 0", color: "#64748b" }}>
+                                    Confirmar cobro y saldar comprobante en PostgreSQL
+                                </p>
+                            </div>
+                            <button
+                                className="btn-close"
+                                onClick={() => {
+                                    setMostrarModalPago(false);
+                                    setFacturaAPagar(null);
+                                }}
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <div className="modal-body">
+                            {/* RESUMEN DE LA FACTURA */}
+                            <div
+                                style={{
+                                    background: "#f8fafc",
+                                    border: "1px solid #e2e8f0",
+                                    borderRadius: "8px",
+                                    padding: "14px 16px",
+                                    marginBottom: "18px"
+                                }}
+                            >
+                                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                                    <span style={{ color: "#64748b", fontSize: "13px" }}>N° Comprobante:</span>
+                                    <strong style={{ color: "#0f172a" }}>{facturaAPagar.numero_comprobante}</strong>
+                                </div>
+                                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                                    <span style={{ color: "#64748b", fontSize: "13px" }}>Cliente:</span>
+                                    <strong style={{ color: "#0f172a" }}>
+                                        {facturaAPagar.cliente_nombre ||
+                                            facturaAPagar.nombre_razon_social ||
+                                            obtenerNombreCliente(facturaAPagar.cliente_id)}
+                                    </strong>
+                                </div>
+                                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                                    <span style={{ color: "#64748b", fontSize: "13px" }}>Tipo:</span>
+                                    <span style={{ color: "#334155" }}>{facturaAPagar.tipo_comprobante}</span>
+                                </div>
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        justifyContent: "space-between",
+                                        paddingTop: "8px",
+                                        borderTop: "1px dashed #cbd5e1"
+                                    }}
+                                >
+                                    <strong style={{ color: "#0f172a", fontSize: "15px" }}>Monto a Cobrar:</strong>
+                                    <strong style={{ color: "#10b981", fontSize: "18px" }}>
+                                        {moneda(facturaAPagar.total)}
+                                    </strong>
+                                </div>
+                            </div>
+
+                            {/* MÉTODO DE PAGO */}
+                            <div className="form-group" style={{ marginBottom: "14px" }}>
+                                <label style={{ display: "block", marginBottom: "6px", fontWeight: 600 }}>
+                                    Método de Pago Utilizado *
+                                </label>
+                                <select
+                                    value={metodoPagoRegistro}
+                                    onChange={(e) => setMetodoPagoRegistro(e.target.value)}
+                                    style={{
+                                        width: "100%",
+                                        padding: "10px 12px",
+                                        borderRadius: "6px",
+                                        border: "1px solid #cbd5e1",
+                                        fontSize: "14px"
+                                    }}
+                                >
+                                    <option value="Efectivo">Efectivo</option>
+                                    <option value="Yape">Yape</option>
+                                    <option value="Plin">Plin</option>
+                                    <option value="Transferencia BCP">Transferencia BCP</option>
+                                    <option value="Transferencia BBVA">Transferencia BBVA</option>
+                                    <option value="Transferencia Interbank">Transferencia Interbank</option>
+                                    <option value="Tarjeta de Débito">Tarjeta de Débito</option>
+                                    <option value="Tarjeta de Crédito">Tarjeta de Crédito</option>
+                                </select>
+                            </div>
+
+                            {/* OBSERVACIONES */}
+                            <div className="form-group" style={{ marginBottom: "14px" }}>
+                                <label style={{ display: "block", marginBottom: "6px", fontWeight: 600 }}>
+                                    N° de Operación / Observaciones de Pago (Opcional)
+                                </label>
+                                <input
+                                    type="text"
+                                    placeholder="Ej. Operación #987213 o Pago en caja principal..."
+                                    value={observacionesPagoRegistro}
+                                    onChange={(e) => setObservacionesPagoRegistro(e.target.value)}
+                                    style={{
+                                        width: "100%",
+                                        padding: "10px 12px",
+                                        borderRadius: "6px",
+                                        border: "1px solid #cbd5e1",
+                                        fontSize: "14px"
+                                    }}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="modal-footer">
+                            <button
+                                type="button"
+                                className="btn-cancelar"
+                                onClick={() => {
+                                    setMostrarModalPago(false);
+                                    setFacturaAPagar(null);
+                                }}
+                                disabled={procesandoPago}
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="button"
+                                className="btn-approve"
+                                style={{
+                                    background: "#10b981",
+                                    borderColor: "#10b981",
+                                    color: "#ffffff",
+                                    fontWeight: "bold",
+                                    padding: "10px 20px"
+                                }}
+                                onClick={confirmarPagoFactura}
+                                disabled={procesandoPago}
+                            >
+                                {procesandoPago ? "Registrando Pago..." : "✅ Confirmar Pago"}
                             </button>
                         </div>
                     </div>

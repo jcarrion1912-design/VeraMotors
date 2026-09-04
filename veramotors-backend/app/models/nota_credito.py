@@ -71,6 +71,11 @@ class NotaCredito(Base):
         server_default=func.current_timestamp()
     )
 
+    codigo_motivo = Column(
+        String(10),
+        nullable=False
+    )
+
     motivo = Column(
         String(255),
         nullable=False
@@ -110,8 +115,19 @@ class NotaCredito(Base):
         nullable=True
     )
 
+    fecha_envio_sunat = Column(
+        DateTime,
+        nullable=True
+    )
+
     cliente = relationship("Cliente", foreign_keys=[cliente_id], lazy="joined")
     factura = relationship("Factura", foreign_keys=[factura_id], lazy="joined")
+
+    detalles = relationship(
+        "DetalleNotaCredito",
+        back_populates="nota_credito",
+        cascade="all, delete-orphan"
+    )
 
     __table_args__ = (
         UniqueConstraint(

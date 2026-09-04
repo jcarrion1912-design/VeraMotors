@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useRole } from "../../context/RoleContext";
 import DiagramaVehiculo from "../../components/DiagramaVehiculo";
-import { obtenerODS } from "../../services/odsService";
+import { obtenerODS, actualizarODS, cambiarEstadoODS } from "../../services/odsService";
 import { obtenerUsuarios } from "../../services/usuariosService";
 import "./OrdenesServicio.css";
 
@@ -16,6 +16,11 @@ function OrdenesServicio() {
 
     // Modal de Nueva ODS / Edición
     const [modoEdicion, setModoEdicion] = useState(false);
+
+    // ODS seleccionada para modales de detalle, aprobación, diagnóstico y trazabilidad
+    const [odsSeleccionadaModal, setOdsSeleccionadaModal] = useState(null);
+    const [estadoCambioODS, setEstadoCambioODS] = useState("Diagnóstico");
+    const [guardandoEstado, setGuardandoEstado] = useState(false);
 
     // Datos del Registro de Vehículo
     const [tipoVehiculo, setTipoVehiculo] = useState("Automóvil");
@@ -85,6 +90,8 @@ function OrdenesServicio() {
     const [usuariosAPI, setUsuariosAPI] = useState([]);
     const [clientesAPI, setClientesAPI] = useState([]);
     const [vehiculosCliente, setVehiculosCliente] = useState([]);
+    const [cotizacionesCliente, setCotizacionesCliente] = useState([]);
+    const [cotizacionSeleccionadaId, setCotizacionSeleccionadaId] = useState("");
     const [clienteSeleccionadoId, setClienteSeleccionadoId] = useState("");
     const [vehiculoSeleccionadoId, setVehiculoSeleccionadoId] = useState("");
     const [asesorSeleccionadoId, setAsesorSeleccionadoId] = useState("");
@@ -103,19 +110,35 @@ function OrdenesServicio() {
                     const tecnico = Array.isArray(usuariosData)
                         ? usuariosData.find((u) => Number(u.user_id) === Number(item.tecnico_id))
                         : null;
+                    const asesor = Array.isArray(usuariosData)
+                        ? usuariosData.find((u) => Number(u.user_id) === Number(item.asesor_id))
+                        : null;
 
                     const fechaIngreso = item.fecha_ingreso ? new Date(item.fecha_ingreso) : new Date();
 
                     return {
-                        id: `ODS-${item.ods_id}`,
+                        ods_id: item.ods_id,
+                        id: item.codigo_ods || `ODS-${item.ods_id}`,
+                        ticket: item.numero_ticket || `TK-${item.ods_id}`,
+                        cliente_id: item.cliente_id,
                         cliente: item.cliente_nombre || "Cliente sin nombre",
+                        vehiculo_id: item.vehiculo_id,
                         placa: item.vehiculo_placa || "Sin placa",
                         marca: item.tipo_procedimiento || "Servicio",
                         estado: item.estado_actual || "Recepción",
                         fecha: fechaIngreso.toLocaleString("es-PE", { dateStyle: "short", timeStyle: "short" }),
+                        fecha_ingreso: item.fecha_ingreso,
+                        tecnico_id: item.tecnico_id,
                         tecnico: tecnico ? tecnico.nombre : `Técnico ${item.tecnico_id || "sin asignar"}`,
+                        asesor_id: item.asesor_id,
+                        asesor: asesor ? asesor.nombre : `Asesor ${item.asesor_id || "sin asignar"}`,
                         asignadoHaceMinutos: Math.max(1, Math.round((Date.now() - fechaIngreso.getTime()) / 60000)),
-                        procedimiento: item.tipo_procedimiento || "Preventivo"
+                        procedimiento: item.tipo_procedimiento || "Preventivo",
+                        motivo: item.inspeccion_json?.motivo_servicio?.motivo_detallado || item.observaciones || "Servicio vehicular",
+                        inspeccion_json: item.inspeccion_json,
+                        estado_aprobacion_cliente: item.estado_aprobacion_cliente || "Pendiente",
+                        cotizacion_id: item.cotizacion_id,
+                        kilometraje: item.kilometraje_ingreso
                     };
                 })
                 : [];
@@ -155,18 +178,32 @@ function OrdenesServicio() {
     }, []);
 
     useEffect(() => {
-        const cargarVehiculosDelCliente = async () => {
+        const cargarDatosDelCliente = async () => {
             if (!clienteSeleccionadoId) {
                 setVehiculosCliente([]);
                 setVehiculoSeleccionadoId("");
+                setCotizacionesCliente([]);
+                setCotizacionSeleccionadaId("");
+                setCotizacionPrevia("Sin Cotización");
                 return;
             }
 
             try {
-                const res = await fetch(`http://127.0.0.1:8000/api/vehiculos?cliente_id=${clienteSeleccionadoId}`);
-                const data = await res.json();
-                const vehiculos = Array.isArray(data) ? data : [];
+                const [resVehiculos, resCotizaciones] = await Promise.all([
+                    fetch(`http://127.0.0.1:8000/api/vehiculos?cliente_id=${clienteSeleccionadoId}`),
+                    fetch(`http://127.0.0.1:8000/api/cotizaciones?cliente_id=${clienteSeleccionadoId}`)
+                ]);
+
+                const dataVehiculos = await resVehiculos.json();
+                const dataCotizaciones = await resCotizaciones.json();
+
+                const vehiculos = Array.isArray(dataVehiculos) ? dataVehiculos : [];
+                const cotizaciones = Array.isArray(dataCotizaciones) ? dataCotizaciones : [];
+
                 setVehiculosCliente(vehiculos);
+                setCotizacionesCliente(cotizaciones);
+                setCotizacionSeleccionadaId("");
+                setCotizacionPrevia("Sin Cotización");
 
                 if (vehiculos.length > 0) {
                     const primerVehiculo = vehiculos[0];
@@ -191,13 +228,15 @@ function OrdenesServicio() {
                     setKilometraje("");
                 }
             } catch (error) {
-                console.error("Error cargando vehículos del cliente:", error);
+                console.error("Error cargando datos del cliente:", error);
                 setVehiculosCliente([]);
                 setVehiculoSeleccionadoId("");
+                setCotizacionesCliente([]);
+                setCotizacionSeleccionadaId("");
             }
         };
 
-        cargarVehiculosDelCliente();
+        cargarDatosDelCliente();
     }, [clienteSeleccionadoId]);
 
     const manejarCambioVehiculo = (vehiculoId) => {
@@ -291,7 +330,7 @@ function OrdenesServicio() {
             cita_id: null,
             cliente_id: Number(clienteSeleccionadoId),
             vehiculo_id: Number(vehiculoSeleccionadoId),
-            cotizacion_id: null,
+            cotizacion_id: cotizacionSeleccionadaId ? Number(cotizacionSeleccionadaId) : null,
             asesor_id: Number(asesorSeleccionadoId),
             tecnico_id: Number(tecnicoSeleccionadoId),
             estado_actual: "Recepción",
@@ -470,7 +509,10 @@ function OrdenesServicio() {
                                                     {esTecnico && estadoActivo === "Diagnóstico" && (
                                                         <button 
                                                             className="btn-act-table diag"
-                                                            onClick={iniciarDiagnosticoModal}
+                                                            onClick={() => {
+                                                                setOdsSeleccionadaModal(ods);
+                                                                iniciarDiagnosticoModal();
+                                                            }}
                                                         >
                                                             📋 Diagnosticar
                                                         </button>
@@ -479,7 +521,11 @@ function OrdenesServicio() {
                                                     {estadoActivo === "Recepción" && (
                                                         <button 
                                                             className="btn-act-table link"
-                                                            onClick={() => setMostrarModalCliente(true)}
+                                                            onClick={() => {
+                                                                setOdsSeleccionadaModal(ods);
+                                                                setEstadoAprobacionCliente(ods.estado_aprobacion_cliente || "Pendiente");
+                                                                setMostrarModalCliente(true);
+                                                            }}
                                                         >
                                                             📲 Link Cliente
                                                         </button>
@@ -488,7 +534,10 @@ function OrdenesServicio() {
                                                     {estadoActivo === "Entrega" && (
                                                         <button 
                                                             className="btn-act-table nps"
-                                                            onClick={() => setMostrarModalEntrega(true)}
+                                                            onClick={() => {
+                                                                setOdsSeleccionadaModal(ods);
+                                                                setMostrarModalEntrega(true);
+                                                            }}
                                                         >
                                                             ⭐ Entregar & NPS
                                                         </button>
@@ -496,7 +545,11 @@ function OrdenesServicio() {
 
                                                     <button 
                                                         className="btn-act-table trace"
-                                                        onClick={() => setMostrarModalTrazabilidad(true)}
+                                                        onClick={() => {
+                                                            setOdsSeleccionadaModal(ods);
+                                                            setEstadoCambioODS(ods.estado || "Diagnóstico");
+                                                            setMostrarModalTrazabilidad(true);
+                                                        }}
                                                     >
                                                         🔍 Ver ODS
                                                     </button>
@@ -663,11 +716,36 @@ function OrdenesServicio() {
 
                                     <div className="campo">
                                         <label>Enlazar Cotización Previa</label>
-                                        <select value={cotizacionPrevia} onChange={(e) => setCotizacionPrevia(e.target.value)}>
-                                            <option>Sin Cotización</option>
-                                            <option>COT-5501 (Mantenimiento 80k km - S/ 650)</option>
-                                            <option>COT-5504 (Cambio de Discos - S/ 420)</option>
+                                        <select 
+                                            value={cotizacionSeleccionadaId} 
+                                            onChange={(e) => {
+                                                const cotId = e.target.value;
+                                                setCotizacionSeleccionadaId(cotId);
+                                                const cot = cotizacionesCliente.find(c => String(c.cotizacion_id) === String(cotId));
+                                                if (cot) {
+                                                    setCotizacionPrevia(`${cot.codigo_cotizacion} (Total: S/ ${Number(cot.total).toFixed(2)})`);
+                                                    if (cot.detalles && cot.detalles.length > 0 && (!motivoDetallado || motivoDetallado === "Ruido inusual en frenos traseros al desacelerar.")) {
+                                                        const desc = cot.detalles.map(d => `${d.descripcion} (Cant: ${d.cantidad})`).join(", ");
+                                                        setMotivoDetallado(desc);
+                                                    }
+                                                } else {
+                                                    setCotizacionPrevia("Sin Cotización");
+                                                }
+                                            }}
+                                            disabled={!clienteSeleccionadoId}
+                                        >
+                                            <option value="">Sin Cotización</option>
+                                            {cotizacionesCliente.map((cot) => (
+                                                <option key={cot.cotizacion_id} value={cot.cotizacion_id}>
+                                                    {cot.codigo_cotizacion} - S/ {Number(cot.total).toFixed(2)} ({cot.estado || 'Emitida'}{cot.vehiculo_placa ? ` | ${cot.vehiculo_placa}` : ''})
+                                                </option>
+                                            ))}
                                         </select>
+                                        {clienteSeleccionadoId && cotizacionesCliente.length === 0 && (
+                                            <small style={{ color: '#64748b', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                                                ℹ️ No hay cotizaciones previas registradas para este cliente.
+                                            </small>
+                                        )}
                                     </div>
                                 </div>
 
@@ -830,54 +908,97 @@ function OrdenesServicio() {
             )}
 
             {/* =========================================
-                MODAL 1: FLUJO DE APROBACIÓN DEL CLIENTE (MODO SOLO LECTURA)
+                MODAL 1: FLUJO DE APROBACIÓN DEL CLIENTE
             ========================================= */}
-            {mostrarModalCliente && (
+            {mostrarModalCliente && odsSeleccionadaModal && (
                 <div className="modal-overlay">
                     <div className="modal-content client-preview">
                         <div className="modal-header">
                             <div>
-                                <span className="read-only-badge">👁 MODO SOLO LECTURA - VISTA CLIENTE</span>
+                                <span className="read-only-badge">👁 VISTA DE APROBACIÓN DEL CLIENTE</span>
                                 <h2>Aprobación de Orden de Servicio</h2>
-                                <p>El cliente recibe esta vista interactiva mediante WhatsApp o Mail.</p>
+                                <p>Enlace interactivo generado para envío por WhatsApp o Mail.</p>
                             </div>
                             <button className="btn-close" onClick={() => setMostrarModalCliente(false)}>✕</button>
                         </div>
 
                         <div className="modal-body">
                             <div className="summary-box">
-                                <h3>VERAMOTORS SAC - ODS #1004</h3>
-                                <p><strong>Cliente:</strong> {cliente} | <strong>Vehículo:</strong> {marca} {modelo} ({placa})</p>
-                                <p><strong>Motivo:</strong> {motivoDetallado}</p>
-                                <p><strong>Procedimiento:</strong> {procedimiento}</p>
+                                <h3>VERAMOTORS SAC - {odsSeleccionadaModal.id}</h3>
+                                <p><strong>Cliente:</strong> {odsSeleccionadaModal.cliente} | <strong>Vehículo / Placa:</strong> {odsSeleccionadaModal.placa}</p>
+                                <p><strong>Motivo Reportado:</strong> {odsSeleccionadaModal.motivo}</p>
+                                <p><strong>Tipo de Procedimiento:</strong> {odsSeleccionadaModal.procedimiento}</p>
+                                <p><strong>Técnico Responsable:</strong> {odsSeleccionadaModal.tecnico}</p>
+                            </div>
+
+                            <div style={{ margin: "14px 0", display: "flex", gap: "10px", alignItems: "center" }}>
+                                <input
+                                    type="text"
+                                    readOnly
+                                    value={`${window.location.origin}/aprobacion-cliente/${odsSeleccionadaModal.id}`}
+                                    style={{ flex: 1, padding: "8px 12px", borderRadius: "6px", border: "1px solid #334155", background: "#0f172a", color: "#94a3b8", fontSize: "13px" }}
+                                />
+                                <button
+                                    type="button"
+                                    className="btn-act-table link"
+                                    onClick={() => {
+                                        const link = `${window.location.origin}/aprobacion-cliente/${odsSeleccionadaModal.id}`;
+                                        navigator.clipboard.writeText(link);
+                                        alert(`¡Link de aprobación copiado al portapapeles!\n\n${link}`);
+                                    }}
+                                    style={{ padding: "8px 14px", fontWeight: "bold" }}
+                                >
+                                    📋 Copiar Link
+                                </button>
                             </div>
 
                             <div className="approval-status-box">
-                                <strong>Estado Actual:</strong> <span className={`status-pill ${estadoAprobacionCliente.toLowerCase()}`}>{estadoAprobacionCliente}</span>
+                                <strong>Estado Actual de Aprobación:</strong>{" "}
+                                <span className={`status-pill ${estadoAprobacionCliente.toLowerCase()}`}>
+                                    {estadoAprobacionCliente}
+                                </span>
                             </div>
                         </div>
 
                         <div className="modal-footer">
                             <button 
                                 className="btn-reject" 
-                                onClick={() => {
-                                    setEstadoAprobacionCliente("Denegado");
-                                    agregarNotificacion(`ATENCIÓN: El cliente ${cliente} ha DENEGADO la ODS #1004. Contactar de inmediato.`, ROLES.ASESOR_SERVICIO);
-                                    alert("Notificación enviada al Asesor de Servicio por denegación del cliente.");
+                                onClick={async () => {
+                                    try {
+                                        await actualizarODS(odsSeleccionadaModal.ods_id, { estado_aprobacion_cliente: "Denegado" });
+                                        setEstadoAprobacionCliente("Denegado");
+                                        agregarNotificacion(`ATENCIÓN: El cliente ${odsSeleccionadaModal.cliente} ha DENEGADO la ${odsSeleccionadaModal.id}. Contactar de inmediato.`, ROLES.ASESOR_SERVICIO);
+                                        alert(`La orden ${odsSeleccionadaModal.id} ha sido marcada como Denegada.`);
+                                        setMostrarModalCliente(false);
+                                        await cargarDatosODS();
+                                    } catch (err) {
+                                        console.error("Error denegando orden:", err);
+                                        alert("No se pudo actualizar el estado en el servidor.");
+                                    }
                                 }}
                             >
                                 ✖ Denegar Orden
                             </button>
                             <button 
                                 className="btn-approve" 
-                                onClick={() => {
-                                    setEstadoAprobacionCliente("Aprobado");
-                                    agregarNotificacion(`El cliente ${cliente} ha APROBADO la ODS #1004.`, ROLES.ASESOR_SERVICIO);
-                                    alert("¡Orden de servicio Aprobada por el cliente! Avanzando al siguiente estado.");
-                                    setMostrarModalCliente(false);
+                                onClick={async () => {
+                                    try {
+                                        await actualizarODS(odsSeleccionadaModal.ods_id, {
+                                            estado_aprobacion_cliente: "Aprobado",
+                                            estado_actual: "Diagnóstico"
+                                        });
+                                        setEstadoAprobacionCliente("Aprobado");
+                                        agregarNotificacion(`El cliente ${odsSeleccionadaModal.cliente} ha APROBADO la ${odsSeleccionadaModal.id}.`, ROLES.ASESOR_SERVICIO);
+                                        alert(`¡Orden ${odsSeleccionadaModal.id} aprobada por el cliente! Avanzó automáticamente al estado de Diagnóstico.`);
+                                        setMostrarModalCliente(false);
+                                        await cargarDatosODS();
+                                    } catch (err) {
+                                        console.error("Error aprobando orden:", err);
+                                        alert("No se pudo actualizar la aprobación en el servidor.");
+                                    }
                                 }}
                             >
-                                ✔ Aprobar Orden
+                                ✔ Aprobar & Avanzar a Diagnóstico
                             </button>
                         </div>
                     </div>
@@ -921,7 +1042,9 @@ function OrdenesServicio() {
                         <div className="modal-header">
                             <div>
                                 <h2>Registro de Diagnóstico Técnico</h2>
-                                <p>Vehículo: Toyota Corolla (ABC-123) | Propietario: Carlos Mendoza | Ingreso: 09:30 AM</p>
+                                <p>
+                                    ODS: {odsSeleccionadaModal?.id || "ODS"} | Vehículo: {odsSeleccionadaModal?.placa || "Vehículo"} | Propietario: {odsSeleccionadaModal?.cliente || "Cliente"}
+                                </p>
                             </div>
                             <button className="btn-close" onClick={() => setMostrarModalDiagnostico(false)}>✕</button>
                         </div>
@@ -929,7 +1052,7 @@ function OrdenesServicio() {
                         <div className="modal-body">
                             <div className="form-group">
                                 <label>Falla Detectada *</label>
-                                <input type="text" value={nuevaFalla} onChange={(e) => setNuevaFalla(e.target.value)} placeholder="Ej: Fuga de líquido de frenos en caliper izquierdo" />
+                                <input type="text" value={nuevaFalla} onChange={(e) => setNuevaFalla(e.target.value)} placeholder="Ej: Desgaste severo en pastillas y fuga de líquido de frenos" />
                             </div>
 
                             <div className="form-group">
@@ -957,7 +1080,7 @@ function OrdenesServicio() {
                                         className="btn-act-table diag"
                                         onClick={() => {
                                             if (repuestoBusqueda) {
-                                                setRepuestosSeleccionados([...repuestosSeleccionados, { codigo: repuestoBusqueda, nombre: "Pastillas de Freno Brembo", cant: 1 }]);
+                                                setRepuestosSeleccionados([...repuestosSeleccionados, { codigo: repuestoBusqueda, nombre: "Repuesto Automotriz Requerido", cant: 1 }]);
                                                 setRepuestoBusqueda("");
                                             }
                                         }}
@@ -980,7 +1103,34 @@ function OrdenesServicio() {
 
                         <div className="modal-footer">
                             <button className="btn-cancelar" onClick={() => setMostrarModalDiagnostico(false)}>Cancelar</button>
-                            <button className="btn-guardar" onClick={agregarFallaDiagnostico}>Guardar Diagnóstico & Notificar</button>
+                            <button 
+                                className="btn-guardar" 
+                                onClick={async () => {
+                                    if (!nuevaFalla) {
+                                        alert("Por favor ingresa la falla detectada.");
+                                        return;
+                                    }
+                                    const sigEstado = repuestosSeleccionados.length > 0 ? "Repuestos" : "Reparación";
+                                    if (odsSeleccionadaModal) {
+                                        try {
+                                            await cambiarEstadoODS(odsSeleccionadaModal.ods_id, sigEstado);
+                                            agregarNotificacion(`Diagnóstico completado para ${odsSeleccionadaModal.id}. Pasó a estado ${sigEstado}.`, ROLES.ASESOR_REPUESTOS);
+                                            alert(`¡Diagnóstico guardado con éxito! La ODS ${odsSeleccionadaModal.id} avanzó al estado de "${sigEstado}".`);
+                                            setMostrarModalDiagnostico(false);
+                                            setNuevaFalla("");
+                                            setNuevosComentarios("");
+                                            setRepuestosSeleccionados([]);
+                                            await cargarDatosODS();
+                                            return;
+                                        } catch (err) {
+                                            console.error("Error guardando diagnostico:", err);
+                                        }
+                                    }
+                                    agregarFallaDiagnostico();
+                                }}
+                            >
+                                Guardar Diagnóstico & Avanzar ODS
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -989,13 +1139,13 @@ function OrdenesServicio() {
             {/* =========================================
                 MODAL 4: ENTREGA Y ENCUESTA DE SATISFACCIÓN (NPS)
             ========================================= */}
-            {mostrarModalEntrega && (
+            {mostrarModalEntrega && odsSeleccionadaModal && (
                 <div className="modal-overlay">
                     <div className="modal-content nps-modal">
                         <div className="modal-header">
                             <div>
-                                <h2>Modal de Entrega del Vehículo</h2>
-                                <p>Envío de Encuesta de Satisfacción (NPS) vía WhatsApp o Mail.</p>
+                                <h2>Entrega de Vehículo - {odsSeleccionadaModal.id}</h2>
+                                <p>Cliente: {odsSeleccionadaModal.cliente} | Vehículo: {odsSeleccionadaModal.placa}</p>
                             </div>
                             <button className="btn-close" onClick={() => setMostrarModalEntrega(false)}>✕</button>
                         </div>
@@ -1024,7 +1174,7 @@ function OrdenesServicio() {
                             </div>
 
                             <div className="form-group">
-                                <label>Comentario del Cliente</label>
+                                <label>Comentario / Testimonio del Cliente</label>
                                 <textarea rows="3" value={npsComentario} onChange={(e) => setNpsComentario(e.target.value)} />
                             </div>
                         </div>
@@ -1033,12 +1183,19 @@ function OrdenesServicio() {
                             <button className="btn-cancelar" onClick={() => setMostrarModalEntrega(false)}>Cerrar</button>
                             <button 
                                 className="btn-guardar"
-                                onClick={() => {
-                                    alert(`Encuesta NPS registrada (${npsPuntaje}/10). Notificación enviada al cliente.`);
-                                    setMostrarModalEntrega(false);
+                                onClick={async () => {
+                                    try {
+                                        await cambiarEstadoODS(odsSeleccionadaModal.ods_id, "Archivados");
+                                        alert(`¡Vehículo entregado y Encuesta NPS registrada (${npsPuntaje}/10) para ${odsSeleccionadaModal.id}! Orden completada.`);
+                                        setMostrarModalEntrega(false);
+                                        await cargarDatosODS();
+                                    } catch (err) {
+                                        console.error("Error finalizando entrega:", err);
+                                        alert("No se pudo actualizar el estado de entrega en el servidor.");
+                                    }
                                 }}
                             >
-                                📲 Enviar Encuesta NPS
+                                📲 Registrar Entrega & Finalizar
                             </button>
                         </div>
                     </div>
@@ -1046,36 +1203,142 @@ function OrdenesServicio() {
             )}
 
             {/* =========================================
-                MODAL 5: TRAZABILIDAD CRONOLÓGICA "VER ODS"
+                MODAL 5: TRAZABILIDAD Y CONTROL DE ESTADO "VER ODS"
             ========================================= */}
-            {mostrarModalTrazabilidad && (
+            {mostrarModalTrazabilidad && odsSeleccionadaModal && (
                 <div className="modal-overlay">
-                    <div className="modal-content trace-modal">
+                    <div className="modal-content trace-modal" style={{ maxWidth: "680px" }}>
                         <div className="modal-header">
                             <div>
-                                <h2>Trazabilidad Cronológica Completa - ODS-1001</h2>
-                                <p>Historial y registro de cambios en la Orden de Servicio</p>
+                                <h2>Trazabilidad & Detalle - {odsSeleccionadaModal.id}</h2>
+                                <p style={{ margin: "4px 0 0", color: "#94a3b8" }}>
+                                    Ticket: <strong>{odsSeleccionadaModal.ticket}</strong> | Ingreso: {odsSeleccionadaModal.fecha}
+                                </p>
                             </div>
                             <button className="btn-close" onClick={() => setMostrarModalTrazabilidad(false)}>✕</button>
                         </div>
 
                         <div className="modal-body">
+                            {/* DATOS GENERALES DE LA ORDEN */}
+                            <div style={{ background: "#0f172a", border: "1px solid #334155", borderRadius: "8px", padding: "16px", marginBottom: "20px" }}>
+                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", fontSize: "14px" }}>
+                                    <div>
+                                        <span style={{ color: "#94a3b8" }}>Cliente / Propietario:</span>
+                                        <strong style={{ display: "block", color: "#f8fafc", fontSize: "15px" }}>{odsSeleccionadaModal.cliente}</strong>
+                                    </div>
+                                    <div>
+                                        <span style={{ color: "#94a3b8" }}>Vehículo / Placa:</span>
+                                        <strong style={{ display: "block", color: "#f8fafc", fontSize: "15px" }}>{odsSeleccionadaModal.placa}</strong>
+                                    </div>
+                                    <div>
+                                        <span style={{ color: "#94a3b8" }}>Técnico Asignado:</span>
+                                        <strong style={{ display: "block", color: "#38bdf8" }}>{odsSeleccionadaModal.tecnico}</strong>
+                                    </div>
+                                    <div>
+                                        <span style={{ color: "#94a3b8" }}>Procedimiento:</span>
+                                        <strong style={{ display: "block", color: "#f8fafc" }}>{odsSeleccionadaModal.procedimiento}</strong>
+                                    </div>
+                                    <div style={{ gridColumn: "span 2" }}>
+                                        <span style={{ color: "#94a3b8" }}>Motivo de Ingreso:</span>
+                                        <p style={{ margin: "4px 0 0", color: "#e2e8f0" }}>{odsSeleccionadaModal.motivo}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* CONTROL INTERACTIVO DE AVANCE DE ESTADO */}
+                            <div style={{ background: "#1e293b", border: "1px solid #3b82f6", borderRadius: "8px", padding: "16px", marginBottom: "20px" }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                                    <div>
+                                        <h3 style={{ margin: 0, color: "#60a5fa", fontSize: "16px" }}>Mover Estado Operativo</h3>
+                                        <span style={{ fontSize: "12px", color: "#94a3b8" }}>Actualiza en tiempo real en la tabla y en el Tablero Kanban</span>
+                                    </div>
+                                    <span className={`proc-tag ${odsSeleccionadaModal.estado.toLowerCase()}`} style={{ fontSize: "13px", padding: "4px 10px" }}>
+                                        Estado: {odsSeleccionadaModal.estado}
+                                    </span>
+                                </div>
+
+                                <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                                    <select
+                                        value={estadoCambioODS}
+                                        onChange={(e) => setEstadoCambioODS(e.target.value)}
+                                        style={{ flex: 1, padding: "10px 12px", borderRadius: "6px", border: "1px solid #475569", background: "#0f172a", color: "#fff", fontSize: "14px" }}
+                                    >
+                                        {["Recepción", "Diagnóstico", "Repuestos", "Aprobación", "Reparación", "Control de Calidad", "Entrega", "Archivados"].map((st) => (
+                                            <option key={st} value={st}>{st}</option>
+                                        ))}
+                                    </select>
+                                    <button
+                                        type="button"
+                                        className="btn-guardar"
+                                        disabled={guardandoEstado}
+                                        onClick={async () => {
+                                            try {
+                                                setGuardandoEstado(true);
+                                                await cambiarEstadoODS(odsSeleccionadaModal.ods_id, estadoCambioODS);
+                                                alert(`¡ODS ${odsSeleccionadaModal.id} movida a "${estadoCambioODS}" con éxito!`);
+                                                setMostrarModalTrazabilidad(false);
+                                                await cargarDatosODS();
+                                            } catch (err) {
+                                                console.error("Error cambiando estado:", err);
+                                                alert("No se pudo actualizar el estado de la ODS.");
+                                            } finally {
+                                                setGuardandoEstado(false);
+                                            }
+                                        }}
+                                        style={{ padding: "10px 18px", fontWeight: "bold" }}
+                                    >
+                                        {guardandoEstado ? "Guardando..." : "🚀 Actualizar Estado"}
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* TIMELINE VISUAL */}
                             <div className="timeline" style={{ borderLeft: '2px solid #3b82f6', paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
                                 <div>
-                                    <strong style={{ color: '#60a5fa' }}>🟢 09:30 AM - RECEPCIÓN</strong>
-                                    <p style={{ margin: '4px 0', fontSize: '0.85rem' }}>Vehículo ingresado por Asesor de Servicio. Inspección 2D completada (1 daño registrado).</p>
+                                    <strong style={{ color: '#60a5fa' }}>🟢 1. RECEPCIÓN</strong>
+                                    <p style={{ margin: '4px 0', fontSize: '0.85rem', color: '#cbd5e1' }}>
+                                        Registrado el {odsSeleccionadaModal.fecha} por Asesor de Servicio. Inspección inicial y motivo detallado listos.
+                                    </p>
                                 </div>
                                 <div>
-                                    <strong style={{ color: '#eab308' }}>🟡 10:15 AM - DIAGNÓSTICO</strong>
-                                    <p style={{ margin: '4px 0', fontSize: '0.85rem' }}>Técnico Luis García registró falla en frenos (2.0 HH). Repuestos solicitados.</p>
+                                    <strong style={{ color: ['Diagnóstico', 'Repuestos', 'Aprobación', 'Reparación', 'Control de Calidad', 'Entrega', 'Archivados'].includes(odsSeleccionadaModal.estado) ? '#eab308' : '#64748b' }}>
+                                        🟡 2. EVALUACIÓN Y DIAGNÓSTICO TÉCNICO
+                                    </strong>
+                                    <p style={{ margin: '4px 0', fontSize: '0.85rem', color: '#94a3b8' }}>
+                                        Técnico responsable: <strong>{odsSeleccionadaModal.tecnico}</strong>.
+                                    </p>
                                 </div>
                                 <div>
-                                    <strong style={{ color: '#a855f7' }}>🟣 11:00 AM - REPUESTOS</strong>
-                                    <p style={{ margin: '4px 0', fontSize: '0.85rem' }}>Asesor de Repuestos despacho Pastillas Brembo (BRK-892-C).</p>
+                                    <strong style={{ color: ['Repuestos', 'Aprobación', 'Reparación', 'Control de Calidad', 'Entrega', 'Archivados'].includes(odsSeleccionadaModal.estado) ? '#a855f7' : '#64748b' }}>
+                                        🟣 3. GESTIÓN DE REPUESTOS E INSUMOS
+                                    </strong>
+                                    <p style={{ margin: '4px 0', fontSize: '0.85rem', color: '#94a3b8' }}>
+                                        Despacho y verificación de stock para la orden.
+                                    </p>
                                 </div>
                                 <div>
-                                    <strong style={{ color: '#22c55e' }}>🟢 11:45 AM - APROBACIÓN CLIENTE</strong>
-                                    <p style={{ margin: '4px 0', fontSize: '0.85rem' }}>Cliente Carlos Mendoza aprobó la orden de servicio vía WhatsApp.</p>
+                                    <strong style={{ color: ['Aprobación', 'Reparación', 'Control de Calidad', 'Entrega', 'Archivados'].includes(odsSeleccionadaModal.estado) ? '#06b6d4' : '#64748b' }}>
+                                        🔵 4. APROBACIÓN DEL CLIENTE
+                                    </strong>
+                                    <p style={{ margin: '4px 0', fontSize: '0.85rem', color: '#94a3b8' }}>
+                                        Estado de aprobación del cliente: <strong>{odsSeleccionadaModal.estado_aprobacion_cliente}</strong>.
+                                    </p>
+                                </div>
+                                <div>
+                                    <strong style={{ color: ['Reparación', 'Control de Calidad', 'Entrega', 'Archivados'].includes(odsSeleccionadaModal.estado) ? '#f97316' : '#64748b' }}>
+                                        🟠 5. REPARACIÓN / SERVICIO EN TALLER
+                                    </strong>
+                                    <p style={{ margin: '4px 0', fontSize: '0.85rem', color: '#94a3b8' }}>
+                                        Ejecución de trabajos y pruebas mecánicas/eléctricas.
+                                    </p>
+                                </div>
+                                <div>
+                                    <strong style={{ color: ['Entrega', 'Archivados'].includes(odsSeleccionadaModal.estado) ? '#22c55e' : '#64748b' }}>
+                                        🟢 6. CONTROL DE CALIDAD & ENTREGA
+                                    </strong>
+                                    <p style={{ margin: '4px 0', fontSize: '0.85rem', color: '#94a3b8' }}>
+                                        Lavado, verificación final y encuesta NPS de satisfacción.
+                                    </p>
                                 </div>
                             </div>
                         </div>

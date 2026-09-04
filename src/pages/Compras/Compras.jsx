@@ -41,9 +41,7 @@ function Compras() {
 
     // Modal Nueva Compra
     const [proveedorSel, setProveedorSel] = useState("");
-    const [itemsCompra, setItemsCompra] = useState([
-        { descripcion: "Pastillas de Freno Brembo BRK-892-C", cantidad: 20, costoUnitario: 55.00 }
-    ]);
+    const [itemsCompra, setItemsCompra] = useState([]);
     const [itemDesc, setItemDesc] = useState("");
     const [itemCant, setItemCant] = useState("");
     const [itemCosto, setItemCosto] = useState("");

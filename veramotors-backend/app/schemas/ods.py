@@ -19,6 +19,22 @@ class OrdenServicioBase(BaseModel):
     estado_aprobacion_cliente: str = "Pendiente"
 
 
+class OrdenServicioUpdate(BaseModel):
+    codigo_ods: Optional[str] = None
+    numero_ticket: Optional[str] = None
+    cita_id: Optional[int] = None
+    cliente_id: Optional[int] = None
+    vehiculo_id: Optional[int] = None
+    cotizacion_id: Optional[int] = None
+    asesor_id: Optional[int] = None
+    tecnico_id: Optional[int] = None
+    estado_actual: Optional[str] = None
+    tipo_procedimiento: Optional[str] = None
+    kilometraje_ingreso: Optional[int] = None
+    inspeccion_json: Optional[Any] = None
+    estado_aprobacion_cliente: Optional[str] = None
+
+
 class OrdenServicioResponse(OrdenServicioBase):
     ods_id: int
     fecha_ingreso: datetime
@@ -27,3 +43,4 @@ class OrdenServicioResponse(OrdenServicioBase):
 
     class Config:
         from_attributes = True
+

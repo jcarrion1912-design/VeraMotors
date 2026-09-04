@@ -6,7 +6,6 @@ from app.database import Base
 
 class Asistencia(Base):
     __tablename__ = "asistencia"
-    __table_args__ = {"schema": "public"}
 
     asistencia_id = Column(
         BigInteger,
@@ -16,7 +15,7 @@ class Asistencia(Base):
 
     user_id = Column(
         BigInteger,
-        ForeignKey("public.usuarios.user_id"),
+        ForeignKey("usuarios.user_id"),
         nullable=False
     )
 

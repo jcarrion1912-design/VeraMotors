@@ -409,31 +409,33 @@ function DiagramaVehiculo({ danios, setDanios, onChange }) {
 
                     <div className="danos-lista">
 
-                        {Object.entries(danos).map(([id, estado]) => {
+                        {Object.entries(datosActivos).map(([id, estado]) => {
                             const zona = zonasVehiculo.find(
                                 (item) => item.id === id
                             );
 
+                            const esGrave = estado === "grave" || estado === "golpeado";
+
                             return (
                                 <div
-                                    className={`danio-item danio-${estado}`}
+                                    className={`danio-item ${esGrave ? "danio-grave" : "danio-leve"}`}
                                     key={id}
                                 >
                                     <div className="danio-icono">
                                         <span className="material-symbols-outlined">
-                                            {estado === "grave"
+                                            {esGrave
                                                 ? "report_problem"
                                                 : "warning"}
                                         </span>
                                     </div>
 
                                     <div className="danio-info">
-                                        <strong>{zona?.nombre}</strong>
+                                        <strong>{zona?.nombre || id}</strong>
 
                                         <span>
-                                            {estado === "leve"
-                                                ? "Daño leve"
-                                                : "Daño grave"}
+                                            {esGrave
+                                                ? "Daño grave (Golpeado / Hundido)"
+                                                : "Daño leve (Rayado / Raspón)"}
                                         </span>
                                     </div>
                                 </div>

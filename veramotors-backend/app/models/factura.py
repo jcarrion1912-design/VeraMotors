@@ -69,6 +69,11 @@ class Factura(Base):
         server_default=func.current_timestamp()
     )
 
+    fecha_vencimiento = Column(
+        DateTime,
+        nullable=True
+    )
+
     metodo_pago = Column(
         String(30),
         nullable=False

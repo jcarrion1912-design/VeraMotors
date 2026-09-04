@@ -16,6 +16,7 @@ class Settings(BaseSettings):
 
     SUNAT_API_URL: str
     SUNAT_API_TOKEN: str
+    SUNAT_PERSONA_ID: str
 
     SUNAT_RUC: str
     SUNAT_USUARIO: str

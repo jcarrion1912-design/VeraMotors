@@ -74,6 +74,8 @@ class FacturaCreate(BaseModel):
         max_length=30
     )
 
+    fecha_vencimiento: Optional[datetime] = None
+
     subtotal: Decimal = Field(
         ...,
         ge=0
@@ -122,6 +124,8 @@ class FacturaResponse(BaseModel):
 
     fecha_emision: datetime
 
+    fecha_vencimiento: Optional[datetime]
+
     metodo_pago: str
 
     subtotal: Decimal
@@ -142,7 +146,19 @@ class FacturaResponse(BaseModel):
 
     fecha_envio_sunat: Optional[datetime]
 
-    detalles: List[DetalleFacturaResponse] = []
+    detalles: List[DetalleFacturaResponse] = Field(
+    default_factory=list
+)
 
     class Config:
         from_attributes = True
+
+
+# ============================================================
+# REGISTRAR PAGO DE FACTURA
+# ============================================================
+
+class PagoFacturaRequest(BaseModel):
+    metodo_pago: Optional[str] = "Efectivo"
+    estado_pago: str = "Pagado"
+    observaciones_pago: Optional[str] = None

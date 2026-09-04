@@ -1438,258 +1438,148 @@ function Configuracion() {
                 4. SERIES Y COMPROBANTES
             ================================================== */}
 
-            {subtab ===
-                "Series y Comprobantes" && (
+            {subtab === "Series y Comprobantes" && (
 
-                    <div className="config-card">
+                <div className="config-card">
 
-                        <h3>
-                            🧾 Configuración de Series y
-                            Correlativos SUNAT / ODS
-                        </h3>
+                    <h3>🧾 Configuración de Series y Correlativos SUNAT / Sistema</h3>
 
+                    <p style={{ color: "#64748b", marginBottom: "20px", fontSize: "0.9rem" }}>
+                        Configura el prefijo y el número correlativo para cada tipo de documento emitido por VeraMotors.
+                        El cambio entra en vigencia a partir del siguiente comprobante generado.
+                    </p>
 
-                        {errorSeries && (
+                    {errorSeries && (
+                        <div style={{
+                            background: "#fee2e2",
+                            color: "#b91c1c",
+                            padding: "12px",
+                            borderRadius: "6px",
+                            marginBottom: "16px",
+                            border: "1px solid #fecaca"
+                        }}>
+                            {errorSeries}
+                        </div>
+                    )}
 
-                            <div
-                                style={{
-                                    background:
-                                        "#fee2e2",
-                                    color:
-                                        "#b91c1c",
-                                    padding:
-                                        "12px",
-                                    borderRadius:
-                                        "6px",
-                                    marginBottom:
-                                        "16px",
-                                    border:
-                                        "1px solid #fecaca"
-                                }}
-                            >
-                                {errorSeries}
-                            </div>
+                    {cargandoSeries ? (
+                        <div style={{ textAlign: "center", padding: "40px", color: "#64748b" }}>
+                            ⏳ Cargando configuración de correlativos...
+                        </div>
 
-                        )}
+                    ) : series.length === 0 ? (
+                        <div style={{ textAlign: "center", padding: "40px", color: "#64748b" }}>
+                            No existen configuraciones de correlativos registradas.
+                        </div>
 
+                    ) : (
 
-                        {cargandoSeries ? (
+                        <div className="os-table-wrapper">
+                            <table className="os-table">
+                                <thead>
+                                    <tr>
+                                        <th>Tipo de Documento</th>
+                                        <th>Uso en el Sistema</th>
+                                        <th style={{ width: "130px" }}>Prefijo / Serie</th>
+                                        <th style={{ width: "130px" }}>Siguiente N°</th>
+                                        <th>Vista Previa</th>
+                                        <th style={{ textAlign: "center" }}>Estado</th>
+                                        <th style={{ textAlign: "center" }}>Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {series
+                                        .slice()
+                                        .sort((a, b) => {
+                                            const orden = ["FACTURA", "BOLETA", "COTIZACION", "ODS", "NOTA_CREDITO", "REMISION", "COMPRA"];
+                                            return orden.indexOf(a.tipo_documento) - orden.indexOf(b.tipo_documento);
+                                        })
+                                        .map((serie) => {
+                                            const etiquetas = {
+                                                FACTURA: { nombre: "Factura Electrónica", icono: "🧾", desc: "Ventas a empresas con RUC" },
+                                                BOLETA: { nombre: "Boleta Electrónica", icono: "🧾", desc: "Ventas a personas naturales" },
+                                                COTIZACION: { nombre: "Cotización de Servicios", icono: "📋", desc: "Presupuesto previo al servicio" },
+                                                ODS: { nombre: "Orden de Servicio (ODS)", icono: "🔧", desc: "Ingreso de vehículo al taller" },
+                                                NOTA_CREDITO: { nombre: "Nota de Crédito", icono: "↩️", desc: "Anulación o devolución parcial" },
+                                                REMISION: { nombre: "Guía de Remisión", icono: "🚚", desc: "Traslado de bienes / repuestos" },
+                                                COMPRA: { nombre: "Orden de Compra (ODC)", icono: "🛒", desc: "Compras a proveedores" },
+                                            };
+                                            const meta = etiquetas[serie.tipo_documento] || { nombre: serie.tipo_documento, icono: "📄", desc: "Documento interno" };
+                                            const vistaPrevia = `${serie.prefijo}-${String(serie.siguiente_correlativo).padStart(5, "0")}`;
 
-                            <div
-                                style={{
-                                    textAlign:
-                                        "center",
-                                    padding:
-                                        "30px"
-                                }}
-                            >
-                                Cargando configuración de correlativos...
-                            </div>
-
-                        ) : series.length === 0 ? (
-
-                            <div
-                                style={{
-                                    textAlign:
-                                        "center",
-                                    padding:
-                                        "30px"
-                                }}
-                            >
-                                No existen configuraciones de correlativos.
-                            </div>
-
-                        ) : (
-
-                            <>
-
-                                <div
-                                    className="config-form-grid"
-                                    style={{
-                                        marginBottom:
-                                            "20px"
-                                    }}
-                                >
-
-                                    {series.map(
-                                        (serie) => (
-
-                                            <div
-                                                className="config-field"
-                                                key={
-                                                    serie.correlativo_id
-                                                }
-                                            >
-
-                                                <label>
-
-                                                    {serie.tipo_documento ===
-                                                        "FACTURA"
-                                                        ? "Factura Electrónica"
-                                                        : serie.tipo_documento ===
-                                                            "BOLETA"
-                                                            ? "Boleta Electrónica"
-                                                            : serie.tipo_documento ===
-                                                                "COTIZACION"
-                                                                ? "Cotizaciones"
-                                                                : "Orden de Servicio (ODS)"}
-
-                                                </label>
-
-
-                                                <div
-                                                    style={{
-                                                        display:
-                                                            "grid",
-                                                        gridTemplateColumns:
-                                                            "1fr 1fr",
-                                                        gap:
-                                                            "10px"
-                                                    }}
-                                                >
-
-                                                    {/* PREFIJO */}
-
-                                                    <div>
-
-                                                        <small
-                                                            style={{
-                                                                display:
-                                                                    "block",
-                                                                marginBottom:
-                                                                    "4px",
-                                                                color:
-                                                                    "#64748b"
-                                                            }}
-                                                        >
-                                                            Prefijo / Serie
-                                                        </small>
-
+                                            return (
+                                                <tr key={serie.correlativo_id}>
+                                                    <td>
+                                                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                                            <span style={{ fontSize: "1.2rem" }}>{meta.icono}</span>
+                                                            <div>
+                                                                <strong style={{ display: "block", fontSize: "14px" }}>{meta.nombre}</strong>
+                                                                <small style={{ color: "#94a3b8", fontSize: "12px" }}>{meta.desc}</small>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <code style={{ background: "#ffffffff", color: "#60a5fa", padding: "2px 8px", borderRadius: "4px", fontSize: "13px" }}>
+                                                            {serie.tipo_documento}
+                                                        </code>
+                                                    </td>
+                                                    <td>
                                                         <input
                                                             type="text"
-                                                            value={
-                                                                serie.prefijo
-                                                            }
-                                                            onChange={(e) =>
-                                                                cambiarSerie(
-                                                                    serie.correlativo_id,
-                                                                    "prefijo",
-                                                                    e.target.value
-                                                                )
-                                                            }
+                                                            value={serie.prefijo}
+                                                            onChange={(e) => cambiarSerie(serie.correlativo_id, "prefijo", e.target.value)}
                                                             maxLength="10"
+                                                            style={{ width: "100%", padding: "6px 8px", borderRadius: "6px", border: "1px solid #334155", background: "#0f172a", color: "#f8fafc", fontSize: "14px", fontFamily: "monospace" }}
                                                         />
-
-                                                    </div>
-
-
-                                                    {/* SIGUIENTE */}
-
-                                                    <div>
-
-                                                        <small
-                                                            style={{
-                                                                display:
-                                                                    "block",
-                                                                marginBottom:
-                                                                    "4px",
-                                                                color:
-                                                                    "#64748b"
-                                                            }}
-                                                        >
-                                                            Siguiente correlativo
-                                                        </small>
-
+                                                    </td>
+                                                    <td>
                                                         <input
                                                             type="number"
                                                             min="1"
-                                                            value={
-                                                                serie.siguiente_correlativo
-                                                            }
-                                                            onChange={(e) =>
-                                                                cambiarSerie(
-                                                                    serie.correlativo_id,
-                                                                    "siguiente_correlativo",
-                                                                    e.target.value
-                                                                )
-                                                            }
+                                                            value={serie.siguiente_correlativo}
+                                                            onChange={(e) => cambiarSerie(serie.correlativo_id, "siguiente_correlativo", e.target.value)}
+                                                            style={{ width: "100%", padding: "6px 8px", borderRadius: "6px", border: "1px solid #334155", background: "#0f172a", color: "#f8fafc", fontSize: "14px", textAlign: "center" }}
                                                         />
+                                                    </td>
+                                                    <td>
+                                                        <code style={{ background: "#ffffffff", color: "#34d399", padding: "4px 10px", borderRadius: "4px", fontSize: "14px", fontWeight: "bold", border: "1px solid #065f46" }}>
+                                                            {vistaPrevia}
+                                                        </code>
+                                                    </td>
+                                                    <td style={{ textAlign: "center" }}>
+                                                        <span style={{
+                                                            padding: "3px 10px",
+                                                            borderRadius: "12px",
+                                                            fontSize: "12px",
+                                                            fontWeight: "bold",
+                                                            background: serie.activo ? "#dcfce7" : "#fee2e2",
+                                                            color: serie.activo ? "#16a34a" : "#b91c1c"
+                                                        }}>
+                                                            {serie.activo ? "✓ Activo" : "✗ Inactivo"}
+                                                        </span>
+                                                    </td>
+                                                    <td style={{ textAlign: "center" }}>
+                                                        <button
+                                                            type="button"
+                                                            className="btn-act-table link"
+                                                            style={{ padding: "6px 14px", fontSize: "13px" }}
+                                                            disabled={guardandoSerie}
+                                                            onClick={() => guardarCorrelativo(serie)}
+                                                        >
+                                                            💾 Guardar
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
 
-                                                    </div>
+                </div>
 
-                                                </div>
-
-
-                                                {/* VISTA PREVIA */}
-
-                                                <div
-                                                    style={{
-                                                        marginTop:
-                                                            "8px",
-                                                        padding:
-                                                            "8px 10px",
-                                                        background:
-                                                            "#f1f5f9",
-                                                        borderRadius:
-                                                            "6px",
-                                                        fontSize:
-                                                            "0.85rem"
-                                                    }}
-                                                >
-
-                                                    <strong>
-                                                        Próximo:
-                                                    </strong>{" "}
-
-                                                    {serie.prefijo}-
-
-                                                    {String(
-                                                        serie.siguiente_correlativo
-                                                    ).padStart(
-                                                        6,
-                                                        "0"
-                                                    )}
-
-                                                </div>
-
-
-                                                {/* GUARDAR */}
-
-                                                <button
-                                                    type="button"
-                                                    className="btn-act-table link"
-                                                    style={{
-                                                        marginTop:
-                                                            "10px",
-                                                        padding:
-                                                            "8px 16px"
-                                                    }}
-                                                    disabled={
-                                                        guardandoSerie
-                                                    }
-                                                    onClick={() =>
-                                                        guardarCorrelativo(
-                                                            serie
-                                                        )
-                                                    }
-                                                >
-                                                    💾 Guardar
-                                                </button>
-
-                                            </div>
-
-                                        )
-                                    )}
-
-                                </div>
-
-                            </>
-
-                        )}
-
-                    </div>
-
-                )}
+            )}
 
 
             {/* ==================================================

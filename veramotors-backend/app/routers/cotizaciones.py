@@ -15,8 +15,11 @@ router = APIRouter()
 
 
 @router.get("", response_model=List[CotizacionResponse])
-def listar_cotizaciones(db: Session = Depends(get_db)):
-    cotizaciones = db.query(Cotizacion).order_by(Cotizacion.cotizacion_id.desc()).all()
+def listar_cotizaciones(cliente_id: Optional[int] = None, db: Session = Depends(get_db)):
+    query = db.query(Cotizacion)
+    if cliente_id:
+        query = query.filter(Cotizacion.cliente_id == cliente_id)
+    cotizaciones = query.order_by(Cotizacion.cotizacion_id.desc()).all()
     resultado = []
     for c in cotizaciones:
         c_dict = {

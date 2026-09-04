@@ -5,7 +5,6 @@ from app.database import Base
 
 class ConfiguracionCorrelativo(Base):
     __tablename__ = "configuracion_correlativos"
-    __table_args__ = {"schema": "public"}
 
     correlativo_id = Column(
         BigInteger,
