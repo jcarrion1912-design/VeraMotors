@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from decimal import Decimal
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from app.database import get_db
 from app.models.factura import Factura
@@ -10,6 +10,9 @@ from app.models.inventario import Inventario
 from app.models.ods import OrdenServicio
 from app.models.usuario import Usuario
 from app.models.asistencia import Asistencia
+from app.models.cita import Cita
+from app.models.pago import Pago
+from app.models.rol import Rol
 
 router = APIRouter()
 
@@ -20,15 +23,29 @@ def obtener_dashboard_metricas(db: Session = Depends(get_db)):
     Retorna métricas principales para el dashboard
     """
     
-    # Ventas totales (últimos 30 días)
+    # Cobros registrados (últimos 30 días)
     fecha_hace_30 = datetime.now() - timedelta(days=30)
-    ventas_totales = db.query(func.sum(Factura.total)).filter(
-        Factura.fecha_emision >= fecha_hace_30
+    ingresos_recientes = db.query(func.sum(Pago.monto)).filter(
+        Pago.fecha >= fecha_hace_30
     ).scalar() or Decimal("0")
 
     # Órdenes de servicio completadas
     ods_completadas = db.query(func.count(OrdenServicio.ods_id)).filter(
-        OrdenServicio.estado_actual == "Completado"
+        OrdenServicio.estado_actual.in_(["Archivados", "Completado"])
+    ).scalar() or 0
+
+    ods_en_taller = db.query(func.count(OrdenServicio.ods_id)).filter(
+        ~OrdenServicio.estado_actual.in_(["Archivados", "Completado"])
+    ).scalar() or 0
+
+    citas_hoy = db.query(func.count(Cita.cita_id)).filter(
+        func.date(Cita.fecha_hora_inicio) == date.today(),
+        Cita.estado != "Anulada",
+    ).scalar() or 0
+
+    primer_dia_mes = date.today().replace(day=1)
+    asistencias_mes = db.query(func.count(Asistencia.asistencia_id)).filter(
+        Asistencia.fecha >= primer_dia_mes
     ).scalar() or 0
 
     # Inventario stock bajo
@@ -42,8 +59,12 @@ def obtener_dashboard_metricas(db: Session = Depends(get_db)):
     ).scalar() or Decimal("0")
 
     return {
-        "ventas_totales": float(ventas_totales),
+        "ventas_totales": float(ingresos_recientes),
+        "ingresos_ultimos_30_dias": float(ingresos_recientes),
         "ods_completadas": ods_completadas,
+        "ods_en_taller": ods_en_taller,
+        "citas_hoy": citas_hoy,
+        "asistencias_mes": asistencias_mes,
         "items_stock_bajo": stock_bajo,
         "valor_inventario": float(valor_inventario),
         "fecha_actualizacion": datetime.now().isoformat()
@@ -66,7 +87,8 @@ def obtener_ventas_periodo(
         return {"error": "Formato de fecha inválido. Use ISO format"}
 
     ventas = db.query(Factura).filter(
-        Factura.fecha_emision.between(inicio, fin)
+        Factura.fecha_emision.between(inicio, fin),
+        Factura.estado_pago != "Anulado",
     ).all()
 
     total = sum(float(f.total) for f in ventas)
@@ -158,8 +180,9 @@ def obtener_tecnicos_desempenio(db: Session = Depends(get_db)):
     """
     Retorna desempeño de técnicos
     """
-    tecnicos = db.query(Usuario).filter(
-        Usuario.rol_id == 4  # Técnico Automotriz
+    tecnicos = db.query(Usuario).join(Rol, Rol.rol_id == Usuario.rol_id).filter(
+        Rol.nombre == "Técnico Automotriz",
+        Usuario.activo.is_(True),
     ).all()
 
     desempenio = []

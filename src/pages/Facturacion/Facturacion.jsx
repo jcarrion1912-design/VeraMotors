@@ -1,5 +1,15 @@
 
 import { useEffect, useState } from "react";
+import { useRole } from "../../context/authContext";
+import Remisiones from "../../components/Remisiones/Remisiones";
+import CuentasPorCobrar from "../../components/CuentasPorCobrar/CuentasPorCobrar";
+import Caja from "../../components/Caja/Caja";
+import {
+    obtenerCajaActual,
+    obtenerCuentaPorFactura,
+    obtenerMetodosPago,
+    registrarPago
+} from "../../services/cobrosService";
 import "./Facturacion.css";
 
 const API_URL = "http://127.0.0.1:8000/api";
@@ -15,6 +25,8 @@ const SUBMENUS_FACTURACION = [
 ];
 
 function Facturacion() {
+
+    const { usuarioActual } = useRole();
 
     const [submodulo, setSubmodulo] = useState("Facturas");
 
@@ -52,7 +64,7 @@ function Facturacion() {
     const [tipoComprobante, setTipoComprobante] =
         useState("Factura Electrónica");
 
-    const [metodoPago, setMetodoPago] = useState("Yape");
+    const [metodoPago, setMetodoPago] = useState("");
 
     const [observacionesPago, setObservacionesPago] = useState("");
 
@@ -85,6 +97,7 @@ function Facturacion() {
     const [ncMotivo, setNcMotivo] = useState("");
     const [ncMontoTotal, setNcMontoTotal] = useState("");
     const [emitiendoNC, setEmitiendoNC] = useState(false);
+    const [consultandoNC, setConsultandoNC] = useState(null);
 
     // =========================================================
     // MODAL NOTA DE DÉBITO
@@ -96,6 +109,7 @@ function Facturacion() {
     const [ndMotivo, setNdMotivo] = useState("");
     const [ndMontoTotal, setNdMontoTotal] = useState("");
     const [emitiendoND, setEmitiendoND] = useState(false);
+    const [consultandoND, setConsultandoND] = useState(null);
     const [notasDebitoList, setNotasDebitoList] = useState([]);
     const [cargandoNotasDebito, setCargandoNotasDebito] = useState(false);
 
@@ -108,44 +122,141 @@ function Facturacion() {
     const [observacionesPagoRegistro, setObservacionesPagoRegistro] = useState("");
     const [procesandoPago, setProcesandoPago] = useState(false);
     const [busquedaCxC, setBusquedaCxC] = useState("");
+    const [montoPagoRegistro, setMontoPagoRegistro] = useState("");
+    const [metodosPagoDisponibles, setMetodosPagoDisponibles] = useState([]);
+    const [cajaAbiertaParaPago, setCajaAbiertaParaPago] = useState(false);
+    const [errorModalPago, setErrorModalPago] = useState("");
+    const [exitoModalPago, setExitoModalPago] = useState("");
+    const [revisionCuentas, setRevisionCuentas] = useState(0);
+    const [revisionCaja, setRevisionCaja] = useState(0);
 
-    const abrirModalPago = (factura) => {
-        setFacturaAPagar(factura);
-        setMetodoPagoRegistro(factura.metodo_pago || "Efectivo");
-        setObservacionesPagoRegistro(factura.observaciones_pago || "");
-        setMostrarModalPago(true);
+    useEffect(() => {
+        let activa = true;
+        obtenerMetodosPago()
+            .then((metodos) => { if (activa) setMetodosPagoDisponibles(metodos); })
+            .catch((error) => { if (activa) setErrorModalPago(error.message || "No se pudieron cargar los métodos de pago."); });
+        return () => { activa = false; };
+    }, []);
+
+    const abrirModalPago = async (facturaOCuenta) => {
+        setErrorModalPago("");
+        setExitoModalPago("");
+        try {
+            const cuenta = facturaOCuenta.cuenta_cobrar_id
+                ? facturaOCuenta
+                : await obtenerCuentaPorFactura(facturaOCuenta.factura_id);
+            if (cuenta.estado === "Anulada" || Number(cuenta.saldo) <= 0) {
+                throw new Error("La cuenta está anulada o no tiene saldo pendiente.");
+            }
+            const [metodos, cajaActual] = await Promise.all([
+                obtenerMetodosPago(),
+                obtenerCajaActual()
+            ]);
+
+            if (!usuarioActual?.user_id) {
+                throw new Error("No existe un usuario autenticado en la sesión.");
+            }
+
+            setFacturaAPagar(cuenta);
+            setMontoPagoRegistro(Number(cuenta.saldo).toFixed(2));
+            setMetodosPagoDisponibles(metodos);
+            setMetodoPagoRegistro(
+                metodos.includes(cuenta.metodo_pago)
+                    ? cuenta.metodo_pago
+                    : (metodos[0] || "")
+            );
+            setObservacionesPagoRegistro("");
+            setCajaAbiertaParaPago(Boolean(cajaActual?.caja_abierta));
+            setMostrarModalPago(true);
+        } catch (error) {
+            setErrorModalPago(error.message || "No se pudo preparar el cobro.");
+        }
+    };
+
+    const actualizarEstadoCotizacion = async (cotizacionId, accion, motivo = "") => {
+        if (!cotizacionId) return;
+
+        try {
+            const respuesta = await fetch(`${API_URL}/cotizaciones/${cotizacionId}/${accion}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    usuario_id: usuarioActual.user_id,
+                    motivo: motivo || (accion === "rechazar" ? "Rechazada por validación del administrador" : "Aprobada por el administrador")
+                })
+            });
+
+            const data = await respuesta.json().catch(() => ({}));
+
+            if (!respuesta.ok) {
+                throw new Error(data.detail || `No se pudo ${accion} la cotización.`);
+            }
+
+            await cargarCotizaciones();
+            alert(`Cotización ${accion === "aprobar" ? "aprobada" : "rechazada"} correctamente.`);
+            return data;
+        } catch (error) {
+            console.error(`Error al ${accion} la cotización:`, error);
+            alert(error.message || `No se pudo ${accion} la cotización.`);
+            return null;
+        }
     };
 
     const confirmarPagoFactura = async () => {
         if (!facturaAPagar) return;
 
+        if (!usuarioActual?.user_id) {
+            setErrorModalPago("No existe un usuario autenticado.");
+            return;
+        }
+
+        if (!cajaAbiertaParaPago) {
+            setErrorModalPago("Abre una caja antes de registrar cobros.");
+            return;
+        }
+
+        if (!metodoPagoRegistro) {
+            setErrorModalPago("Selecciona el método de pago.");
+            return;
+        }
+
+        const monto = Number(montoPagoRegistro);
+        const saldo = Number(facturaAPagar.saldo);
+
+        if (!Number.isFinite(monto) || monto <= 0) {
+            setErrorModalPago("Ingresa un monto válido.");
+            return;
+        }
+
+        if (monto > saldo) {
+            setErrorModalPago("El monto supera el saldo pendiente.");
+            return;
+        }
+
         try {
             setProcesandoPago(true);
-            const response = await fetch(`${API_URL}/facturacion/${facturaAPagar.factura_id}/pago`, {
-                method: "PATCH",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    metodo_pago: metodoPagoRegistro,
-                    estado_pago: "Pagado",
-                    observaciones_pago: observacionesPagoRegistro || null
-                })
+            setErrorModalPago("");
+            setExitoModalPago("");
+
+            const pago = await registrarPago({
+                factura_id: facturaAPagar.factura_id,
+                usuario_id: Number(usuarioActual.user_id),
+                monto,
+                metodo_pago: metodoPagoRegistro,
+                observaciones: observacionesPagoRegistro || null
             });
 
-            const data = await response.json();
+            setExitoModalPago(`Pago ${pago.pago_id} registrado correctamente.`);
 
-            if (!response.ok) {
-                throw new Error(data.detail || "Error al registrar el pago.");
-            }
+            const cuentaActualizada = await obtenerCuentaPorFactura(facturaAPagar.factura_id);
+            setFacturaAPagar(cuentaActualizada);
+            setMontoPagoRegistro(Number(cuentaActualizada.saldo).toFixed(2));
 
-            alert(`¡Comprobante ${facturaAPagar.numero_comprobante} marcado como PAGADO con éxito!`);
-            setMostrarModalPago(false);
-            setFacturaAPagar(null);
-            await cargarFacturas();
+            await Promise.all([cargarFacturas(), cargarCierresCaja()]);
+            setRevisionCuentas((revision) => revision + 1);
+            setRevisionCaja((revision) => revision + 1);
         } catch (error) {
-            console.error("Error registrando pago:", error);
-            alert(error.message || "Ocurrió un error al registrar el pago.");
+            setErrorModalPago(error.message || "No se pudo registrar el pago.");
         } finally {
             setProcesandoPago(false);
         }
@@ -343,6 +454,112 @@ function Facturacion() {
             alert("No se pudieron cargar las notas de débito.");
         } finally {
             setCargandoNotasDebito(false);
+        }
+    };
+
+    // =========================================================
+    // CONSULTAR ESTADO SUNAT - NOTA DE CRÉDITO
+    // =========================================================
+    const consultarEstadoSunatNC = async (nota) => {
+        if (!nota?.nota_credito_id) return;
+
+        try {
+            setConsultandoNC(nota.nota_credito_id);
+
+            const response = await fetch(
+                `${API_URL}/notas-credito/${nota.nota_credito_id}/estado-sunat`
+            );
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                const mensaje =
+                    typeof data.detail === "string"
+                        ? data.detail
+                        : data.detail?.mensaje ||
+                        data.detail?.error ||
+                        "No se pudo consultar el estado SUNAT de la nota de crédito.";
+                throw new Error(mensaje);
+            }
+
+            setNotasCreditoList((lista) =>
+                lista.map((item) =>
+                    item.nota_credito_id === nota.nota_credito_id
+                        ? {
+                            ...item,
+                            estado_sunat: data.estado_sunat,
+                            codigo_sunat: data.codigo_sunat,
+                            respuesta_sunat: data.respuesta_sunat,
+                            fecha_envio_sunat: data.fecha_envio_sunat
+                        }
+                        : item
+                )
+            );
+
+            alert(
+                `Nota de Crédito ${data.numero_nota || nota.numero_nota || ""}: ${data.estado_sunat || "Pendiente"}`
+            );
+        } catch (error) {
+            console.error("Error consultando estado SUNAT NC:", error);
+            alert(
+                error.message ||
+                "No se pudo consultar el estado SUNAT de la nota de crédito."
+            );
+        } finally {
+            setConsultandoNC(null);
+        }
+    };
+
+    // =========================================================
+    // CONSULTAR ESTADO SUNAT - NOTA DE DÉBITO
+    // =========================================================
+    const consultarEstadoSunatND = async (nota) => {
+        if (!nota?.nota_debito_id) return;
+
+        try {
+            setConsultandoND(nota.nota_debito_id);
+
+            const response = await fetch(
+                `${API_URL}/notas-debito/${nota.nota_debito_id}/estado-sunat`
+            );
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                const mensaje =
+                    typeof data.detail === "string"
+                        ? data.detail
+                        : data.detail?.mensaje ||
+                        data.detail?.error ||
+                        "No se pudo consultar el estado SUNAT de la nota de débito.";
+                throw new Error(mensaje);
+            }
+
+            setNotasDebitoList((lista) =>
+                lista.map((item) =>
+                    item.nota_debito_id === nota.nota_debito_id
+                        ? {
+                            ...item,
+                            estado_sunat: data.estado_sunat,
+                            codigo_sunat: data.codigo_sunat,
+                            respuesta_sunat: data.respuesta_sunat,
+                            fecha_envio_sunat: data.fecha_envio_sunat
+                        }
+                        : item
+                )
+            );
+
+            alert(
+                `Nota de Débito ${data.numero_nota || nota.numero_nota || ""}: ${data.estado_sunat || "Pendiente"}`
+            );
+        } catch (error) {
+            console.error("Error consultando estado SUNAT ND:", error);
+            alert(
+                error.message ||
+                "No se pudo consultar el estado SUNAT de la nota de débito."
+            );
+        } finally {
+            setConsultandoND(null);
         }
     };
 
@@ -950,16 +1167,22 @@ function Facturacion() {
 
     useEffect(() => {
 
-        cargarFacturas();
-        cargarCotizaciones();
-        cargarNotasCredito();
-        cargarNotasDebito();
-        cargarRemisiones();
-        cargarCierresCaja();
-
-        cargarClientes();
-        cargarVehiculos();
-        cargarOrdenesServicio();
+        let activa = true;
+        queueMicrotask(() => {
+            if (!activa) return;
+            cargarFacturas();
+            cargarCotizaciones();
+            cargarNotasCredito();
+            cargarNotasDebito();
+            cargarRemisiones();
+            cargarCierresCaja();
+            cargarClientes();
+            cargarVehiculos();
+            cargarOrdenesServicio();
+        });
+        return () => {
+            activa = false;
+        };
 
     }, []);
 
@@ -977,7 +1200,7 @@ function Facturacion() {
         setOdsSeleccionada("");
 
         setTipoComprobante("Factura Electrónica");
-        setMetodoPago("Yape");
+        setMetodoPago(metodosPagoDisponibles[0] || "");
 
         setObservacionesPago("");
 
@@ -1140,92 +1363,38 @@ function Facturacion() {
 
     // =========================================================
     // CÁLCULOS
-    // El precio_unitario ingresado se considera BASE SIN IGV.
-    // Cada detalle se calcula como:
-    // base = cantidad × precio - descuento
-    // igv  = base × 18%
-    // total = base + igv
     // =========================================================
 
-    const detallesFacturaCalculados = itemsFactura.map((item) => {
-        const cantidad = Number(item.cantidad) || 0;
-        const precioUnitario = Number(item.precio_unitario) || 0;
-        const descuento = Number(item.descuento || 0);
-
-        const baseLinea = Number(
-            Math.max(
-                cantidad * precioUnitario - descuento,
-                0
-            ).toFixed(2)
-        );
-
-        const igvLinea = Number(
-            (baseLinea * 0.18).toFixed(2)
-        );
-
-        const totalLinea = Number(
-            (baseLinea + igvLinea).toFixed(2)
-        );
-
-        return {
-            ...item,
-            cantidad,
-            precio_unitario: precioUnitario,
-            descuento,
-            impuesto: igvLinea,
-            total: totalLinea
-        };
-    });
-
-    const subtotalBruto = Number(
-        itemsFactura.reduce(
-            (total, item) =>
-                total +
-                (
-                    Number(item.cantidad) *
-                    Number(item.precio_unitario)
-                ),
-            0
-        ).toFixed(2)
+    const subtotalBruto = itemsFactura.reduce(
+        (total, item) =>
+            total +
+            (
+                Number(item.cantidad) *
+                Number(item.precio_unitario)
+            ),
+        0
     );
 
-    const totalDescuentos = Number(
-        itemsFactura.reduce(
-            (total, item) =>
-                total + Number(item.descuento || 0),
-            0
-        ).toFixed(2)
+    const totalDescuentos = itemsFactura.reduce(
+        (total, item) =>
+            total +
+            Number(item.descuento || 0),
+        0
     );
 
-    const baseImponible = Number(
-        detallesFacturaCalculados.reduce(
-            (total, item) =>
-                total +
-                Math.max(
-                    Number(item.cantidad) *
-                    Number(item.precio_unitario) -
-                    Number(item.descuento || 0),
-                    0
-                ),
-            0
-        ).toFixed(2)
+    const totalNeto = Math.max(
+        subtotalBruto - totalDescuentos,
+        0
     );
 
-    const igvMonto = Number(
-        detallesFacturaCalculados.reduce(
-            (total, item) =>
-                total + Number(item.impuesto || 0),
-            0
-        ).toFixed(2)
-    );
+    const baseImponible =
+        totalNeto / 1.18;
 
-    const totalPagar = Number(
-        detallesFacturaCalculados.reduce(
-            (total, item) =>
-                total + Number(item.total || 0),
-            0
-        ).toFixed(2)
-    );
+    const igvMonto =
+        totalNeto - baseImponible;
+
+    const totalPagar =
+        totalNeto;
 
     // =========================================================
     // EMITIR FACTURA
@@ -1353,27 +1522,75 @@ function Facturacion() {
                 observaciones_pago:
                     observacionesPago || null,
 
-                detalles: detallesFacturaCalculados.map((item) => ({
-                    item_id: item.item_id
-                        ? Number(item.item_id)
-                        : null,
+                detalles:
+                    itemsFactura.map(
+                        (item) => ({
 
-                    descripcion: item.descripcion,
+                            item_id:
+                                item.item_id
+                                    ? Number(item.item_id)
+                                    : null,
 
-                    cantidad: Number(item.cantidad),
+                            descripcion:
+                                item.descripcion,
 
-                    precio_unitario:
-                        Number(item.precio_unitario),
+                            cantidad:
+                                Number(item.cantidad),
 
-                    descuento:
-                        Number(item.descuento || 0),
+                            precio_unitario: (() => {
+                                const cantidad = Number(item.cantidad) || 0;
+                                const precioTotal = Number(item.precio_unitario) || 0;
+                                const descuento = Number(item.descuento || 0);
+                                const totalLinea = Math.max(
+                                    (cantidad * precioTotal) - descuento,
+                                    0
+                                );
+                                const baseLinea = totalLinea / 1.18;
 
-                    impuesto:
-                        Number(item.impuesto.toFixed(2)),
+                                return cantidad > 0
+                                    ? Number((baseLinea / cantidad).toFixed(10))
+                                    : 0;
+                            })(),
 
-                    total:
-                        Number(item.total.toFixed(2))
-                }))
+                            descuento:
+                                Number(
+                                    item.descuento || 0
+                                ),
+
+                            impuesto: (() => {
+                                const cantidad = Number(item.cantidad) || 0;
+                                const precioTotal = Number(item.precio_unitario) || 0;
+                                const descuento = Number(item.descuento || 0);
+
+                                // El precio ingresado en el formulario es el TOTAL
+                                // de la línea, es decir, incluye IGV.
+                                const totalLinea = Math.max(
+                                    (cantidad * precioTotal) - descuento,
+                                    0
+                                );
+
+                                // Separamos el IGV del precio final.
+                                const baseLinea = totalLinea / 1.18;
+                                const igvLinea = totalLinea - baseLinea;
+
+                                return Number(igvLinea.toFixed(2));
+                            })(),
+
+                            total: (() => {
+                                const cantidad = Number(item.cantidad) || 0;
+                                const precioTotal = Number(item.precio_unitario) || 0;
+                                const descuento = Number(item.descuento || 0);
+
+                                const totalLinea = Math.max(
+                                    (cantidad * precioTotal) - descuento,
+                                    0
+                                );
+
+                                return Number(totalLinea.toFixed(2));
+                            })()
+
+                        })
+                    )
             };
 
             console.log(
@@ -1532,6 +1749,8 @@ function Facturacion() {
     return (
 
         <div className="facturacion-page">
+
+            {errorModalPago && !mostrarModalPago && <div className="cxc-alert" role="alert">{errorModalPago}</div>}
 
             {/* =================================================
                 CABECERA
@@ -1788,7 +2007,7 @@ function Facturacion() {
 
                                                 <div className="table-actions">
 
-                                                    {factura.estado_pago !== "Pagado" && (
+                                                    {factura.estado_pago !== "Pagado" && factura.estado_pago !== "Anulado" && (
                                                         <button
                                                             className="btn-act-table link"
                                                             style={{ backgroundColor: "#10b981", color: "#ffffff", borderColor: "#10b981", fontWeight: "bold" }}
@@ -1799,18 +2018,6 @@ function Facturacion() {
                                                             💳 Cobrar
                                                         </button>
                                                     )}
-
-                                                    <button
-                                                        className="btn-act-table link"
-                                                        type="button"
-                                                        onClick={() =>
-                                                            alert(
-                                                                "La generación del PDF se conectará al módulo de documentos."
-                                                            )
-                                                        }
-                                                    >
-                                                        🖨️ PDF
-                                                    </button>
 
                                                     <button
                                                         className="btn-act-table diag"
@@ -1832,18 +2039,6 @@ function Facturacion() {
                                                         title="Emitir Nota de Débito por aumento en el valor del servicio"
                                                     >
                                                         📝 Nota Débito
-                                                    </button>
-
-                                                    <button
-                                                        className="btn-act-table nps"
-                                                        type="button"
-                                                        onClick={() =>
-                                                            alert(
-                                                                "El envío por correo se conectará posteriormente."
-                                                            )
-                                                        }
-                                                    >
-                                                        ✉️ Mail
                                                     </button>
 
                                                 </div>
@@ -2009,9 +2204,7 @@ function Facturacion() {
                                             </td>
 
                                             <td>
-                                                {
-                                                    nota.factura_id
-                                                }
+                                                <strong>{nota.numero_factura || nota.factura_id}</strong>
                                             </td>
 
                                             <td>
@@ -2059,22 +2252,47 @@ function Facturacion() {
                                             </td>
 
                                             <td>
-
-                                                <span
-                                                    className={
-                                                        `proc-tag ${nota.estado_sunat ===
-                                                            "Aceptado"
-                                                            ? "preventivo"
-                                                            : "correctivo"
-                                                        }`
-                                                    }
+                                                <div
+                                                    style={{
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        gap: "8px",
+                                                        flexWrap: "wrap"
+                                                    }}
                                                 >
-                                                    {
-                                                        nota.estado_sunat ||
-                                                        "Pendiente"
-                                                    }
-                                                </span>
+                                                    <span
+                                                        className={
+                                                            `proc-tag ${nota.estado_sunat ===
+                                                                "Aceptado"
+                                                                ? "preventivo"
+                                                                : "correctivo"
+                                                            }`
+                                                        }
+                                                    >
+                                                        {nota.estado_sunat || "Pendiente"}
+                                                    </span>
 
+                                                    <button
+                                                        type="button"
+                                                        className="btn-act-table link"
+                                                        style={{
+                                                            padding: "6px 10px",
+                                                            fontSize: "12px"
+                                                        }}
+                                                        onClick={() =>
+                                                            consultarEstadoSunatNC(nota)
+                                                        }
+                                                        disabled={
+                                                            consultandoNC ===
+                                                            nota.nota_credito_id
+                                                        }
+                                                    >
+                                                        {consultandoNC ===
+                                                            nota.nota_credito_id
+                                                            ? "Consultando..."
+                                                            : "🔄 Consultar"}
+                                                    </button>
+                                                </div>
                                             </td>
 
                                         </tr>
@@ -2179,14 +2397,44 @@ function Facturacion() {
                                         <td>{moneda(nota.impuestos)}</td>
                                         <td><strong>{moneda(nota.total)}</strong></td>
                                         <td>
-                                            <span
-                                                className={`proc-tag ${nota.estado_sunat === "Aceptado"
-                                                    ? "preventivo"
-                                                    : "correctivo"
-                                                    }`}
+                                            <div
+                                                style={{
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    gap: "8px",
+                                                    flexWrap: "wrap"
+                                                }}
                                             >
-                                                {nota.estado_sunat || "Pendiente"}
-                                            </span>
+                                                <span
+                                                    className={`proc-tag ${nota.estado_sunat === "Aceptado"
+                                                        ? "preventivo"
+                                                        : "correctivo"
+                                                        }`}
+                                                >
+                                                    {nota.estado_sunat || "Pendiente"}
+                                                </span>
+
+                                                <button
+                                                    type="button"
+                                                    className="btn-act-table link"
+                                                    style={{
+                                                        padding: "6px 10px",
+                                                        fontSize: "12px"
+                                                    }}
+                                                    onClick={() =>
+                                                        consultarEstadoSunatND(nota)
+                                                    }
+                                                    disabled={
+                                                        consultandoND ===
+                                                        nota.nota_debito_id
+                                                    }
+                                                >
+                                                    {consultandoND ===
+                                                        nota.nota_debito_id
+                                                        ? "Consultando..."
+                                                        : "🔄 Consultar"}
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))
@@ -2204,7 +2452,11 @@ function Facturacion() {
                 CUENTAS POR COBRAR
             ================================================= */}
 
-            {submodulo === "Cuentas por Cobrar" && (() => {
+            {submodulo === "Cuentas por Cobrar" && (
+                <CuentasPorCobrar onCobrar={abrirModalPago} refreshKey={revisionCuentas} />
+            )}
+
+            {submodulo === "Cuentas por Cobrar Legacy" && (() => {
                 const cuentasPendientes = facturasList.filter((f) => {
                     const est = (f.estado_pago || "Pendiente").toLowerCase();
                     return est !== "pagado";
@@ -2785,49 +3037,82 @@ function Facturacion() {
                                             </td>
 
                                             <td>
+                                                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                                                    {cotizacion.estado === "Pendiente" && (
+                                                        <>
+                                                            <button
+                                                                className="btn-act-table success"
+                                                                type="button"
+                                                                onClick={async () => {
+                                                                    await actualizarEstadoCotizacion(cotizacion.cotizacion_id, "aprobar");
+                                                                }}
+                                                            >
+                                                                Aprobar
+                                                            </button>
+                                                            <button
+                                                                className="btn-act-table danger"
+                                                                type="button"
+                                                                onClick={async () => {
+                                                                    await actualizarEstadoCotizacion(
+                                                                        cotizacion.cotizacion_id,
+                                                                        "rechazar",
+                                                                        "No cumple requisitos para continuar con la venta."
+                                                                    );
+                                                                }}
+                                                            >
+                                                                Rechazar
+                                                            </button>
+                                                        </>
+                                                    )}
 
-                                                <button
-                                                    className="btn-act-table nps"
-                                                    type="button"
-                                                    onClick={() => {
-                                                        setClienteFactura(String(cotizacion.cliente_id));
-                                                        const clienteCotizacion =
-                                                            clientes.find(
-                                                                (cliente) =>
-                                                                    String(
-                                                                        cliente.cliente_id ??
-                                                                        cliente.id
-                                                                    ) ===
-                                                                    String(
-                                                                        cotizacion.cliente_id
-                                                                    )
+                                                    <button
+                                                        className="btn-act-table nps"
+                                                        type="button"
+                                                        disabled={cotizacion.estado !== "Aprobada"}
+                                                        onClick={() => {
+                                                            if (cotizacion.estado !== "Aprobada") {
+                                                                alert("La cotización debe estar aprobada antes de facturar.");
+                                                                return;
+                                                            }
+                                                            setClienteFactura(String(cotizacion.cliente_id));
+                                                            const clienteCotizacion =
+                                                                clientes.find(
+                                                                    (cliente) =>
+                                                                        String(
+                                                                            cliente.cliente_id ??
+                                                                            cliente.id
+                                                                        ) ===
+                                                                        String(
+                                                                            cotizacion.cliente_id
+                                                                        )
+                                                                );
+
+                                                            setTipoComprobante(
+                                                                obtenerTipoComprobanteCliente(
+                                                                    clienteCotizacion
+                                                                )
                                                             );
 
-                                                        setTipoComprobante(
-                                                            obtenerTipoComprobanteCliente(
-                                                                clienteCotizacion
-                                                            )
-                                                        );
-
-                                                        if (cotizacion.vehiculo_id) {
-                                                            setVehiculoFactura(String(cotizacion.vehiculo_id));
-                                                        }
-                                                        if (Array.isArray(cotizacion.detalles) && cotizacion.detalles.length > 0) {
-                                                            setItemsFactura(cotizacion.detalles.map((d, index) => ({
-                                                                id: index + 1,
-                                                                item_id: d.item_id || null,
-                                                                descripcion: d.descripcion,
-                                                                cantidad: Number(d.cantidad || 1),
-                                                                precio_unitario: Number(d.precio_unitario || 0),
-                                                                descuento: Number(d.descuento || 0)
-                                                            })));
-                                                        }
-                                                        setMostrarWizard(true);
-                                                        setPasoWizard(1);
-                                                    }}
-                                                >
-                                                    Facturar
-                                                </button>
+                                                            if (cotizacion.vehiculo_id) {
+                                                                setVehiculoFactura(String(cotizacion.vehiculo_id));
+                                                            }
+                                                            if (Array.isArray(cotizacion.detalles) && cotizacion.detalles.length > 0) {
+                                                                setItemsFactura(cotizacion.detalles.map((d, index) => ({
+                                                                    id: index + 1,
+                                                                    item_id: d.item_id || null,
+                                                                    descripcion: d.descripcion,
+                                                                    cantidad: Number(d.cantidad || 1),
+                                                                    precio_unitario: Number(d.precio_unitario || 0),
+                                                                    descuento: Number(d.descuento || 0)
+                                                                })));
+                                                            }
+                                                            setMostrarWizard(true);
+                                                            setPasoWizard(1);
+                                                        }}
+                                                    >
+                                                        Facturar
+                                                    </button>
+                                                </div>
 
                                             </td>
 
@@ -2850,7 +3135,9 @@ function Facturacion() {
                 REMISIONES
             ================================================= */}
 
-            {submodulo === "Remisiones" && (
+            {submodulo === "Remisiones" && <Remisiones />}
+
+            {submodulo === "RemisionesLegacy" && (
 
                 <div
                     className="os-table-wrapper"
@@ -3082,7 +3369,9 @@ function Facturacion() {
                 CIERRE DE CAJA
             ================================================= */}
 
-            {submodulo === "Cierre de Caja" && (
+            {submodulo === "Cierre de Caja" && <Caja refreshKey={revisionCaja} />}
+
+            {submodulo === "Cierre de Caja Legacy" && (
 
                 <div
                     className="os-table-wrapper"
@@ -4059,29 +4348,7 @@ function Facturacion() {
                                                     }
                                                 >
 
-                                                    <option>
-                                                        Efectivo
-                                                    </option>
-
-                                                    <option>
-                                                        Yape
-                                                    </option>
-
-                                                    <option>
-                                                        Plin
-                                                    </option>
-
-                                                    <option>
-                                                        Tarjeta
-                                                    </option>
-
-                                                    <option>
-                                                        Transferencia
-                                                    </option>
-
-                                                    <option>
-                                                        Otro
-                                                    </option>
+                                                    {metodosPagoDisponibles.map((metodo) => <option key={metodo} value={metodo}>{metodo}</option>)}
 
                                                 </select>
 
@@ -4626,11 +4893,43 @@ function Facturacion() {
                                         borderTop: "1px dashed #cbd5e1"
                                     }}
                                 >
-                                    <strong style={{ color: "#0f172a", fontSize: "15px" }}>Monto a Cobrar:</strong>
+                                    <span style={{ color: "#64748b", fontSize: "13px" }}>Total factura:</span>
                                     <strong style={{ color: "#10b981", fontSize: "18px" }}>
-                                        {moneda(facturaAPagar.total)}
+                                        {moneda(facturaAPagar.monto_total)}
                                     </strong>
                                 </div>
+                                <div style={{ display: "flex", justifyContent: "space-between", marginTop: "8px" }}>
+                                    <span>Pagado</span><strong>{moneda(facturaAPagar.monto_pagado)}</strong>
+                                </div>
+                                <div style={{ display: "flex", justifyContent: "space-between", marginTop: "6px" }}>
+                                    <strong>Saldo pendiente</strong><strong>{moneda(facturaAPagar.saldo)}</strong>
+                                </div>
+                            </div>
+
+                            {errorModalPago && <div className="caja-alert caja-alert-error" role="alert">{errorModalPago}</div>}
+                            {exitoModalPago && <div className="caja-alert caja-alert-success" role="status">{exitoModalPago}</div>}
+                            {!cajaAbiertaParaPago && <div className="caja-alert caja-alert-error" role="alert">No hay una caja abierta. Abre caja antes de registrar el pago.</div>}
+
+                            <div className="form-group" style={{ marginBottom: "14px" }}>
+                                <label style={{ display: "block", marginBottom: "6px", fontWeight: 600 }}>Monto a pagar *</label>
+                                <input type="number" min="0.01" max={facturaAPagar.saldo} step="0.01" value={montoPagoRegistro} onChange={(event) => setMontoPagoRegistro(event.target.value)} required disabled={Boolean(exitoModalPago)} />
+                            </div>
+
+                            <div className="form-group" style={{ marginBottom: "14px" }}>
+                                <label style={{ display: "block", marginBottom: "6px", fontWeight: 600 }}>Usuario que registra</label>
+                                <input
+                                    type="text"
+                                    value={usuarioActual?.nombre || "Usuario autenticado"}
+                                    readOnly
+                                    disabled
+                                    style={{
+                                        width: "100%",
+                                        padding: "10px 12px",
+                                        borderRadius: "6px",
+                                        border: "1px solid #cbd5e1",
+                                        background: "#f8fafc"
+                                    }}
+                                />
                             </div>
 
                             {/* MÉTODO DE PAGO */}
@@ -4641,6 +4940,7 @@ function Facturacion() {
                                 <select
                                     value={metodoPagoRegistro}
                                     onChange={(e) => setMetodoPagoRegistro(e.target.value)}
+                                    required
                                     style={{
                                         width: "100%",
                                         padding: "10px 12px",
@@ -4649,14 +4949,7 @@ function Facturacion() {
                                         fontSize: "14px"
                                     }}
                                 >
-                                    <option value="Efectivo">Efectivo</option>
-                                    <option value="Yape">Yape</option>
-                                    <option value="Plin">Plin</option>
-                                    <option value="Transferencia BCP">Transferencia BCP</option>
-                                    <option value="Transferencia BBVA">Transferencia BBVA</option>
-                                    <option value="Transferencia Interbank">Transferencia Interbank</option>
-                                    <option value="Tarjeta de Débito">Tarjeta de Débito</option>
-                                    <option value="Tarjeta de Crédito">Tarjeta de Crédito</option>
+                                    {metodosPagoDisponibles.map((metodo) => <option key={metodo} value={metodo}>{metodo}</option>)}
                                 </select>
                             </div>
 
@@ -4670,6 +4963,7 @@ function Facturacion() {
                                     placeholder="Ej. Operación #987213 o Pago en caja principal..."
                                     value={observacionesPagoRegistro}
                                     onChange={(e) => setObservacionesPagoRegistro(e.target.value)}
+                                    disabled={Boolean(exitoModalPago)}
                                     style={{
                                         width: "100%",
                                         padding: "10px 12px",
@@ -4704,9 +4998,9 @@ function Facturacion() {
                                     padding: "10px 20px"
                                 }}
                                 onClick={confirmarPagoFactura}
-                                disabled={procesandoPago}
+                                disabled={procesandoPago || !cajaAbiertaParaPago || !montoPagoRegistro || Number(montoPagoRegistro) <= 0 || Number(montoPagoRegistro) > Number(facturaAPagar.saldo) || Boolean(exitoModalPago)}
                             >
-                                {procesandoPago ? "Registrando Pago..." : "✅ Confirmar Pago"}
+                                {procesandoPago ? "Registrando pago..." : exitoModalPago ? "Pago registrado" : "Confirmar pago"}
                             </button>
                         </div>
                     </div>

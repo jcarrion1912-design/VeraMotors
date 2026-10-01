@@ -1,14 +1,11 @@
 import { Navigate, useLocation } from "react-router-dom";
+import { useRole } from "../../context/authContext";
 
 function ProtectedRoute({ children, rolesPermitidos = [] }) {
     const location = useLocation();
+    const { usuarioActual } = useRole();
 
-    const usuarioGuardado = localStorage.getItem("usuario");
-
-    // ==========================================
-    // NO HAY SESIÓN
-    // ==========================================
-    if (!usuarioGuardado) {
+    if (!usuarioActual?.activo) {
         return (
             <Navigate
                 to="/login"
@@ -18,35 +15,9 @@ function ProtectedRoute({ children, rolesPermitidos = [] }) {
         );
     }
 
-    let usuario;
-
-    try {
-        usuario = JSON.parse(usuarioGuardado);
-    } catch (error) {
-        console.error("Sesión inválida:", error);
-
-        localStorage.removeItem("usuario");
-        localStorage.removeItem("loginTime");
-
-        return <Navigate to="/login" replace />;
-    }
-
-    // ==========================================
-    // USUARIO DESACTIVADO
-    // ==========================================
-    if (!usuario.activo) {
-        localStorage.removeItem("usuario");
-        localStorage.removeItem("loginTime");
-
-        return <Navigate to="/login" replace />;
-    }
-
-    // ==========================================
-    // PERMISOS POR ROL
-    // ==========================================
     if (
         rolesPermitidos.length > 0 &&
-        !rolesPermitidos.includes(usuario.rol)
+        !rolesPermitidos.includes(usuarioActual.rol)
     ) {
         return <Navigate to="/dashboard" replace />;
     }

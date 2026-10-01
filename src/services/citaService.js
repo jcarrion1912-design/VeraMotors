@@ -1,4 +1,5 @@
 const API_URL = "http://127.0.0.1:8000/api/citas";
+const API_VEHICULOS_URL = "http://127.0.0.1:8000/api/vehiculos";
 
 
 const procesarRespuesta = async (res) => {
@@ -96,5 +97,10 @@ export const actualizarCita = async (
         }
     );
 
+    return procesarRespuesta(res);
+};
+
+export const obtenerVehiculosCliente = async (clienteId) => {
+    const res = await fetch(`${API_VEHICULOS_URL}?cliente_id=${clienteId}`);
     return procesarRespuesta(res);
 };

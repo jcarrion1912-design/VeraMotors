@@ -135,3 +135,5 @@ class Factura(Base):
         back_populates="factura",
         cascade="all, delete-orphan"
     )
+
+    remision = relationship("Remision", back_populates="factura", uselist=False)

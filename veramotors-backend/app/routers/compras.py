@@ -1,10 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from typing import List, Optional
 
 from app.database import get_db
 from app.models.compra import Compra
 from app.models.proveedor import Proveedor
+from app.models.configuracion_correlativo import ConfiguracionCorrelativo
 from app.schemas.compra import (
     CompraCreate,
     CompraResponse
@@ -54,11 +56,31 @@ def crear_compra(
     datos: CompraCreate,
     db: Session = Depends(get_db)
 ):
-    compra = Compra(**datos.model_dump())
+    configuracion = (
+        db.query(ConfiguracionCorrelativo)
+        .filter(
+            ConfiguracionCorrelativo.tipo_documento == "COMPRA",
+            ConfiguracionCorrelativo.activo.is_(True),
+        )
+        .with_for_update()
+        .first()
+    )
+    if not configuracion:
+        raise HTTPException(status_code=409, detail="No existe correlativo COMPRA activo en PostgreSQL.")
+
+    compra = Compra(
+        **datos.model_dump(exclude={"codigo_compra"}),
+        codigo_compra=f"{configuracion.prefijo}-{configuracion.siguiente_correlativo:05d}",
+    )
+    configuracion.siguiente_correlativo += 1
     db.add(compra)
-    db.commit()
-    db.refresh(compra)
-    return compra
+    try:
+        db.commit()
+        db.refresh(compra)
+        return compra
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="No se pudo registrar la compra por un conflicto de correlativo.")
 
 
 @router.put("/{compra_id}", response_model=CompraResponse)
@@ -77,7 +99,7 @@ def actualizar_compra(
             detail="Compra no encontrada."
         )
 
-    for key, value in datos.model_dump().items():
+    for key, value in datos.model_dump(exclude_none=True).items():
         setattr(compra, key, value)
 
     db.commit()

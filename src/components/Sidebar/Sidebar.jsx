@@ -1,17 +1,12 @@
 import { NavLink, useNavigate } from "react-router-dom";
+import { useRole } from "../../context/authContext";
 import "./Sidebar.css";
 
 function Sidebar() {
     const navigate = useNavigate();
+    const { usuarioActual, cerrarSesion: cerrarSesionContexto } = useRole();
 
-    // Usuario autenticado
-    const usuarioGuardado = localStorage.getItem("usuario");
-
-    const usuario = usuarioGuardado
-        ? JSON.parse(usuarioGuardado)
-        : null;
-
-    const rol = usuario?.rol || "";
+    const rol = usuarioActual?.rol || "";
 
     // Roles
     const esAdministrador = rol === "Administrador";
@@ -21,8 +16,7 @@ function Sidebar() {
 
     // Cerrar sesión
     const cerrarSesion = () => {
-        localStorage.removeItem("usuario");
-        localStorage.removeItem("loginTime");
+        cerrarSesionContexto();
 
         navigate("/login", { replace: true });
     };
@@ -465,8 +459,8 @@ function Sidebar() {
                 <div className="sidebar-user">
 
                     <div className="user-avatar">
-                        {usuario?.nombre
-                            ? usuario.nombre
+                        {usuarioActual?.nombre
+                            ? usuarioActual.nombre
                                 .substring(0, 2)
                                 .toUpperCase()
                             : "VM"
@@ -475,11 +469,11 @@ function Sidebar() {
 
                     <div className="user-info">
                         <strong>
-                            {usuario?.nombre || "Usuario"}
+                            {usuarioActual?.nombre || "Usuario"}
                         </strong>
 
                         <span>
-                            {usuario?.rol || "Sin rol"}
+                            {usuarioActual?.rol || "Sin rol"}
                         </span>
                     </div>
 

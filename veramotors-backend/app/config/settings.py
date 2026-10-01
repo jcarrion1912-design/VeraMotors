@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     SUNAT_PASSWORD: str
 
     SUNAT_AMBIENTE: str = "BETA"
+    SUNAT_RAZON_SOCIAL: str = "Diffcode"
+    SUNAT_DIRECCION: str = "Av. La Marina 2840, San Miguel, Lima"
+    SUNAT_UBIGEO: str = "150136"
+    SUNAT_CODIGO_ESTABLECIMIENTO: str = "0000"
 
 
     # ============================================================

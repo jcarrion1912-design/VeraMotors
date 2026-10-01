@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useRole } from "../../context/authContext";
+import { login } from "../../services/authService";
 import "./Login.css";
 
 function Login() {
     const navigate = useNavigate();
+    const { usuarioActual, iniciarSesion } = useRole();
 
     const [correo, setCorreo] = useState("");
     const [password, setPassword] = useState("");
@@ -12,33 +15,9 @@ function Login() {
     const [cargando, setCargando] = useState(false);
     const [error, setError] = useState("");
 
-    // ==========================================
-    // SI YA HAY SESIÓN, NO MOSTRAR LOGIN
-    // ==========================================
     useEffect(() => {
-        const usuarioGuardado = localStorage.getItem("usuario");
-
-        if (!usuarioGuardado) {
-            return;
-        }
-
-        try {
-            const usuario = JSON.parse(usuarioGuardado);
-
-            if (usuario && usuario.activo) {
-                navigate("/dashboard", { replace: true });
-            } else {
-                localStorage.removeItem("usuario");
-                localStorage.removeItem("loginTime");
-            }
-
-        } catch (error) {
-            console.error("Sesión inválida:", error);
-
-            localStorage.removeItem("usuario");
-            localStorage.removeItem("loginTime");
-        }
-    }, [navigate]);
+        if (usuarioActual?.activo) navigate("/dashboard", { replace: true });
+    }, [navigate, usuarioActual]);
 
 
     // ==========================================
@@ -51,37 +30,7 @@ function Login() {
         setCargando(true);
 
         try {
-            const response = await fetch(
-                "http://127.0.0.1:8000/api/auth/login",
-                {
-                    method: "POST",
-
-                    headers: {
-                        "Content-Type": "application/json",
-                        Accept: "application/json",
-                    },
-
-                    body: JSON.stringify({
-                        email: correo,
-                        password: password,
-                    }),
-                }
-            );
-
-            const data = await response.json();
-
-
-            // ==========================================
-            // LOGIN INCORRECTO
-            // ==========================================
-            if (!response.ok) {
-                setError(
-                    data.detail ||
-                    "Correo o contraseña incorrectos."
-                );
-
-                return;
-            }
+            const data = await login(correo, password);
 
 
             // ==========================================
@@ -96,23 +45,7 @@ function Login() {
             }
 
 
-            // ==========================================
-            // GUARDAR USUARIO
-            // ==========================================
-            localStorage.setItem(
-                "usuario",
-                JSON.stringify(data)
-            );
-
-
-            // ==========================================
-            // GUARDAR HORA DE LOGIN
-            // ==========================================
-            localStorage.setItem(
-                "loginTime",
-                Date.now().toString()
-            );
-
+            iniciarSesion(data);
 
             // ==========================================
             // IR AL DASHBOARD
@@ -127,9 +60,7 @@ function Login() {
                 error
             );
 
-            setError(
-                "No se pudo conectar con el servidor. Verifica que FastAPI esté ejecutándose."
-            );
+            setError(error.message || "No se pudo conectar con el servidor. Verifica que FastAPI esté ejecutándose.");
 
         } finally {
             setCargando(false);

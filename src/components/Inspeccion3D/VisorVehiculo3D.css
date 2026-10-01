@@ -1,0 +1,375 @@
+/* =========================================================
+   VISOR 3D
+========================================================= */
+
+.visor-3d-wrapper {
+    position: relative;
+    width: 100%;
+    height: 600px;
+    min-height: 600px;
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.visor-vehiculo-3d {
+    width: 100%;
+    height: 100%;
+    min-height: 600px;
+    position: relative;
+    overflow: hidden;
+}
+
+.visor-vehiculo-3d canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+
+/* =========================================================
+   CONTADOR DE DAÑOS
+========================================================= */
+
+.contador-danos-3d {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    padding: 9px 14px;
+
+    background: rgba(17, 24, 39, 0.94);
+
+    border: 1px solid rgba(255, 255, 255, 0.12);
+
+    border-radius: 10px;
+
+    color: white;
+
+    z-index: 5;
+}
+
+.contador-danos-3d strong {
+    font-size: 18px;
+}
+
+
+/* =========================================================
+   MODAL OVERLAY
+========================================================= */
+
+.modal-danio-overlay {
+    position: absolute;
+
+    inset: 0;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    padding: 20px;
+
+    background: rgba(0, 0, 0, 0.55);
+
+    backdrop-filter: blur(3px);
+
+    z-index: 20;
+}
+
+
+/* =========================================================
+   MODAL
+========================================================= */
+
+.modal-danio {
+    width: 100%;
+
+    max-width: 470px;
+
+    max-height: 90%;
+
+    overflow-y: auto;
+
+    background: #ffffff;
+
+    border-radius: 16px;
+
+    box-shadow:
+        0 25px 60px rgba(0, 0, 0, 0.35);
+
+    color: #111827;
+}
+
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.modal-danio-header {
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: flex-start;
+
+    padding: 20px 22px;
+
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.modal-danio-header span {
+    font-size: 12px;
+
+    color: #6b7280;
+
+    text-transform: uppercase;
+
+    letter-spacing: 0.05em;
+}
+
+.modal-danio-header h3 {
+    margin: 4px 0 0;
+
+    font-size: 20px;
+
+    color: #111827;
+}
+
+.btn-cerrar-modal {
+    width: 32px;
+
+    height: 32px;
+
+    border: none;
+
+    background: #f3f4f6;
+
+    border-radius: 8px;
+
+    font-size: 22px;
+
+    cursor: pointer;
+
+    color: #4b5563;
+}
+
+.btn-cerrar-modal:hover {
+    background: #e5e7eb;
+}
+
+
+/* =========================================================
+   BODY
+========================================================= */
+
+.modal-danio-body {
+    padding: 20px 22px;
+}
+
+
+/* =========================================================
+   CAMPOS
+========================================================= */
+
+.campo-danio {
+    margin-bottom: 20px;
+}
+
+.campo-danio:last-child {
+    margin-bottom: 0;
+}
+
+.campo-danio>label {
+    display: block;
+
+    margin-bottom: 8px;
+
+    font-size: 13px;
+
+    font-weight: 600;
+
+    color: #374151;
+}
+
+.campo-danio select,
+.campo-danio textarea {
+    width: 100%;
+
+    box-sizing: border-box;
+
+    padding: 11px 12px;
+
+    border: 1px solid #d1d5db;
+
+    border-radius: 9px;
+
+    background: white;
+
+    color: #111827;
+
+    font-size: 14px;
+
+    outline: none;
+}
+
+.campo-danio select:focus,
+.campo-danio textarea:focus {
+    border-color: #6b7280;
+
+    box-shadow:
+        0 0 0 3px rgba(107, 114, 128, 0.12);
+}
+
+.campo-danio textarea {
+    resize: vertical;
+
+    font-family: inherit;
+}
+
+
+/* =========================================================
+   SEVERIDAD
+========================================================= */
+
+.opciones-severidad {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 8px;
+}
+
+.opcion-severidad {
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+
+    padding: 11px 12px;
+
+    border: 1px solid #e5e7eb;
+
+    border-radius: 9px;
+
+    cursor: pointer;
+
+    transition: all 0.15s ease;
+}
+
+.opcion-severidad:hover {
+    background: #f9fafb;
+}
+
+.opcion-severidad.seleccionada {
+    border-color: #9ca3af;
+
+    background: #f9fafb;
+}
+
+.opcion-severidad input {
+    display: none;
+}
+
+.opcion-severidad>span {
+    font-size: 20px;
+}
+
+.opcion-severidad div {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 2px;
+}
+
+.opcion-severidad strong {
+    font-size: 14px;
+}
+
+.opcion-severidad small {
+    font-size: 11px;
+
+    color: #6b7280;
+}
+
+
+/* =========================================================
+   FOOTER
+========================================================= */
+
+.modal-danio-footer {
+    display: flex;
+
+    justify-content: flex-end;
+
+    gap: 10px;
+
+    padding: 16px 22px;
+
+    border-top: 1px solid #e5e7eb;
+}
+
+.btn-cancelar-danio,
+.btn-guardar-danio {
+    border: none;
+
+    border-radius: 9px;
+
+    padding: 10px 16px;
+
+    font-size: 13px;
+
+    font-weight: 600;
+
+    cursor: pointer;
+}
+
+.btn-cancelar-danio {
+    background: #f3f4f6;
+
+    color: #374151;
+}
+
+.btn-cancelar-danio:hover {
+    background: #e5e7eb;
+}
+
+.btn-guardar-danio {
+    background: #111827;
+
+    color: white;
+}
+
+.btn-guardar-danio:hover {
+    background: #1f2937;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 600px) {
+
+    .modal-danio-overlay {
+        padding: 10px;
+    }
+
+    .modal-danio {
+        max-width: 100%;
+    }
+
+    .modal-danio-header,
+    .modal-danio-body,
+    .modal-danio-footer {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+
+}

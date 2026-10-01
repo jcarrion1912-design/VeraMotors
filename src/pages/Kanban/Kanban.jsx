@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useRole } from "../../context/RoleContext";
+import { useRole } from "../../context/authContext";
 import { obtenerODS, cambiarEstadoODS } from "../../services/odsService";
 import { obtenerUsuarios } from "../../services/usuariosService";
 import "./Kanban.css";

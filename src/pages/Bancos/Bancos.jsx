@@ -1,18 +1,24 @@
 import { useState, useEffect } from "react";
 import "./Bancos.css";
 import { obtenerCuentasBancarias, obtenerMovimientosBancarios, registrarMovimiento } from "../../services/bancosService";
+import { useRole } from "../../context/authContext";
 
 const SUBMENUS_BANCOS = [
     "Cuentas Bancarias",
-    "Movimientos / Transacciones",
-    "Conciliación Bancaria"
+    "Movimientos / Transacciones"
 ];
 
 function Bancos() {
+    const { usuarioActual } = useRole();
     const [submodulo, setSubmodulo] = useState("Cuentas Bancarias");
     const [mostrarModal, setMostrarModal] = useState(false);
     const [tipoFiltro, setTipoFiltro] = useState("Todos");
     const [cargando, setCargando] = useState(false);
+    const [cuentaOrigen, setCuentaOrigen] = useState("");
+    const [tipoMov, setTipoMov] = useState("Ingreso");
+    const [categoriaMov, setCategoriaMov] = useState("");
+    const [montoMov, setMontoMov] = useState("");
+    const [referenciaMov, setReferenciaMov] = useState("");
 
     // Cuentas Bancarias
     const [cuentas, setCuentas] = useState([]);
@@ -26,6 +32,7 @@ function Bancos() {
                 obtenerMovimientosBancarios()
             ]);
             setCuentas(cuentasData);
+            setCuentaOrigen((actual) => actual || String(cuentasData[0]?.cuenta_bancaria_id || ""));
             setMovimientos(movimientosData);
         } catch (error) {
             console.error("Error cargando datos bancarios:", error);
@@ -35,23 +42,12 @@ function Bancos() {
     };
 
     useEffect(() => {
-        cargarDatos();
+        let activa = true;
+        queueMicrotask(() => { if (activa) cargarDatos(); });
+        return () => { activa = false; };
     }, []);
 
     const saldoTotal = cuentas.reduce((t, c) => t + parseFloat(c.saldo_actual || 0), 0);
-
-    // Modal Form State
-    const [cuentaOrigen, setCuentaOrigen] = useState("");
-    const [tipoMov, setTipoMov] = useState("Ingreso");
-    const [categoriaMov, setCategoriaMov] = useState("Cobro ODS / Venta");
-    const [montoMov, setMontoMov] = useState("");
-    const [referenciaMov, setReferenciaMov] = useState("");
-
-    useEffect(() => {
-        if (cuentas.length > 0 && !cuentaOrigen) {
-            setCuentaOrigen(cuentas[0].cuenta_bancaria_id);
-        }
-    }, [cuentas]);
 
     const registrarMovimientoFn = async (e) => {
         e.preventDefault();
@@ -61,15 +57,16 @@ function Bancos() {
         }
 
         try {
+            if (!usuarioActual?.user_id) throw new Error("Inicia sesión para registrar el movimiento.");
             const nuevoMovimiento = {
                 cuenta_bancaria_id: parseInt(cuentaOrigen),
-                usuario_id: 1,
+                usuario_id: usuarioActual.user_id,
                 tipo_movimiento: tipoMov,
                 concepto: categoriaMov,
                 monto: parseFloat(montoMov),
-                referencia: referenciaMov || "N/A"
+                referencia: referenciaMov.trim() || null
             };
-            
+
             await registrarMovimiento(nuevoMovimiento);
             setMostrarModal(false);
             setMontoMov("");
@@ -82,12 +79,14 @@ function Bancos() {
         }
     };
 
-    const movFiltrados = movimientos.filter(m => 
+    const movFiltrados = movimientos.filter(m =>
         tipoFiltro === "Todos" || m.tipo_movimiento === tipoFiltro
     );
 
     return (
         <div className="bancos-page">
+
+            {cargando && <p role="status">Consultando cuentas y movimientos…</p>}
 
             {/* CABECERA */}
             <div className="bancos-header">
@@ -212,17 +211,6 @@ function Bancos() {
                 </div>
             )}
 
-            {/* SUBMÓDULO 3: CONCILIACIÓN BANCARIA */}
-            {submodulo === "Conciliación Bancaria" && (
-                <div style={{ background: '#ffffff', padding: '40px', textAlign: 'center', borderRadius: '8px', border: '1px solid #e2e8f0', color: '#64748b' }}>
-                    <h3>Módulo de Conciliación Bancaria Automática</h3>
-                    <p>Carga extractos bancarios en formato CSV/Excel de BCP, BBVA o Interbank para cruce automático con facturas y ODS.</p>
-                    <button className="btn-act-table link" style={{ marginTop: '14px', padding: '10px 20px', fontSize: '0.9rem' }} onClick={() => alert("Simulando carga de extracto bancario CSV... 100% registros conciliados.")}>
-                        📂 Cargar Extracto Bancario CSV
-                    </button>
-                </div>
-            )}
-
             {/* MODAL REGISTRAR MOVIMIENTO */}
             {mostrarModal && (
                 <div className="modal-overlay">
@@ -235,7 +223,7 @@ function Bancos() {
                             <button className="btn-close" onClick={() => setMostrarModal(false)}>✕</button>
                         </div>
 
-                        <form onSubmit={registrarMovimiento}>
+                        <form onSubmit={registrarMovimientoFn}>
                             <div className="modal-body">
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
                                     <div>

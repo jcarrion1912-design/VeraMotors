@@ -25,6 +25,17 @@ function Clientes() {
     const [nuevoEmail, setNuevoEmail] = useState("");
     const [nuevaDireccion, setNuevaDireccion] = useState("");
 
+    // Form states - vehículo
+    const [nuevoTipoVehiculo, setNuevoTipoVehiculo] = useState("Automóvil");
+    const [nuevaMarca, setNuevaMarca] = useState("");
+    const [nuevoModelo, setNuevoModelo] = useState("");
+    const [nuevaPlaca, setNuevaPlaca] = useState("");
+    const [nuevoAnio, setNuevoAnio] = useState("");
+    const [nuevoMotor, setNuevoMotor] = useState("");
+    const [nuevoKilometraje, setNuevoKilometraje] = useState("");
+    const [nuevoColor, setNuevoColor] = useState("");
+    const [nuevoVin, setNuevoVin] = useState("");
+
     const cargarDatos = async () => {
         try {
             setCargando(true);
@@ -49,12 +60,13 @@ function Clientes() {
                     }));
 
                     const palabras = (c.nombre_razon_social || "").trim().split(" ");
-                    const iniciales = palabras.length >= 2 
+                    const iniciales = palabras.length >= 2
                         ? (palabras[0][0] + palabras[1][0]).toUpperCase()
                         : (palabras[0]?.[0] || "C").toUpperCase();
 
                     return {
                         id: c.cliente_id,
+                        tipoPersona: c.tipo_persona || "Natural",
                         nombre: c.nombre_razon_social,
                         documento: c.documento_identidad,
                         telefono: c.telefono || "+51 999 999 999",
@@ -120,7 +132,7 @@ function Clientes() {
 
         setClienteEditar({
             cliente_id: cliente.id,
-            tipo_persona: "Natural",
+            tipo_persona: cliente.tipoPersona || "Natural",
             documento_identidad: cliente.documento || "",
             nombre_razon_social: cliente.nombre || "",
             telefono: cliente.telefono || "",
@@ -135,14 +147,76 @@ function Clientes() {
 
         if (!clienteEditar || !clienteEditar.cliente_id) return;
 
+        const tipo = clienteEditar.tipo_persona;
+        const documento = (clienteEditar.documento_identidad || "").trim();
+        const nombre = (clienteEditar.nombre_razon_social || "").trim();
+        const telefono = (clienteEditar.telefono || "").trim();
+        const email = (clienteEditar.email || "").trim();
+        const direccion = (clienteEditar.direccion_ubigeo || "").trim();
+
+        // Validación de documento
+        const documentoRegex = tipo === "Natural" ? /^\d{8}$/ : /^\d{11}$/;
+
+        if (!documentoRegex.test(documento)) {
+            alert(
+                tipo === "Natural"
+                    ? "El DNI debe tener exactamente 8 dígitos numéricos."
+                    : "El RUC debe tener exactamente 11 dígitos numéricos."
+            );
+            return;
+        }
+
+        // Validación de nombre / razón social
+        if (nombre.length < 2) {
+            alert(
+                tipo === "Natural"
+                    ? "Ingresa los nombres y apellidos del cliente."
+                    : "Ingresa la razón social de la empresa."
+            );
+            return;
+        }
+
+        // Validación de teléfono
+        if (telefono && !/^\d{9}$/.test(telefono)) {
+            alert("El teléfono/celular debe tener exactamente 9 dígitos numéricos.");
+            return;
+        }
+
+        // Validación de correo
+        if (
+            email &&
+            !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)
+        ) {
+            alert("Ingresa un correo electrónico válido.");
+            return;
+        }
+
+        // Validación de dirección
+        if (!direccion) {
+            alert("Ingresa la dirección del cliente.");
+            return;
+        }
+
+        // Evitar documento duplicado en los clientes cargados
+        const documentoDuplicado = clientes.some(
+            (item) =>
+                String(item.documento || "").trim() === documento &&
+                String(item.id) !== String(clienteEditar.cliente_id)
+        );
+
+        if (documentoDuplicado) {
+            alert("Ya existe un cliente registrado con ese documento.");
+            return;
+        }
+
         try {
             await actualizarCliente(clienteEditar.cliente_id, {
-                tipo_persona: clienteEditar.tipo_persona,
-                documento_identidad: clienteEditar.documento_identidad,
-                nombre_razon_social: clienteEditar.nombre_razon_social,
-                direccion_ubigeo: clienteEditar.direccion_ubigeo,
-                telefono: clienteEditar.telefono || null,
-                email: clienteEditar.email || null
+                tipo_persona: tipo,
+                documento_identidad: documento,
+                nombre_razon_social: nombre,
+                direccion_ubigeo: direccion,
+                telefono: telefono || null,
+                email: email || null
             });
 
             setMostrarEdicion(false);
@@ -157,42 +231,246 @@ function Clientes() {
 
     const registrarCliente = async (e) => {
         e.preventDefault();
-        if (!nuevoNombre.trim() || !nuevoDoc.trim()) {
-            alert("Por favor completa el nombre o razón social y documento.");
+
+        // ==============================
+        // DATOS DEL CLIENTE
+        // ==============================
+        const documento = nuevoDoc.trim();
+        const nombre = nuevoNombre.trim();
+        const telefono = nuevoTelefono.trim();
+        const email = nuevoEmail.trim();
+
+        // ==============================
+        // DATOS DEL VEHÍCULO NUEVO
+        // ==============================
+        const tipoVehiculo = nuevoTipoVehiculo.trim();
+        const marca = nuevaMarca.trim();
+        const modelo = nuevoModelo.trim();
+        const placa = nuevaPlaca.trim().toUpperCase();
+        const anio = nuevoAnio.trim();
+        const color = nuevoColor.trim();
+        const vin = nuevoVin.trim().toUpperCase();
+
+        // ==============================
+        // VALIDACIONES CLIENTE
+        // ==============================
+        const documentoRegex =
+            tipoPersona === "Natural" ? /^\d{8}$/ : /^\d{11}$/;
+
+        if (!documentoRegex.test(documento)) {
+            alert(
+                tipoPersona === "Natural"
+                    ? "El DNI debe tener exactamente 8 dígitos numéricos."
+                    : "El RUC debe tener exactamente 11 dígitos numéricos."
+            );
+            return;
+        }
+
+        if (nombre.length < 2) {
+            alert(
+                tipoPersona === "Natural"
+                    ? "Ingresa los nombres y apellidos del cliente."
+                    : "Ingresa la razón social de la empresa."
+            );
+            return;
+        }
+
+        if (telefono && !/^\d{9}$/.test(telefono)) {
+            alert("El teléfono/celular debe tener exactamente 9 dígitos.");
+            return;
+        }
+
+        if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+            alert("Ingresa un correo electrónico válido.");
+            return;
+        }
+
+        if (!ubigeoDept.trim() || !ubigeoProv.trim() || !ubigeoDist.trim()) {
+            alert("Completa Departamento, Provincia y Distrito.");
+            return;
+        }
+
+        const documentoDuplicado = clientes.some(
+            (item) => String(item.documento || "").trim() === documento
+        );
+
+        if (documentoDuplicado) {
+            alert("Ya existe un cliente registrado con ese documento.");
+            return;
+        }
+
+        // ==============================
+        // VALIDACIONES VEHÍCULO
+        // El vehículo es nuevo y se registra
+        // junto con el cliente.
+        // ==============================
+        if (!tipoVehiculo) {
+            alert("Selecciona el tipo de vehículo.");
+            return;
+        }
+
+        if (!marca) {
+            alert("Ingresa la marca del vehículo.");
+            return;
+        }
+
+        if (!modelo) {
+            alert("Ingresa el modelo del vehículo.");
+            return;
+        }
+
+        if (!placa) {
+            alert("Ingresa la placa del vehículo.");
+            return;
+        }
+
+        if (anio && !/^\d{4}$/.test(anio)) {
+            alert("El año del vehículo debe tener 4 dígitos.");
             return;
         }
 
         try {
-            const body = {
+            // ==============================
+            // PASO 1: CREAR CLIENTE
+            // ==============================
+            const clienteBody = {
                 tipo_persona: tipoPersona,
-                documento_identidad: nuevoDoc.trim(),
-                nombre_razon_social: nuevoNombre.trim(),
-                direccion_ubigeo: `${ubigeoDept} - ${ubigeoDist}`,
-                telefono: nuevoTelefono.trim() || null,
-                email: nuevoEmail.trim() || null
+                documento_identidad: documento,
+                nombre_razon_social: nombre,
+                direccion_ubigeo: `${ubigeoDept.trim()} - ${ubigeoDist.trim()}`,
+                telefono: telefono || null,
+                email: email || null
             };
 
-            const res = await fetch(`${API_URL}/clientes`, {
+            console.log("1. Registrando cliente:", clienteBody);
+
+            const resCliente = await fetch(`${API_URL}/clientes`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(body)
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(clienteBody)
             });
 
-            if (!res.ok) {
-                const err = await res.json();
-                throw new Error(err.detail || "Error al crear cliente.");
+            if (!resCliente.ok) {
+                let mensaje = "No se pudo registrar el cliente.";
+
+                try {
+                    const errorData = await resCliente.json();
+
+                    if (typeof errorData.detail === "string") {
+                        mensaje = errorData.detail;
+                    } else if (Array.isArray(errorData.detail)) {
+                        mensaje = errorData.detail
+                            .map((item) => item.msg)
+                            .filter(Boolean)
+                            .join("\n");
+                    }
+                } catch {
+                    // Mantener mensaje genérico si la respuesta no es JSON.
+                }
+
+                throw new Error(mensaje);
             }
 
-            alert("¡Cliente registrado exitosamente en PostgreSQL!");
+            const clienteCreado = await resCliente.json();
+            const clienteId = clienteCreado.cliente_id;
+
+            console.log("2. Cliente creado. ID:", clienteId);
+
+            if (!clienteId) {
+                throw new Error(
+                    "El cliente se creó, pero el backend no devolvió su cliente_id."
+                );
+            }
+
+            // ==============================
+            // PASO 2: CREAR VEHÍCULO
+            // EN LA TABLA vehiculos
+            // ==============================
+            const vehiculoBody = {
+                cliente_id: Number(clienteId),
+                tipo_vehiculo: tipoVehiculo,
+                placa: placa,
+                marca: marca,
+                modelo: modelo,
+                anio: anio ? Number(anio) : null,
+                color: color || null,
+                vin: vin || null
+            };
+
+            console.log("3. Registrando vehículo:", vehiculoBody);
+
+            const resVehiculo = await fetch(`${API_URL}/vehiculos`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(vehiculoBody)
+            });
+
+            if (!resVehiculo.ok) {
+                let mensaje = "El cliente se registró, pero el vehículo no pudo guardarse.";
+
+                try {
+                    const errorData = await resVehiculo.json();
+
+                    if (typeof errorData.detail === "string") {
+                        mensaje = errorData.detail;
+                    } else if (Array.isArray(errorData.detail)) {
+                        mensaje = errorData.detail
+                            .map((item) => item.msg)
+                            .filter(Boolean)
+                            .join("\n");
+                    }
+                } catch {
+                    // Mantener mensaje anterior.
+                }
+
+                throw new Error(mensaje);
+            }
+
+            const vehiculoCreado = await resVehiculo.json();
+
+            console.log("4. Vehículo creado:", vehiculoCreado);
+
+            // ==============================
+            // LIMPIAR FORMULARIO
+            // ==============================
             setMostrarFormulario(false);
+
             setNuevoNombre("");
             setNuevoDoc("");
             setNuevoTelefono("");
             setNuevoEmail("");
+            setTipoPersona("Natural");
+
+            setUbigeoDept("Lima");
+            setUbigeoProv("Lima");
+            setUbigeoDist("San Isidro");
+
+            setNuevoTipoVehiculo("Automóvil");
+            setNuevaMarca("");
+            setNuevoModelo("");
+            setNuevaPlaca("");
+            setNuevoAnio("");
+            setNuevoMotor("");
+            setNuevoKilometraje("");
+            setNuevoColor("");
+            setNuevoVin("");
+
+            // Volver a consultar clientes y vehículos.
             await cargarDatos();
+
+            alert(
+                `¡Cliente y vehículo registrados correctamente!\n\n` +
+                `Cliente ID: ${clienteId}\n` +
+                `Vehículo ID: ${vehiculoCreado.vehiculo_id}`
+            );
+
         } catch (error) {
-            console.error("Error registrando cliente:", error);
-            alert(error.message || "Error al guardar en base de datos.");
+            console.error("Error registrando cliente y vehículo:", error);
+            alert(error.message || "Error al guardar cliente y vehículo.");
         }
     };
 
@@ -708,12 +986,24 @@ function Clientes() {
                                         <label>Tipo de cliente</label>
                                         <select value={clienteEditar.tipo_persona} onChange={(e) => setClienteEditar({ ...clienteEditar, tipo_persona: e.target.value })}>
                                             <option value="Natural">Persona natural</option>
-                                            <option value="Empresa">Empresa</option>
+                                            <option value="Jurídica">Empresa</option>
                                         </select>
                                     </div>
                                     <div className="form-group">
                                         <label>Documento</label>
-                                        <input type="text" value={clienteEditar.documento_identidad} onChange={(e) => setClienteEditar({ ...clienteEditar, documento_identidad: e.target.value })} required />
+                                        <input
+                                            type="text"
+                                            value={clienteEditar.documento_identidad}
+                                            onChange={(e) =>
+                                                setClienteEditar({
+                                                    ...clienteEditar,
+                                                    documento_identidad: e.target.value.replace(/\D/g, "")
+                                                })
+                                            }
+                                            maxLength={clienteEditar.tipo_persona === "Natural" ? 8 : 11}
+                                            inputMode="numeric"
+                                            required
+                                        />
                                     </div>
                                     <div className="form-group">
                                         <label>Nombre / Razón Social</label>
@@ -721,7 +1011,18 @@ function Clientes() {
                                     </div>
                                     <div className="form-group">
                                         <label>Teléfono</label>
-                                        <input type="tel" value={clienteEditar.telefono} onChange={(e) => setClienteEditar({ ...clienteEditar, telefono: e.target.value })} />
+                                        <input
+                                            type="tel"
+                                            value={clienteEditar.telefono}
+                                            onChange={(e) =>
+                                                setClienteEditar({
+                                                    ...clienteEditar,
+                                                    telefono: e.target.value.replace(/\D/g, "")
+                                                })
+                                            }
+                                            maxLength={9}
+                                            inputMode="numeric"
+                                        />
                                     </div>
                                     <div className="form-group">
                                         <label>Correo</label>
@@ -812,16 +1113,16 @@ function Clientes() {
                                             Tipo de cliente
                                         </label>
 
-                                        <select 
+                                        <select
                                             value={tipoPersona}
                                             onChange={(e) => setTipoPersona(e.target.value)}
                                         >
 
-                                            <option value="persona">
+                                            <option value="Natural">
                                                 Persona natural
                                             </option>
 
-                                            <option value="empresa">
+                                            <option value="Jurídica">
                                                 Empresa
                                             </option>
 
@@ -833,14 +1134,14 @@ function Clientes() {
                                     <div className="form-group">
 
                                         <label>
-                                            {tipoPersona === "persona" ? "DNI (8 dígitos)" : "RUC (11 dígitos)"}
+                                            {tipoPersona === "Natural" ? "DNI (8 dígitos)" : "RUC (11 dígitos)"}
                                         </label>
 
                                         <input
                                             type="text"
                                             value={nuevoDoc}
                                             onChange={(e) => setNuevoDoc(e.target.value)}
-                                            placeholder={tipoPersona === "persona" ? "Ingrese DNI" : "Ingrese RUC"}
+                                            placeholder={tipoPersona === "Natural" ? "Ingrese DNI" : "Ingrese RUC"}
                                             required
                                         />
 
@@ -850,14 +1151,14 @@ function Clientes() {
                                     <div className="form-group">
 
                                         <label>
-                                            {tipoPersona === "persona" ? "Nombres y Apellidos" : "Razón Social"}
+                                            {tipoPersona === "Natural" ? "Nombres y Apellidos" : "Razón Social"}
                                         </label>
 
                                         <input
                                             type="text"
                                             value={nuevoNombre}
                                             onChange={(e) => setNuevoNombre(e.target.value)}
-                                            placeholder={tipoPersona === "persona" ? "Ingrese nombres completos" : "Ingrese Razón Social"}
+                                            placeholder={tipoPersona === "Natural" ? "Ingrese nombres completos" : "Ingrese Razón Social"}
                                             required
                                         />
 
@@ -903,9 +1204,9 @@ function Clientes() {
                                         </label>
 
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '8px' }}>
-                                            <input type="text" value={ubigeoDept} onChange={(e) => setUbigeoDept(e.target.value)} placeholder="Departamento" />
-                                            <input type="text" value={ubigeoProv} onChange={(e) => setUbigeoProv(e.target.value)} placeholder="Provincia" />
-                                            <input type="text" value={ubigeoDist} onChange={(e) => setUbigeoDist(e.target.value)} placeholder="Distrito" />
+                                            <input type="text" value={ubigeoDept} onChange={(e) => setUbigeoDept(e.target.value)} placeholder="Departamento" required />
+                                            <input type="text" value={ubigeoProv} onChange={(e) => setUbigeoProv(e.target.value)} placeholder="Provincia" required />
+                                            <input type="text" value={ubigeoDist} onChange={(e) => setUbigeoDist(e.target.value)} placeholder="Distrito" required />
                                         </div>
 
                                     </div>
@@ -929,12 +1230,34 @@ function Clientes() {
                                     <div className="form-group">
 
                                         <label>
+                                            Tipo de vehículo
+                                        </label>
+
+                                        <select
+                                            value={nuevoTipoVehiculo}
+                                            onChange={(e) => setNuevoTipoVehiculo(e.target.value)}
+                                        >
+                                            <option value="Automóvil">Automóvil</option>
+                                            <option value="SUV">SUV</option>
+                                            <option value="Camioneta">Camioneta</option>
+                                            <option value="Camión">Camión</option>
+                                            <option value="Motocicleta">Motocicleta</option>
+                                            <option value="Otro">Otro</option>
+                                        </select>
+
+                                    </div>
+
+                                    <div className="form-group">
+
+                                        <label>
                                             Marca
                                         </label>
 
                                         <input
                                             type="text"
                                             placeholder="Ej. Toyota"
+                                            value={nuevaMarca}
+                                            onChange={(e) => setNuevaMarca(e.target.value)}
                                         />
 
                                     </div>
@@ -949,6 +1272,8 @@ function Clientes() {
                                         <input
                                             type="text"
                                             placeholder="Ej. Corolla"
+                                            value={nuevoModelo}
+                                            onChange={(e) => setNuevoModelo(e.target.value)}
                                         />
 
                                     </div>
@@ -963,6 +1288,8 @@ function Clientes() {
                                         <input
                                             type="text"
                                             placeholder="Ej. ABC-123"
+                                            value={nuevaPlaca}
+                                            onChange={(e) => setNuevaPlaca(e.target.value)}
                                         />
 
                                     </div>
@@ -977,6 +1304,8 @@ function Clientes() {
                                         <input
                                             type="number"
                                             placeholder="Ej. 2024"
+                                            value={nuevoAnio}
+                                            onChange={(e) => setNuevoAnio(e.target.value)}
                                         />
 
                                     </div>

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import "./Compras.css";
 import { obtenerCompras, crearCompra } from "../../services/comprasService";
 import { obtenerProveedores } from "../../services/proveedoresService";
+import { useRole } from "../../context/authContext";
 
 const SUBMENUS_COMPRAS = [
     "Órdenes de Compra",
@@ -10,10 +11,12 @@ const SUBMENUS_COMPRAS = [
 ];
 
 function Compras() {
+    const { usuarioActual } = useRole();
     const [submodulo, setSubmodulo] = useState("Órdenes de Compra");
     const [estadoFiltro, setEstadoFiltro] = useState("Todos");
     const [mostrarModal, setMostrarModal] = useState(false);
     const [cargando, setCargando] = useState(false);
+    const [proveedorSel, setProveedorSel] = useState("");
 
     // Órdenes de Compra
     const [ordenesCompra, setOrdenesCompra] = useState([]);
@@ -28,6 +31,7 @@ function Compras() {
             ]);
             setOrdenesCompra(compras);
             setProveedores(provs);
+            setProveedorSel((actual) => actual || String(provs[0]?.proveedor_id || ""));
         } catch (error) {
             console.error("Error cargando datos:", error);
         } finally {
@@ -36,21 +40,16 @@ function Compras() {
     };
 
     useEffect(() => {
-        cargarDatos();
+        let activa = true;
+        queueMicrotask(() => { if (activa) cargarDatos(); });
+        return () => { activa = false; };
     }, []);
 
     // Modal Nueva Compra
-    const [proveedorSel, setProveedorSel] = useState("");
     const [itemsCompra, setItemsCompra] = useState([]);
     const [itemDesc, setItemDesc] = useState("");
     const [itemCant, setItemCant] = useState("");
     const [itemCosto, setItemCosto] = useState("");
-
-    useEffect(() => {
-        if (proveedores.length > 0 && !proveedorSel) {
-            setProveedorSel(proveedores[0].proveedor_id);
-        }
-    }, [proveedores]);
 
     const subtotalBruto = itemsCompra.reduce((t, i) => t + (i.cantidad * i.costoUnitario), 0);
     const igvCalculado = subtotalBruto * 0.18;
@@ -67,10 +66,10 @@ function Compras() {
     const emitirOrdenCompra = async (e) => {
         e.preventDefault();
         try {
+            if (!usuarioActual?.user_id) throw new Error("Inicia sesión para registrar la compra.");
             const nuevaCompra = {
-                codigo_compra: `CMP-${Date.now()}`,
                 proveedor_id: proveedorSel,
-                usuario_id: 1,
+                usuario_id: usuarioActual.user_id,
                 subtotal: subtotalBruto,
                 impuestos: igvCalculado,
                 descuentos: 0,
@@ -88,12 +87,14 @@ function Compras() {
         }
     };
 
-    const ordenesFiltradas = ordenesCompra.filter(o => 
+    const ordenesFiltradas = ordenesCompra.filter(o =>
         estadoFiltro === "Todos" || o.estado === estadoFiltro
     );
 
     return (
         <div className="compras-page">
+
+            {cargando && <p role="status">Consultando compras y proveedores…</p>}
 
             {/* CABECERA */}
             <div className="compras-header">

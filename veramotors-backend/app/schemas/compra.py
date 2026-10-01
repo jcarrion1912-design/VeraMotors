@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 
 
 class CompraBase(BaseModel):
-    codigo_compra: str = Field(..., max_length=50)
+    codigo_compra: Optional[str] = Field(default=None, max_length=50)
     proveedor_id: int
     usuario_id: int
     tipo_comprobante: Optional[str] = None

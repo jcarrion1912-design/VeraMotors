@@ -5,6 +5,7 @@ from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import func
 
 from app.database import get_db
 from app.config.settings import settings
@@ -133,17 +134,26 @@ def consultar_estado_sunat_nota_credito(
 
         respuesta = SunatService().consultar_estado(str(document_id))
         estado_api = str(respuesta.get("status", "")).strip().upper() if isinstance(respuesta, dict) else ""
+        faults = respuesta.get("faults") or [] if isinstance(respuesta, dict) else []
 
         if estado_api == "ACEPTADO":
             nota.estado_sunat = "Aceptado"
-        elif estado_api == "RECHAZADO":
+        elif estado_api == "RECHAZADO" or estado_api == "EXCEPCION" or len(faults) > 0:
             nota.estado_sunat = "Rechazado"
         elif estado_api == "ANULADO":
             nota.estado_sunat = "Anulado"
         else:
             nota.estado_sunat = "Pendiente"
 
-        nota.codigo_sunat = estado_api or nota.codigo_sunat or "PENDIENTE"
+        codigo_error = None
+        if faults and len(faults) > 0:
+            f = faults[0]
+            fcode = f.get("faultcode", {}).get("_text", "") if isinstance(f.get("faultcode"), dict) else str(f.get("faultcode", ""))
+            fstring = f.get("faultstring", {}).get("_text", "") if isinstance(f.get("faultstring"), dict) else str(f.get("faultstring", ""))
+            codigo_error = fcode or "ERROR_SUNAT"
+            nota.codigo_sunat = codigo_error
+        else:
+            nota.codigo_sunat = estado_api or nota.codigo_sunat or "PENDIENTE"
         nota.respuesta_sunat = json.dumps(respuesta, ensure_ascii=False)
         nota.fecha_envio_sunat = datetime.now()
 
@@ -285,93 +295,106 @@ def crear_nota_credito(
 
 
         # ====================================================
-        # 4. DETERMINAR TIPO DEL COMPROBANTE AFECTADO
+        # 3.5 VALIDAR IMPORTES Y MONTOS
         # ====================================================
+        subtotal = Decimal(str(datos.subtotal))
+        impuestos = Decimal(str(datos.impuestos))
+        total = Decimal(str(datos.total))
 
-        if factura.tipo_comprobante == "Factura Electrónica":
+        if total <= 0:
+            raise HTTPException(
+                status_code=400,
+                detail="El total de la nota de crédito debe ser mayor a 0."
+            )
 
+        if round(subtotal + impuestos, 2) != round(total, 2):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Incoherencia en importes: Subtotal ({subtotal:.2f}) + IGV ({impuestos:.2f}) != Total ({total:.2f})."
+            )
+
+        if round(total, 2) > round(Decimal(str(factura.total)), 2):
+            raise HTTPException(
+                status_code=400,
+                detail=f"El importe total de la nota de crédito (S/ {total:.2f}) no puede superar el importe total del comprobante modificado (S/ {factura.total:.2f})."
+            )
+
+        # ====================================================
+        # 4. DETERMINAR TIPO DEL COMPROBANTE AFECTADO Y SERIE
+        # ====================================================
+        es_factura = factura.tipo_comprobante == "Factura Electrónica" or (factura.serie and factura.serie.startswith("F"))
+        es_boleta = factura.tipo_comprobante == "Boleta Electrónica" or (factura.serie and factura.serie.startswith("B"))
+
+        if es_factura:
             codigo_comprobante_afectado = "01"
-
             customer_scheme_id = "6"
+            tipo_correlativo = "NOTA_CREDITO_FACTURA"
+            serie_esperada_letra = "F"
 
             if len(documento) != 11:
-
                 raise HTTPException(
                     status_code=400,
-                    detail=(
-                        "El cliente de una factura "
-                        "debe tener RUC de 11 dígitos."
-                    )
+                    detail="El cliente de una factura debe tener RUC de 11 dígitos."
                 )
 
-        elif factura.tipo_comprobante == "Boleta Electrónica":
-
+        elif es_boleta:
             codigo_comprobante_afectado = "03"
-
             customer_scheme_id = "1"
+            tipo_correlativo = "NOTA_CREDITO_BOLETA"
+            serie_esperada_letra = "B"
 
             if len(documento) != 8:
-
                 raise HTTPException(
                     status_code=400,
-                    detail=(
-                        "El cliente de una boleta "
-                        "debe tener DNI de 8 dígitos."
-                    )
+                    detail="El cliente de una boleta debe tener DNI de 8 dígitos."
                 )
 
         else:
-
             raise HTTPException(
                 status_code=400,
-                detail=(
-                    "El comprobante afectado no es "
-                    "Factura Electrónica ni Boleta Electrónica."
-                )
+                detail="El comprobante afectado no es Factura Electrónica ni Boleta Electrónica."
             )
-
 
         # ====================================================
         # 5. CONFIGURACIÓN DEL CORRELATIVO
         # ====================================================
-
         configuracion = (
             db.query(ConfiguracionCorrelativo)
             .filter(
-                ConfiguracionCorrelativo.tipo_documento
-                == "NOTA_CREDITO",
-
-                ConfiguracionCorrelativo.activo
-                == True
+                ConfiguracionCorrelativo.tipo_documento == tipo_correlativo,
+                ConfiguracionCorrelativo.activo == True
             )
             .with_for_update()
             .first()
         )
 
+        # Fallback de compatibilidad
         if not configuracion:
-
-            raise HTTPException(
-                status_code=404,
-                detail=(
-                    "No existe una configuración activa "
-                    "para NOTA_CREDITO."
+            configuracion = (
+                db.query(ConfiguracionCorrelativo)
+                .filter(
+                    ConfiguracionCorrelativo.tipo_documento == "NOTA_CREDITO",
+                    ConfiguracionCorrelativo.activo == True
                 )
+                .with_for_update()
+                .first()
             )
 
+        if not configuracion:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No existe una configuración activa para {tipo_correlativo}."
+            )
 
-        # ====================================================
-        # 6. GENERAR CORRELATIVO
-        # ====================================================
+        serie = configuracion.prefijo.strip()
+        if not serie.startswith(serie_esperada_letra):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Incoherencia normativa SUNAT: Para modificar un comprobante tipo '{factura.tipo_comprobante}', la serie debe iniciar con '{serie_esperada_letra}' (configurada: '{serie}')."
+            )
 
-        serie = configuracion.prefijo
-
-        correlativo = (
-            configuracion.siguiente_correlativo
-        )
-
-        numero_nota = (
-            f"{serie}-{correlativo:08d}"
-        )
+        correlativo = configuracion.siguiente_correlativo
+        numero_nota = f"{serie}-{correlativo:08d}"
 
 
         # ====================================================
@@ -601,16 +624,22 @@ def crear_nota_credito(
                         }
                     },
 
+                    "cac:PartyName": {
+                        "cbc:Name": {
+                            "_text": settings.SUNAT_RAZON_SOCIAL
+                        }
+                    },
+
                     "cac:PartyLegalEntity": {
 
                         "cbc:RegistrationName": {
-                            "_text": "Diffcode"
+                            "_text": settings.SUNAT_RAZON_SOCIAL
                         },
 
                         "cac:RegistrationAddress": {
 
                             "cbc:AddressTypeCode": {
-                                "_text": "0000"
+                                "_text": settings.SUNAT_CODIGO_ESTABLECIMIENTO
                             }
                         }
                     }
@@ -998,6 +1027,7 @@ def crear_nota_credito(
         # ====================================================
 
         estado_api = ""
+        faults = []
 
         if isinstance(
             respuesta_sunat,
@@ -1010,7 +1040,7 @@ def crear_nota_credito(
                     ""
                 )
             ).upper()
-
+            faults = respuesta_sunat.get("faults") or []
 
         # ====================================================
         # 17. MAPEAR ESTADO APISUNAT
@@ -1020,7 +1050,7 @@ def crear_nota_credito(
 
             nota.estado_sunat = "Aceptado"
 
-        elif estado_api == "RECHAZADO":
+        elif estado_api == "RECHAZADO" or estado_api == "EXCEPCION" or len(faults) > 0:
 
             nota.estado_sunat = "Rechazado"
 
@@ -1051,26 +1081,27 @@ def crear_nota_credito(
             dict
         ):
 
-            codigo = (
-
-                respuesta_sunat.get(
-                    "codigo"
+            if faults and len(faults) > 0:
+                f = faults[0]
+                fcode = f.get("faultcode", {}).get("_text", "") if isinstance(f.get("faultcode"), dict) else str(f.get("faultcode", ""))
+                nota.codigo_sunat = fcode or "ERROR_SUNAT"
+            else:
+                codigo = (
+                    respuesta_sunat.get(
+                        "codigo"
+                    )
+                    or respuesta_sunat.get(
+                        "code"
+                    )
+                    or respuesta_sunat.get(
+                        "status"
+                    )
                 )
 
-                or respuesta_sunat.get(
-                    "code"
-                )
-
-                or respuesta_sunat.get(
-                    "status"
-                )
-            )
-
-            if codigo:
-
-                nota.codigo_sunat = str(
-                    codigo
-                )
+                if codigo:
+                    nota.codigo_sunat = str(
+                        codigo
+                    )
 
 
         # ====================================================

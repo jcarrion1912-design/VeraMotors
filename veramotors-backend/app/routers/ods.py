@@ -89,10 +89,11 @@ def crear_ods(
 
         codigo = datos.codigo_ods
         ticket = datos.numero_ticket
-        if configuracion:
-            codigo = f"{configuracion.prefijo}-{configuracion.siguiente_correlativo:05d}"
-            ticket = f"TK-{configuracion.siguiente_correlativo:05d}"
-            configuracion.siguiente_correlativo += 1
+        if not configuracion:
+            raise HTTPException(status_code=409, detail="No existe un correlativo ODS activo en PostgreSQL.")
+        codigo = f"{configuracion.prefijo}-{configuracion.siguiente_correlativo:05d}"
+        ticket = f"TK-{configuracion.siguiente_correlativo:05d}"
+        configuracion.siguiente_correlativo += 1
 
         payload_dict = datos.model_dump()
         payload_dict["codigo_ods"] = codigo
@@ -122,6 +123,9 @@ def crear_ods(
             "cliente_nombre": ods.cliente.nombre_razon_social if ods.cliente else None,
             "vehiculo_placa": ods.vehiculo.placa if ods.vehiculo else None
         }
+    except HTTPException:
+        db.rollback()
+        raise
     except IntegrityError as e:
         db.rollback()
         raise HTTPException(

@@ -5,6 +5,7 @@ from sqlalchemy import (
     Numeric,
     ForeignKey
 )
+from sqlalchemy.orm import relationship
 
 from app.database import Base
 
@@ -29,6 +30,18 @@ class DetalleRemision(Base):
         nullable=False
     )
 
+    factura_detalle_id = Column(
+        BigInteger,
+        ForeignKey(
+            "detalle_factura.detalle_factura_id",
+            onupdate="CASCADE",
+            ondelete="RESTRICT"
+        ),
+        nullable=True,
+        unique=True,
+        index=True
+    )
+
     item_id = Column(
         BigInteger,
         nullable=True
@@ -43,3 +56,6 @@ class DetalleRemision(Base):
         Numeric(12, 2),
         nullable=False
     )
+
+    remision = relationship("Remision", back_populates="detalles")
+    factura_detalle = relationship("DetalleFactura", lazy="joined")

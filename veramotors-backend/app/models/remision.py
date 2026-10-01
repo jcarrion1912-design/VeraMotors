@@ -6,6 +6,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey
 )
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from app.database import Base
@@ -49,6 +50,18 @@ class Remision(Base):
             ondelete="SET NULL"
         ),
         nullable=True
+    )
+
+    factura_id = Column(
+        BigInteger,
+        ForeignKey(
+            "facturas.factura_id",
+            onupdate="CASCADE",
+            ondelete="RESTRICT"
+        ),
+        nullable=True,
+        unique=True,
+        index=True
     )
 
     tipo_remision = Column(
@@ -119,4 +132,23 @@ class Remision(Base):
     fecha_envio_sunat = Column(
         DateTime,
         nullable=True
+    )
+
+    usuario_despacho_id = Column(
+        BigInteger,
+        ForeignKey(
+            "usuarios.user_id",
+            onupdate="CASCADE",
+            ondelete="RESTRICT"
+        ),
+        nullable=True
+    )
+
+    fecha_despacho = Column(DateTime, nullable=True)
+
+    factura = relationship("Factura", back_populates="remision", lazy="joined")
+    detalles = relationship(
+        "DetalleRemision",
+        back_populates="remision",
+        cascade="all, delete-orphan"
     )

@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
-import { useRole } from "../../context/RoleContext";
-import DiagramaVehiculo from "../../components/DiagramaVehiculo";
+import { ROLES, useRole } from "../../context/authContext";
+import VisorVehiculo3D from "../../components/Inspeccion3D/VisorVehiculo3D";
 import { obtenerODS, actualizarODS, cambiarEstadoODS } from "../../services/odsService";
 import { obtenerUsuarios } from "../../services/usuariosService";
+import { obtenerInventario } from "../../services/inventarioService";
+import { crearDiagnosticoODS, obtenerDiagnosticosODS } from "../../services/diagnosticosService";
 import "./OrdenesServicio.css";
 
 function OrdenesServicio() {
-    const { rolActivo, ROLES, agregarNotificacion } = useRole();
+    const { rolActivo, usuarioActual } = useRole();
     const esTecnico = rolActivo === ROLES.TECNICO;
 
     // Submenú de estados
@@ -23,48 +25,30 @@ function OrdenesServicio() {
     const [guardandoEstado, setGuardandoEstado] = useState(false);
 
     // Datos del Registro de Vehículo
-    const [tipoVehiculo, setTipoVehiculo] = useState("Automóvil");
-    const [marca, setMarca] = useState("Toyota");
-    const [modelo, setModelo] = useState("Corolla");
-    const [anio, setAnio] = useState("2021");
-    const [placa, setPlaca] = useState("ABC-123");
-    const [color, setColor] = useState("Blanco");
-    const [vin, setVin] = useState("8HGD39485739281");
-    const [cliente, setCliente] = useState("Carlos Mendoza");
-    const [tecnico, setTecnico] = useState("Luis García");
-    const [kilometraje, setKilometraje] = useState("84500");
+    const [tipoVehiculo, setTipoVehiculo] = useState("");
+    const [marca, setMarca] = useState("");
+    const [modelo, setModelo] = useState("");
+    const [anio, setAnio] = useState("");
+    const [placa, setPlaca] = useState("");
+    const [color, setColor] = useState("");
+    const [vin, setVin] = useState("");
+    const [kilometraje, setKilometraje] = useState("");
 
     // Motivo del Servicio
     const [realizaraDiagnostico, setRealizaraDiagnostico] = useState("Sí");
     const [cotizacionPrevia, setCotizacionPrevia] = useState("Sin Cotización");
     const [procedimiento, setProcedimiento] = useState("Preventivo");
-    const [motivoDetallado, setMotivoDetallado] = useState("Ruido inusual en frenos traseros al desacelerar.");
+    const [motivoDetallado, setMotivoDetallado] = useState("");
     const [fotosMotivo, setFotosMotivo] = useState([]);
 
     // Checklist de Inspección
-    const [nivelCombustible, setNivelCombustible] = useState("1/2");
-    const [fluidos, setFluidos] = useState({
-        aceite: "Correcto",
-        frenos: "Bajo",
-        embrague: "Correcto",
-        refrigerante: "Correcto",
-        hidraulico: "Correcto",
-        limpiaparabrisas: "Requiere Cambio"
-    });
-    const [inventarioVehicular, setInventarioVehicular] = useState({
-        kitEmergencia: true,
-        llantaRepuesto: true,
-        botiquin: true,
-        extintor: true
-    });
-    const [documentos, setDocumentos] = useState({
-        tarjetaPropiedad: true,
-        soat: true,
-        revisionTecnica: false
-    });
-    const [danios, setDanios] = useState({});
-
-    // Modales de Flujos Especiales (Cliente, Diagnóstico Técnico, Entrega NPS, Trazabilidad)
+    const [nivelCombustible, setNivelCombustible] = useState("");
+    const [fluidos, setFluidos] = useState({ aceite: "", frenos: "", embrague: "", refrigerante: "", hidraulico: "", limpiaparabrisas: "" });
+    const [inventarioVehicular, setInventarioVehicular] = useState({ kitEmergencia: false, llantaRepuesto: false, botiquin: false, extintor: false });
+    const [documentos, setDocumentos] = useState({ tarjetaPropiedad: false, soat: false, revisionTecnica: false });
+    const [danios, setDanios] = useState([]);
+    const [daniosODSSeleccionada, setDaniosODSSeleccionada] = useState([]);
+    const [guardandoDanosODS, setGuardandoDanosODS] = useState(false);
     const [mostrarModalCliente, setMostrarModalCliente] = useState(false);
     const [estadoAprobacionCliente, setEstadoAprobacionCliente] = useState("Pendiente");
     const [mostrarModalAdvertenciaDiagnostico, setMostrarModalAdvertenciaDiagnostico] = useState(false);
@@ -72,19 +56,20 @@ function OrdenesServicio() {
     const [mostrarModalEntrega, setMostrarModalEntrega] = useState(false);
     const [mostrarModalTrazabilidad, setMostrarModalTrazabilidad] = useState(false);
 
-    // Diagnóstico Técnico
-    const [fallasRegistradas, setFallasRegistradas] = useState([
-        { id: 1, falla: "Desgaste severo en pastillas de freno traseras", comentarios: "Espesor de pasta < 2mm", horasHombre: 2, repuestos: [{ codigo: "BRK-892-C", nombre: "Pastillas Brembo", cant: 2 }] }
-    ]);
+    // Diagnóstico técnico desde PostgreSQL
+    const [fallasRegistradas, setFallasRegistradas] = useState([]);
     const [nuevaFalla, setNuevaFalla] = useState("");
     const [nuevosComentarios, setNuevosComentarios] = useState("");
     const [horasHombreFalla, setHorasHombreFalla] = useState("1.5");
-    const [repuestoBusqueda, setRepuestoBusqueda] = useState("");
+    const [repuestosDisponibles, setRepuestosDisponibles] = useState([]);
+    const [repuestosODS, setRepuestosODS] = useState([]);
+    const [repuestoItemId, setRepuestoItemId] = useState("");
+    const [cantidadRepuesto, setCantidadRepuesto] = useState("1");
     const [repuestosSeleccionados, setRepuestosSeleccionados] = useState([]);
-
-    // Encuesta NPS
-    const [npsPuntaje, setNpsPuntaje] = useState(10);
-    const [npsComentario, setNpsComentario] = useState("Excelente servicio y atención puntual.");
+    const [cargandoDiagnostico, setCargandoDiagnostico] = useState(false);
+    const [guardandoDiagnostico, setGuardandoDiagnostico] = useState(false);
+    const [errorDiagnostico, setErrorDiagnostico] = useState("");
+    const [mensajeDiagnostico, setMensajeDiagnostico] = useState("");
 
     const [listaODS, setListaODS] = useState([]);
     const [usuariosAPI, setUsuariosAPI] = useState([]);
@@ -173,8 +158,24 @@ function OrdenesServicio() {
         }
     };
 
+    const abrirInspeccionODS = (ods) => {
+        const danosGuardados = ods?.inspeccion_json?.danos_carroceria;
+
+        setDaniosODSSeleccionada(
+            Array.isArray(danosGuardados) ? danosGuardados : []
+        );
+
+        setOdsSeleccionadaModal(ods);
+        setEstadoCambioODS(ods.estado || "Diagnóstico");
+        setMostrarModalTrazabilidad(true);
+    };
+
     useEffect(() => {
-        cargarDatosODS();
+        let activa = true;
+        queueMicrotask(() => {
+            if (activa) cargarDatosODS();
+        });
+        return () => { activa = false; };
     }, []);
 
     useEffect(() => {
@@ -215,7 +216,7 @@ function OrdenesServicio() {
                     setAnio(primerVehiculo.anio ? String(primerVehiculo.anio) : "");
                     setColor(primerVehiculo.color || "");
                     setVin(primerVehiculo.vin || "");
-                    setKilometraje("84500");
+                    setKilometraje("");
                 } else {
                     setVehiculoSeleccionadoId("");
                     setTipoVehiculo("Automóvil");
@@ -271,8 +272,44 @@ function OrdenesServicio() {
         return `Asignado a las ${fechaExacta.split(' ')[1]}`;
     };
 
-    const iniciarDiagnosticoModal = () => {
-        setMostrarModalAdvertenciaDiagnostico(true);
+    const iniciarDiagnosticoModal = async (ods) => {
+        if (!ods?.ods_id) return;
+        setOdsSeleccionadaModal(ods);
+        setErrorDiagnostico("");
+        setMensajeDiagnostico("");
+        setCargandoDiagnostico(true);
+        try {
+            const [diagnosticos, inventario] = await Promise.all([
+                obtenerDiagnosticosODS(ods.ods_id),
+                obtenerInventario(),
+            ]);
+            setFallasRegistradas(diagnosticos.diagnosticos);
+            setRepuestosODS(diagnosticos.repuestos);
+            setRepuestosDisponibles(inventario);
+            setRepuestosSeleccionados([]);
+            setNuevaFalla("");
+            setNuevosComentarios("");
+            setMostrarModalAdvertenciaDiagnostico(true);
+        } catch (error) {
+            setErrorDiagnostico(error.message || "No se pudo cargar el diagnóstico de la ODS.");
+        } finally {
+            setCargandoDiagnostico(false);
+        }
+    };
+
+    const agregarRepuestoDiagnostico = () => {
+        const itemId = Number(repuestoItemId);
+        const cantidad = Number(cantidadRepuesto);
+        if (!itemId || cantidad <= 0) return;
+        setRepuestosSeleccionados((actuales) => {
+            const existente = actuales.find((linea) => linea.item_id === itemId);
+            if (existente) {
+                return actuales.map((linea) => linea.item_id === itemId ? { ...linea, cantidad: linea.cantidad + cantidad } : linea);
+            }
+            return [...actuales, { item_id: itemId, cantidad }];
+        });
+        setRepuestoItemId("");
+        setCantidadRepuesto("1");
     };
 
     const confirmarDiagnosticoModal = () => {
@@ -280,28 +317,64 @@ function OrdenesServicio() {
         setMostrarModalDiagnostico(true);
     };
 
-    const agregarFallaDiagnostico = () => {
-        if (!nuevaFalla) return;
-        const nueva = {
-            id: Date.now(),
-            falla: nuevaFalla,
-            comentarios: nuevosComentarios,
-            horasHombre: Number(horasHombreFalla) || 1,
-            repuestos: [...repuestosSeleccionados]
-        };
-        setFallasRegistradas([...fallasRegistradas, nueva]);
-        setNuevaFalla("");
-        setNuevosComentarios("");
-        setRepuestosSeleccionados([]);
+    const agregarFallaDiagnostico = async () => {
+        if (!odsSeleccionadaModal?.ods_id || !nuevaFalla.trim()) {
+            setErrorDiagnostico("La falla detectada es obligatoria.");
+            return;
+        }
+        setGuardandoDiagnostico(true);
+        setErrorDiagnostico("");
+        try {
+            const estadoSiguiente = repuestosSeleccionados.length > 0 ? "Repuestos" : "Reparación";
+            await crearDiagnosticoODS(odsSeleccionadaModal.ods_id, {
+                falla_reportada: nuevaFalla.trim(),
+                comentarios_tecnico: nuevosComentarios.trim() || null,
+                horas_hombre: Number(horasHombreFalla),
+                tiempo_estimado_horas: Number(horasHombreFalla),
+                repuestos: repuestosSeleccionados,
+            });
+            const datos = await obtenerDiagnosticosODS(odsSeleccionadaModal.ods_id);
+            setFallasRegistradas(datos.diagnosticos);
+            setRepuestosODS(datos.repuestos);
+            setMensajeDiagnostico(`Diagnóstico guardado. La ODS pasó a ${estadoSiguiente}.`);
+            setNuevaFalla("");
+            setNuevosComentarios("");
+            setRepuestosSeleccionados([]);
+            setMostrarModalDiagnostico(false);
+            await cargarDatosODS();
+        } catch (error) {
+            setErrorDiagnostico(error.message || "No se pudo guardar el diagnóstico.");
+        } finally {
+            setGuardandoDiagnostico(false);
+        }
+    };
 
-        // Notificar automáticamente al Asesor de Repuestos
-        agregarNotificacion(`Nuevos repuestos requeridos para ODS-1002 por ${rolActivo}`, ROLES.ASESOR_REPUESTOS);
-        alert("Diagnóstico guardado. Se ha enviado una notificación automática al Asesor de Repuestos.");
-        setMostrarModalDiagnostico(false);
+    const seleccionarFotosIngreso = async (event) => {
+        const archivos = Array.from(event.target.files || []);
+        const totalActual = fotosMotivo.reduce((total, foto) => total + foto.tamano, 0);
+        if (fotosMotivo.length + archivos.length > 5 || archivos.some((archivo) => !archivo.type.startsWith("image/") || archivo.size > 2 * 1024 * 1024) || totalActual + archivos.reduce((total, archivo) => total + archivo.size, 0) > 5 * 1024 * 1024) {
+            alert("Selecciona hasta cinco imágenes y un máximo total de 5 MB.");
+            event.target.value = "";
+            return;
+        }
+
+        try {
+            const fotos = await Promise.all(archivos.map((archivo) => new Promise((resolve, reject) => {
+                const lector = new FileReader();
+                lector.onload = () => resolve({ nombre: archivo.name, tipo: archivo.type, tamano: archivo.size, contenido: lector.result });
+                lector.onerror = () => reject(new Error(`No se pudo leer ${archivo.name}.`));
+                lector.readAsDataURL(archivo);
+            })));
+            setFotosMotivo((actuales) => [...actuales, ...fotos]);
+        } catch (error) {
+            alert(error.message || "No se pudieron leer las imágenes seleccionadas.");
+        } finally {
+            event.target.value = "";
+        }
     };
 
     const toggleFluido = (campo, valor) => {
-        setFluidos(prev => ({ ...prev, [campo]: valor }));
+        setFluidos((actual) => ({ ...actual, [campo]: valor }));
     };
 
     const toggleInventario = (campo) => {
@@ -318,15 +391,15 @@ function OrdenesServicio() {
             return;
         }
 
-        const usuarioActual = JSON.parse(localStorage.getItem("usuario") || "null");
-
-        const clienteSeleccionadoNombre = clientesAPI.find((item) => String(item.cliente_id) === String(clienteSeleccionadoId))?.nombre_razon_social || "Cliente";
-        const asesorSeleccionadoNombre = usuariosAPI.find((item) => String(item.user_id) === String(asesorSeleccionadoId))?.nombre || "Asesor";
-        const tecnicoSeleccionadoNombre = usuariosAPI.find((item) => String(item.user_id) === String(tecnicoSeleccionadoId))?.nombre || "Técnico";
+        const clienteSeleccionadoNombre = clientesAPI.find((item) => String(item.cliente_id) === String(clienteSeleccionadoId))?.nombre_razon_social;
+        const asesorSeleccionadoNombre = usuariosAPI.find((item) => String(item.user_id) === String(asesorSeleccionadoId))?.nombre;
+        const tecnicoSeleccionadoNombre = usuariosAPI.find((item) => String(item.user_id) === String(tecnicoSeleccionadoId))?.nombre;
+        if (!clienteSeleccionadoNombre || !asesorSeleccionadoNombre || !tecnicoSeleccionadoNombre || !usuarioActual?.nombre) {
+            alert("No se encontraron los datos reales del cliente, asesor, técnico o usuario autenticado.");
+            return;
+        }
 
         const payload = {
-            codigo_ods: `ODS-${Date.now()}`,
-            numero_ticket: `TK-${Date.now()}`,
             cita_id: null,
             cliente_id: Number(clienteSeleccionadoId),
             vehiculo_id: Number(vehiculoSeleccionadoId),
@@ -348,18 +421,25 @@ function OrdenesServicio() {
                     requiere_diagnostico: realizaraDiagnostico === "Sí",
                     cotizacion_previa: cotizacionPrevia,
                     tipo_procedimiento: procedimiento,
-                    motivo_detallado: motivoDetallado,
+                            motivo_detallado: motivoDetallado.trim(),
                     fotos_ingreso: fotosMotivo,
                     cliente: clienteSeleccionadoNombre,
                     asesor_asignado: asesorSeleccionadoNombre,
                     tecnico_asignado: tecnicoSeleccionadoNombre
                 },
-                danos_carroceria: Object.entries(danios || {}).map(([zona, tipo]) => ({
-                    zona,
-                    tipo: tipo === "rayado" ? "rayado" : tipo === "golpeado" ? "golpeado" : "intacto",
-                    detalle: tipo === "golpeado" ? "Daño visible en zona del vehículo" : "Rayado visible en zona del vehículo"
-                })),
-                inspectado_por: usuarioActual?.nombre || "Sistema"
+                version: 1,
+                tipo_inspeccion: "3D",
+                tipo_vehiculo: tipoVehiculo,
+                danos_carroceria: (Array.isArray(danios) ? danios : []).map(
+                    (dano) => ({
+                        pieza: dano.pieza,
+                        tipo: dano.tipo,
+                        severidad: dano.severidad,
+                        detalle: dano.observacion || "",
+                        posicion_3d: dano.posicion_3d || null
+                    })
+                ),
+                inspectado_por: usuarioActual?.nombre || ""
             },
             observaciones: motivoDetallado,
             estado_aprobacion_cliente: "Pendiente"
@@ -379,8 +459,6 @@ function OrdenesServicio() {
             }
 
             await cargarDatosODS();
-            agregarNotificacion(`Nueva ODS ${data.codigo_ods} creada para el cliente ${clienteSeleccionadoId}`, ROLES.ASESOR_SERVICIO);
-            agregarNotificacion(`Se le ha asignado la ODS ${data.codigo_ods} al técnico seleccionado`, ROLES.TECNICO);
             alert(`¡Orden de Servicio ${data.codigo_ods} registrada con éxito!`);
             setModoEdicion(false);
         } catch (error) {
@@ -389,13 +467,73 @@ function OrdenesServicio() {
         }
     };
 
-    const odsFiltradas = listaODS.filter(o => 
+    const guardarDanosODSSeleccionada = async () => {
+        if (!odsSeleccionadaModal) return;
+
+        try {
+            setGuardandoDanosODS(true);
+
+            const inspeccionActual = odsSeleccionadaModal.inspeccion_json || {};
+
+            const inspeccionActualizada = {
+                ...inspeccionActual,
+                version: inspeccionActual.version || 1,
+                tipo_inspeccion: "3D",
+                tipo_vehiculo:
+                    inspeccionActual.tipo_vehiculo ||
+                    odsSeleccionadaModal?.tipo_vehiculo ||
+                    "Automóvil",
+                danos_carroceria: (Array.isArray(daniosODSSeleccionada)
+                    ? daniosODSSeleccionada
+                    : []
+                ).map((dano) => ({
+                    pieza: dano.pieza,
+                    tipo: dano.tipo,
+                    severidad: dano.severidad,
+                    detalle:
+                        dano.observacion ||
+                        dano.detalle ||
+                        "Daño visible en zona del vehículo",
+                    observacion: dano.observacion || dano.detalle || "",
+                    posicion_3d: dano.posicion_3d || null
+                }))
+            };
+
+            await actualizarODS(odsSeleccionadaModal.ods_id, {
+                inspeccion_json: inspeccionActualizada
+            });
+
+            setOdsSeleccionadaModal((prev) =>
+                prev
+                    ? {
+                        ...prev,
+                        inspeccion_json: inspeccionActualizada
+                    }
+                    : prev
+            );
+
+            await cargarDatosODS();
+            alert("¡Inspección 3D actualizada correctamente!");
+        } catch (error) {
+            console.error("Error guardando daños de la inspección 3D:", error);
+            alert(
+                error?.message ||
+                "No se pudieron guardar los cambios de la inspección 3D."
+            );
+        } finally {
+            setGuardandoDanosODS(false);
+        }
+    };
+
+    const odsFiltradas = listaODS.filter(o =>
         (o.estado === estadoActivo) &&
         (o.cliente.toLowerCase().includes(filtroBusqueda.toLowerCase()) || o.placa.toLowerCase().includes(filtroBusqueda.toLowerCase()) || o.id.toLowerCase().includes(filtroBusqueda.toLowerCase()))
     );
 
     return (
         <div className="os-page">
+
+            {mensajeDiagnostico && <div role="status">{mensajeDiagnostico}</div>}
 
             {/* =========================================
                 SUBMENÚ DE ESTADOS OPERATIVOS
@@ -417,7 +555,7 @@ function OrdenesServicio() {
                 </div>
 
                 <div className="os-subnav-actions">
-                    <button 
+                    <button
                         className={`btn-nueva-ods ${modoEdicion ? "cancel" : ""}`}
                         onClick={() => setModoEdicion(!modoEdicion)}
                     >
@@ -434,13 +572,13 @@ function OrdenesServicio() {
             ========================================= */}
             {!modoEdicion ? (
                 <div className="os-list-container">
-                    
+
                     {/* BARRA DE FILTROS */}
                     <div className="os-filter-bar">
                         <div className="filter-search">
                             <span className="material-symbols-outlined">search</span>
-                            <input 
-                                type="text" 
+                            <input
+                                type="text"
                                 placeholder="Buscar por Cliente, Placa o N° Ticket..."
                                 value={filtroBusqueda}
                                 onChange={(e) => setFiltroBusqueda(e.target.value)}
@@ -450,7 +588,7 @@ function OrdenesServicio() {
                         <div className="filter-date">
                             <span className="material-symbols-outlined filter-date-icon">calendar_month</span>
                             <label>Filtrar por Fecha:</label>
-                            <input 
+                            <input
                                 type="date"
                                 value={filtroFecha}
                                 onChange={(e) => setFiltroFecha(e.target.value)}
@@ -507,11 +645,10 @@ function OrdenesServicio() {
                                             <td>
                                                 <div className="table-actions">
                                                     {esTecnico && estadoActivo === "Diagnóstico" && (
-                                                        <button 
+                                                        <button
                                                             className="btn-act-table diag"
                                                             onClick={() => {
-                                                                setOdsSeleccionadaModal(ods);
-                                                                iniciarDiagnosticoModal();
+                                                                iniciarDiagnosticoModal(ods);
                                                             }}
                                                         >
                                                             📋 Diagnosticar
@@ -519,7 +656,7 @@ function OrdenesServicio() {
                                                     )}
 
                                                     {estadoActivo === "Recepción" && (
-                                                        <button 
+                                                        <button
                                                             className="btn-act-table link"
                                                             onClick={() => {
                                                                 setOdsSeleccionadaModal(ods);
@@ -532,7 +669,7 @@ function OrdenesServicio() {
                                                     )}
 
                                                     {estadoActivo === "Entrega" && (
-                                                        <button 
+                                                        <button
                                                             className="btn-act-table nps"
                                                             onClick={() => {
                                                                 setOdsSeleccionadaModal(ods);
@@ -543,12 +680,10 @@ function OrdenesServicio() {
                                                         </button>
                                                     )}
 
-                                                    <button 
+                                                    <button
                                                         className="btn-act-table trace"
                                                         onClick={() => {
-                                                            setOdsSeleccionadaModal(ods);
-                                                            setEstadoCambioODS(ods.estado || "Diagnóstico");
-                                                            setMostrarModalTrazabilidad(true);
+                                                            abrirInspeccionODS(ods);
                                                         }}
                                                     >
                                                         🔍 Ver ODS
@@ -716,8 +851,8 @@ function OrdenesServicio() {
 
                                     <div className="campo">
                                         <label>Enlazar Cotización Previa</label>
-                                        <select 
-                                            value={cotizacionSeleccionadaId} 
+                                        <select
+                                            value={cotizacionSeleccionadaId}
                                             onChange={(e) => {
                                                 const cotId = e.target.value;
                                                 setCotizacionSeleccionadaId(cotId);
@@ -753,9 +888,9 @@ function OrdenesServicio() {
                                     <label>Tipo de Procedimiento</label>
                                     <div className="radio-pills">
                                         {["Preventivo", "Correctivo"].map(proc => (
-                                            <button 
-                                                key={proc} 
-                                                type="button" 
+                                            <button
+                                                key={proc}
+                                                type="button"
                                                 className={`pill-btn ${procedimiento === proc ? "selected" : ""}`}
                                                 onClick={() => setProcedimiento(proc)}
                                             >
@@ -767,23 +902,27 @@ function OrdenesServicio() {
 
                                 <div className="campo">
                                     <label>Motivo Detallado de Ingreso</label>
-                                    <textarea 
-                                        rows="3" 
-                                        value={motivoDetallado} 
-                                        onChange={(e) => setMotivoDetallado(e.target.value)} 
-                                        placeholder="Escriba las fallas reportadas por el cliente..." 
+                                    <textarea
+                                        rows="3"
+                                        value={motivoDetallado}
+                                        onChange={(e) => setMotivoDetallado(e.target.value)}
+                                        placeholder="Escriba las fallas reportadas por el cliente..."
                                     />
                                 </div>
 
                                 <div className="campo">
                                     <label>Fotos de Evidencia al Ingreso</label>
                                     <div className="photo-uploader">
-                                        {fotosMotivo.map((f, i) => (
-                                            <div key={i} className="photo-thumb">📷 {f}</div>
+                                        {fotosMotivo.map((foto, index) => (
+                                            <div key={`${foto.nombre}-${index}`} className="photo-thumb">
+                                                <img src={foto.contenido} alt={foto.nombre} width="64" height="48" />
+                                                <span>{foto.nombre}</span>
+                                            </div>
                                         ))}
-                                        <button type="button" className="btn-add-photo" onClick={() => setFotosMotivo([...fotosMotivo, `foto_${Date.now()}.jpg`])}>
-                                            + Agregar Foto
-                                        </button>
+                                        <label className="btn-add-photo">
+                                            Seleccionar imagen
+                                            <input type="file" accept="image/*" multiple onChange={seleccionarFotosIngreso} />
+                                        </label>
                                     </div>
                                 </div>
                             </div>
@@ -800,7 +939,7 @@ function OrdenesServicio() {
                             </div>
 
                             <div className="checklist-grid">
-                                
+
                                 {/* COMBUSIBLE */}
                                 <div className="check-block">
                                     <h3>⛽ Nivel de Combustible</h3>
@@ -830,9 +969,9 @@ function OrdenesServicio() {
                                                     <span className="fluid-icon">{icon}</span>
                                                     <span>{label}</span>
                                                 </div>
-                                                <select 
+                                                <select
                                                     className={`fluid-select status-val-${fluidos[key]?.toLowerCase().replace(/\s+/g, '-')}`}
-                                                    value={fluidos[key]} 
+                                                    value={fluidos[key]}
                                                     onChange={(e) => toggleFluido(key, e.target.value)}
                                                 >
                                                     <option value="Correcto">🟢 Correcto</option>
@@ -889,17 +1028,21 @@ function OrdenesServicio() {
                             </div>
                         </section>
 
-                        {/* 4. DIAGRAMA 2D DAÑOS EN CARROCERÍA */}
+                        {/* 4. INSPECCIÓN 3D DAÑOS EN CARROCERÍA */}
                         <section className="os-card full-width">
                             <div className="card-header">
                                 <div className="card-title-icon"><span className="material-symbols-outlined">car_repair</span></div>
                                 <div>
                                     <h2>4. Mapa Visual de Daños de Carrocería</h2>
-                                    <p>Haz clic en las zonas para registrar tipo de daño (Rayado, fogueado, sumido, picado, golpeado, intacto).</p>
+                                    <p>Haz clic en las piezas del vehículo para registrar tipo de daño, severidad, observación y ubicación 3D.</p>
                                 </div>
                             </div>
 
-                            <DiagramaVehiculo danios={danios} setDanios={setDanios} />
+                            <VisorVehiculo3D
+                                tipoVehiculo={tipoVehiculo}
+                                danios={danios}
+                                setDanios={setDanios}
+                            />
                         </section>
 
                     </div>
@@ -961,13 +1104,12 @@ function OrdenesServicio() {
                         </div>
 
                         <div className="modal-footer">
-                            <button 
-                                className="btn-reject" 
+                            <button
+                                className="btn-reject"
                                 onClick={async () => {
                                     try {
                                         await actualizarODS(odsSeleccionadaModal.ods_id, { estado_aprobacion_cliente: "Denegado" });
                                         setEstadoAprobacionCliente("Denegado");
-                                        agregarNotificacion(`ATENCIÓN: El cliente ${odsSeleccionadaModal.cliente} ha DENEGADO la ${odsSeleccionadaModal.id}. Contactar de inmediato.`, ROLES.ASESOR_SERVICIO);
                                         alert(`La orden ${odsSeleccionadaModal.id} ha sido marcada como Denegada.`);
                                         setMostrarModalCliente(false);
                                         await cargarDatosODS();
@@ -979,8 +1121,8 @@ function OrdenesServicio() {
                             >
                                 ✖ Denegar Orden
                             </button>
-                            <button 
-                                className="btn-approve" 
+                            <button
+                                className="btn-approve"
                                 onClick={async () => {
                                     try {
                                         await actualizarODS(odsSeleccionadaModal.ods_id, {
@@ -988,7 +1130,6 @@ function OrdenesServicio() {
                                             estado_actual: "Diagnóstico"
                                         });
                                         setEstadoAprobacionCliente("Aprobado");
-                                        agregarNotificacion(`El cliente ${odsSeleccionadaModal.cliente} ha APROBADO la ${odsSeleccionadaModal.id}.`, ROLES.ASESOR_SERVICIO);
                                         alert(`¡Orden ${odsSeleccionadaModal.id} aprobada por el cliente! Avanzó automáticamente al estado de Diagnóstico.`);
                                         setMostrarModalCliente(false);
                                         await cargarDatosODS();
@@ -1066,70 +1207,52 @@ function OrdenesServicio() {
                             </div>
 
                             <div className="form-group">
-                                <label>Requerir Repuestos de Inventario (Notifica a Asesor de Repuestos)</label>
-                                <div className="repuesto-search-box" style={{ display: 'flex', gap: '10px' }}>
-                                    <input 
-                                        type="text" 
-                                        placeholder="Buscar por código de inventario (Ej: BRK-892-C)..." 
-                                        value={repuestoBusqueda}
-                                        onChange={(e) => setRepuestoBusqueda(e.target.value)}
-                                        style={{ flex: 1 }}
-                                    />
-                                    <button 
-                                        type="button" 
-                                        className="btn-act-table diag"
-                                        onClick={() => {
-                                            if (repuestoBusqueda) {
-                                                setRepuestosSeleccionados([...repuestosSeleccionados, { codigo: repuestoBusqueda, nombre: "Repuesto Automotriz Requerido", cant: 1 }]);
-                                                setRepuestoBusqueda("");
-                                            }
-                                        }}
-                                    >
-                                        + Añadir Repuesto
+                                <label>Repuestos de inventario</label>
+                                <div className="repuesto-search-box" style={{ display: "flex", gap: "10px" }}>
+                                    <select value={repuestoItemId} onChange={(event) => setRepuestoItemId(event.target.value)}>
+                                        <option value="">Selecciona un artículo existente</option>
+                                        {repuestosDisponibles.filter((item) => item.activo).map((item) => (
+                                            <option key={item.item_id} value={item.item_id}>
+                                                {item.codigo_referencia} · {item.nombre_nomenclatura} · stock {item.stock_actual}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <input type="number" min="0.01" step="0.01" value={cantidadRepuesto} onChange={(event) => setCantidadRepuesto(event.target.value)} aria-label="Cantidad de repuesto" />
+                                    <button type="button" className="btn-act-table diag" onClick={agregarRepuestoDiagnostico} disabled={!repuestoItemId || Number(cantidadRepuesto) <= 0}>
+                                        Añadir
                                     </button>
                                 </div>
-
-                                {repuestosSeleccionados.length > 0 && (
-                                    <div className="repuestos-added-list" style={{ marginTop: '10px' }}>
-                                        {repuestosSeleccionados.map((r, i) => (
-                                            <div key={i} style={{ background: '#1e293b', padding: '6px 12px', borderRadius: '4px', marginTop: '4px', fontSize: '0.85rem' }}>
-                                                📦 [{r.codigo}] {r.nombre} (Cant: {r.cant})
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
+                                {repuestosODS.length > 0 && <p>Repuestos ya asociados a esta ODS: {repuestosODS.map((item) => `${item.codigo_referencia} × ${item.cantidad}`).join(", ")}</p>}
+                                {repuestosSeleccionados.map((linea) => {
+                                    const item = repuestosDisponibles.find((disponible) => disponible.item_id === linea.item_id);
+                                    return <div key={linea.item_id}>{item?.codigo_referencia} · {item?.nombre_nomenclatura} × {linea.cantidad}</div>;
+                                })}
                             </div>
+
+                            {errorDiagnostico && <div role="alert">{errorDiagnostico}</div>}
+                            {cargandoDiagnostico && <p>Cargando información de PostgreSQL…</p>}
+                            {fallasRegistradas.length > 0 && (
+                                <div className="diagnosticos-persistidos">
+                                    <h3>Diagnósticos registrados</h3>
+                                    {fallasRegistradas.map((diagnostico) => (
+                                        <div key={diagnostico.diagnostico_id}>
+                                            <strong>{diagnostico.falla_reportada}</strong>
+                                            <p>{diagnostico.comentarios_tecnico || "Sin comentarios"}</p>
+                                            <small>{new Date(diagnostico.fecha_diagnostico).toLocaleString("es-PE")}</small>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                         <div className="modal-footer">
                             <button className="btn-cancelar" onClick={() => setMostrarModalDiagnostico(false)}>Cancelar</button>
-                            <button 
-                                className="btn-guardar" 
-                                onClick={async () => {
-                                    if (!nuevaFalla) {
-                                        alert("Por favor ingresa la falla detectada.");
-                                        return;
-                                    }
-                                    const sigEstado = repuestosSeleccionados.length > 0 ? "Repuestos" : "Reparación";
-                                    if (odsSeleccionadaModal) {
-                                        try {
-                                            await cambiarEstadoODS(odsSeleccionadaModal.ods_id, sigEstado);
-                                            agregarNotificacion(`Diagnóstico completado para ${odsSeleccionadaModal.id}. Pasó a estado ${sigEstado}.`, ROLES.ASESOR_REPUESTOS);
-                                            alert(`¡Diagnóstico guardado con éxito! La ODS ${odsSeleccionadaModal.id} avanzó al estado de "${sigEstado}".`);
-                                            setMostrarModalDiagnostico(false);
-                                            setNuevaFalla("");
-                                            setNuevosComentarios("");
-                                            setRepuestosSeleccionados([]);
-                                            await cargarDatosODS();
-                                            return;
-                                        } catch (err) {
-                                            console.error("Error guardando diagnostico:", err);
-                                        }
-                                    }
-                                    agregarFallaDiagnostico();
-                                }}
+                            <button
+                                className="btn-guardar"
+                                onClick={agregarFallaDiagnostico}
+                                disabled={guardandoDiagnostico || cargandoDiagnostico || !nuevaFalla.trim()}
                             >
-                                Guardar Diagnóstico & Avanzar ODS
+                                {guardandoDiagnostico ? "Guardando…" : "Guardar diagnóstico y avanzar ODS"}
                             </button>
                         </div>
                     </div>
@@ -1151,42 +1274,17 @@ function OrdenesServicio() {
                         </div>
 
                         <div className="modal-body">
-                            <h3>Encuesta de Satisfacción NPS (1 a 10)</h3>
-                            <div className="nps-scale" style={{ display: 'flex', gap: '8px', margin: '15px 0' }}>
-                                {[1,2,3,4,5,6,7,8,9,10].map(val => (
-                                    <button 
-                                        key={val} 
-                                        type="button" 
-                                        style={{
-                                            padding: '10px 14px',
-                                            borderRadius: '6px',
-                                            border: '1px solid #334155',
-                                            background: npsPuntaje === val ? '#3b82f6' : '#1e293b',
-                                            color: '#fff',
-                                            fontWeight: 'bold',
-                                            cursor: 'pointer'
-                                        }}
-                                        onClick={() => setNpsPuntaje(val)}
-                                    >
-                                        {val}
-                                    </button>
-                                ))}
-                            </div>
-
-                            <div className="form-group">
-                                <label>Comentario / Testimonio del Cliente</label>
-                                <textarea rows="3" value={npsComentario} onChange={(e) => setNpsComentario(e.target.value)} />
-                            </div>
+                            <p>Confirma la entrega del vehículo para archivar esta orden de servicio.</p>
                         </div>
 
                         <div className="modal-footer">
                             <button className="btn-cancelar" onClick={() => setMostrarModalEntrega(false)}>Cerrar</button>
-                            <button 
+                            <button
                                 className="btn-guardar"
                                 onClick={async () => {
                                     try {
                                         await cambiarEstadoODS(odsSeleccionadaModal.ods_id, "Archivados");
-                                        alert(`¡Vehículo entregado y Encuesta NPS registrada (${npsPuntaje}/10) para ${odsSeleccionadaModal.id}! Orden completada.`);
+                                        alert(`Entrega registrada. La orden ${odsSeleccionadaModal.id} quedó archivada.`);
                                         setMostrarModalEntrega(false);
                                         await cargarDatosODS();
                                     } catch (err) {
@@ -1195,7 +1293,7 @@ function OrdenesServicio() {
                                     }
                                 }}
                             >
-                                📲 Registrar Entrega & Finalizar
+                                Registrar entrega y archivar orden
                             </button>
                         </div>
                     </div>
@@ -1207,7 +1305,17 @@ function OrdenesServicio() {
             ========================================= */}
             {mostrarModalTrazabilidad && odsSeleccionadaModal && (
                 <div className="modal-overlay">
-                    <div className="modal-content trace-modal" style={{ maxWidth: "680px" }}>
+                    <div
+                        className="modal-content trace-modal"
+                        style={{
+                            maxWidth: "900px",
+                            width: "95vw",
+                            maxHeight: "92vh",
+                            display: "flex",
+                            flexDirection: "column",
+                            overflow: "hidden"
+                        }}
+                    >
                         <div className="modal-header">
                             <div>
                                 <h2>Trazabilidad & Detalle - {odsSeleccionadaModal.id}</h2>
@@ -1218,7 +1326,14 @@ function OrdenesServicio() {
                             <button className="btn-close" onClick={() => setMostrarModalTrazabilidad(false)}>✕</button>
                         </div>
 
-                        <div className="modal-body">
+                        <div
+                            className="modal-body"
+                            style={{
+                                overflowY: "auto",
+                                flex: 1,
+                                minHeight: 0
+                            }}
+                        >
                             {/* DATOS GENERALES DE LA ORDEN */}
                             <div style={{ background: "#0f172a", border: "1px solid #334155", borderRadius: "8px", padding: "16px", marginBottom: "20px" }}>
                                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", fontSize: "14px" }}>
@@ -1242,6 +1357,76 @@ function OrdenesServicio() {
                                         <span style={{ color: "#94a3b8" }}>Motivo de Ingreso:</span>
                                         <p style={{ margin: "4px 0 0", color: "#e2e8f0" }}>{odsSeleccionadaModal.motivo}</p>
                                     </div>
+                                </div>
+                            </div>
+
+                            {/* =====================================================
+                                INSPECCIÓN 3D REGISTRADA
+                            ===================================================== */}
+                            <div
+                                style={{
+                                    background: "#0f172a",
+                                    border: "1px solid #334155",
+                                    borderRadius: "8px",
+                                    padding: "16px",
+                                    marginBottom: "20px"
+                                }}
+                            >
+                                <div style={{ marginBottom: "14px" }}>
+                                    <h3
+                                        style={{
+                                            margin: 0,
+                                            color: "#60a5fa",
+                                            fontSize: "16px"
+                                        }}
+                                    >
+                                        🚗 Inspección 3D de Carrocería
+                                    </h3>
+                                    <p
+                                        style={{
+                                            margin: "5px 0 0",
+                                            color: "#94a3b8",
+                                            fontSize: "12px"
+                                        }}
+                                    >
+                                        Visualización de los daños registrados durante la recepción del vehículo.
+                                    </p>
+                                </div>
+
+                                <VisorVehiculo3D
+                                    tipoVehiculo={
+                                        odsSeleccionadaModal?.inspeccion_json?.tipo_vehiculo ||
+                                        "Automóvil"
+                                    }
+                                    danios={daniosODSSeleccionada}
+                                    setDanios={setDaniosODSSeleccionada}
+                                    modoLectura={false}
+                                />
+
+                                <div
+                                    style={{
+                                        marginTop: "14px",
+                                        display: "flex",
+                                        justifyContent: "space-between",
+                                        alignItems: "center",
+                                        gap: "12px",
+                                        flexWrap: "wrap"
+                                    }}
+                                >
+                                    <span style={{ color: "#94a3b8", fontSize: "12px" }}>
+                                        Puedes hacer clic en otra pieza para registrar más daños.
+                                    </span>
+                                    <button
+                                        type="button"
+                                        className="btn-guardar"
+                                        onClick={guardarDanosODSSeleccionada}
+                                        disabled={guardandoDanosODS}
+                                        style={{ padding: "10px 16px", fontWeight: "bold" }}
+                                    >
+                                        {guardandoDanosODS
+                                            ? "Guardando inspección..."
+                                            : "💾 Guardar cambios de inspección"}
+                                    </button>
                                 </div>
                             </div>
 

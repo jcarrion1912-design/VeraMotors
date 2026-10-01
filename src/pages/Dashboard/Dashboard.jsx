@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./Dashboard.css";
 import { obtenerDashboardMetricas } from "../../services/metricsService";
 import { obtenerODS } from "../../services/odsService";
 import { obtenerCitas } from "../../services/citaService";
 
 function Dashboard() {
+    const navigate = useNavigate();
     const [metricas, setMetricas] = useState({
         ventas_totales: 0,
         ods_completadas: 0,
@@ -50,8 +52,8 @@ function Dashboard() {
         cargarDatos();
     }, []);
 
-    const vehiculosEnTaller = Math.max(1, serviciosRecientes.length || 1);
-    const citasHoy = proximasCitas.length;
+    const vehiculosEnTaller = Number(metricas.ods_en_taller || 0);
+    const citasHoy = Number(metricas.citas_hoy || 0);
     const ingresosMes = Number(metricas.ventas_totales || 0);
     const alertasStock = Number(metricas.items_stock_bajo || 0);
 
@@ -62,9 +64,9 @@ function Dashboard() {
                     <h1>Resumen del Taller</h1>
                     <p>Vista general operativa de hoy</p>
                 </div>
-                <button className="report-button">
+                <button className="report-button" type="button" onClick={() => navigate("/reportes")}>
                     <span>⇩</span>
-                    Reporte
+                    Ver reportes
                 </button>
             </div>
 
@@ -75,7 +77,7 @@ function Dashboard() {
                         <div className="stat-icon blue">🚗</div>
                     </div>
                     <div className="stat-value">{vehiculosEnTaller}</div>
-                    <div className="stat-description positive">↑ +2<span>vs ayer</span></div>
+                    <div className="stat-description">Órdenes no archivadas</div>
                 </div>
 
                 <div className="stat-card">
@@ -85,7 +87,7 @@ function Dashboard() {
                     </div>
                     <div className="stat-value-row">
                         <div className="stat-value">{citasHoy}</div>
-                        <span className="capacity">/ 10 cap.</span>
+                        <span className="capacity">programadas hoy</span>
                     </div>
                     <div className="progress-container">
                         <div className="progress-bar" style={{ width: `${Math.min(citasHoy * 10, 100)}%` }}></div>
@@ -98,7 +100,7 @@ function Dashboard() {
                         <div className="stat-icon green">💰</div>
                     </div>
                     <div className="stat-value">S/ {ingresosMes.toLocaleString("es-PE", { maximumFractionDigits: 0 })}</div>
-                    <div className="stat-description positive green-text">↑ +12%<span>vs mes anterior</span></div>
+                    <div className="stat-description green-text">según pagos registrados</div>
                 </div>
 
                 <div className="stat-card alert-card">
@@ -107,7 +109,7 @@ function Dashboard() {
                         <div className="stat-icon red">⚠</div>
                     </div>
                     <div className="stat-value alert-value">{alertasStock}</div>
-                    <div className="stat-description alert-text">Items críticos<span className="detail-link">Ver detalle</span></div>
+                    <div className="stat-description alert-text">Ítems críticos <button type="button" className="detail-link" onClick={() => navigate("/inventario")}>Ver detalle</button></div>
                 </div>
             </div>
 
@@ -115,7 +117,7 @@ function Dashboard() {
                 <div className="services-card">
                     <div className="section-header">
                         <h2><span className="section-icon">🔧</span>Servicios Recientes</h2>
-                        <button className="view-all">Ver todos</button>
+                        <button className="view-all" type="button" onClick={() => navigate("/ordenes-servicio")}>Ver todos</button>
                     </div>
 
                     <div className="table-container">
@@ -177,7 +179,7 @@ function Dashboard() {
                                         <h3>{cita.cliente_nombre || "Cliente"}</h3>
                                         <p>{cita.observaciones || "Servicio programado"} • {cita.vehiculo_placa || "Sin vehículo"}</p>
                                     </div>
-                                    <button className="more-button">⋮</button>
+                                    <button className="more-button" type="button" title="Ver calendario" onClick={() => navigate("/citas")}>⋮</button>
                                 </div>
                             );
                         }) : (
@@ -191,7 +193,7 @@ function Dashboard() {
                     </div>
 
                     <div className="calendar-footer">
-                        <button>Ver Calendario Completo</button>
+                        <button type="button" onClick={() => navigate("/citas")}>Ver calendario</button>
                     </div>
                 </div>
             </div>

@@ -13,7 +13,7 @@ class ConfiguracionCorrelativo(Base):
     )
 
     tipo_documento = Column(
-        String(20),
+        String(30),
         unique=True,
         nullable=False
     )

@@ -11,6 +11,7 @@ from app.config.settings import settings
 from app.models.factura import Factura
 from app.models.detalle_factura import DetalleFactura
 from app.models.cliente import Cliente
+from app.models.cuenta_por_cobrar import CuentaPorCobrar
 from app.models.configuracion_correlativo import ConfiguracionCorrelativo
 
 from app.schemas.facturacion import (
@@ -321,6 +322,21 @@ def crear_factura(
 
             db.add(detalle_factura)
 
+        total_factura = Decimal(str(datos.total))
+        estado_inicial = "Pagada" if total_factura == 0 else "Pendiente"
+        if total_factura == 0:
+            factura.estado_pago = "Pagado"
+        db.add(CuentaPorCobrar(
+            factura_id=factura.factura_id,
+            cliente_id=factura.cliente_id,
+            fecha_emision=factura.fecha_emision,
+            fecha_vencimiento=datos.fecha_vencimiento or factura.fecha_emision,
+            monto_total=total_factura,
+            monto_pagado=Decimal("0.00"),
+            saldo=total_factura,
+            estado=estado_inicial,
+        ))
+
         # ========================================================
         # 7. ACTUALIZAR CORRELATIVO
         # ========================================================
@@ -436,20 +452,20 @@ def crear_factura(
                     "cac:PartyName": {
 
                         "cbc:Name": {
-                            "_text": "Diffcode"
+                            "_text": settings.SUNAT_RAZON_SOCIAL
                         }
                     },
 
                     "cac:PartyLegalEntity": {
 
                         "cbc:RegistrationName": {
-                            "_text": "Diffcode"
+                            "_text": settings.SUNAT_RAZON_SOCIAL
                         },
 
                         "cac:RegistrationAddress": {
 
                             "cbc:AddressTypeCode": {
-                                "_text": "0000"
+                                "_text": getattr(settings, "SUNAT_CODIGO_ESTABLECIMIENTO", "0000")
                             }
                         }
                     }
@@ -589,7 +605,7 @@ def crear_factura(
 
                 "cbc:PaymentMeansID": {
 
-                    "_text": datos.metodo_pago
+                    "_text": "Contado"
                 }
             },
 
@@ -908,26 +924,7 @@ def actualizar_estado_pago(
     pago: PagoFacturaRequest,
     db: Session = Depends(get_db)
 ):
-
-    factura = (
-        db.query(Factura)
-        .filter(
-            Factura.factura_id == factura_id
-        )
-        .first()
+    raise HTTPException(
+        status_code=409,
+        detail="El estado de pago no se modifica directamente. Registra el cobro en POST /api/pagos.",
     )
-
-    if not factura:
-
-        raise HTTPException(
-            status_code=404,
-            detail="Factura no encontrada"
-        )
-
-    factura.estado_pago = pago.estado_pago
-
-    db.commit()
-
-    db.refresh(factura)
-
-    return factura

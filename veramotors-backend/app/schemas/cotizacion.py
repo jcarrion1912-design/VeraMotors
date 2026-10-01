@@ -33,10 +33,20 @@ class CotizacionCreate(CotizacionBase):
     detalles: Optional[List[DetalleCotizacionBase]] = []
 
 
+class CotizacionAprobacionRequest(BaseModel):
+    usuario_id: int
+    motivo: Optional[str] = None
+
+
 class CotizacionResponse(CotizacionBase):
     cotizacion_id: int
     codigo_cotizacion: str
     fecha: datetime
+    aprobado_por: Optional[int] = None
+    fecha_aprobacion: Optional[datetime] = None
+    rechazado_por: Optional[int] = None
+    fecha_rechazo: Optional[datetime] = None
+    motivo_rechazo: Optional[str] = None
     cliente_nombre: Optional[str] = None
     cliente_documento: Optional[str] = None
     vehiculo_placa: Optional[str] = None

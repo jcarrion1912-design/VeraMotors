@@ -8,6 +8,7 @@ from sqlalchemy import (
     Text
 )
 
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from app.database import Base
@@ -98,4 +99,10 @@ class Compra(Base):
     observaciones = Column(
         Text,
         nullable=True
+    )
+
+    detalles = relationship(
+        "DetalleCompra",
+        back_populates="compra",
+        cascade="all, delete-orphan"
     )

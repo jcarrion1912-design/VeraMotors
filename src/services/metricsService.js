@@ -15,10 +15,9 @@ export const obtenerDashboardMetricas = async () => {
 
 export const obtenerVentasPorPeriodo = async (fechaInicio, fechaFin) => {
     const params = new URLSearchParams();
-    params.append("fecha_inicio", fechaInicio);
-    params.append("fecha_fin", fechaFin);
-    
-    const res = await fetch(`${API_URL}/ventas?${params.toString()}`);
+    params.set("fecha_inicio", `${fechaInicio}T00:00:00`);
+    params.set("fecha_fin", `${fechaFin}T23:59:59`);
+    const res = await fetch(`${API_URL}/ventasPeriodo?${params.toString()}`);
     return procesarRespuesta(res);
 };
 

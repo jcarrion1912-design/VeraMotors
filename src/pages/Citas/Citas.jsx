@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import "./Citas.css";
-import { obtenerCitas, crearCita } from "../../services/citaService";
+import { obtenerCitas, obtenerVehiculosCliente, crearCita } from "../../services/citaService";
 import { obtenerClientes } from "../../services/clientesService";
 
 const estadoInicial = {
@@ -15,9 +15,13 @@ const estadoInicial = {
 function Citas() {
     const [citas, setCitas] = useState([]);
     const [clientes, setClientes] = useState([]);
+    const [vehiculos, setVehiculos] = useState([]);
     const [showNewAppointment, setShowNewAppointment] = useState(false);
     const [guardando, setGuardando] = useState(false);
     const [formData, setFormData] = useState(estadoInicial);
+    const [busqueda, setBusqueda] = useState("");
+    const [estadoFiltro, setEstadoFiltro] = useState("Todos");
+    const [fechaReferencia, setFechaReferencia] = useState(() => new Date());
 
     const cargarCitas = async () => {
         try {
@@ -38,15 +42,51 @@ function Citas() {
     };
 
     useEffect(() => {
-        cargarCitas();
-        cargarClientes();
+        let activa = true;
+        queueMicrotask(() => {
+            if (!activa) return;
+            cargarCitas();
+            cargarClientes();
+        });
+        return () => { activa = false; };
     }, []);
 
-    const citasOrdenadas = [...citas].sort((a, b) => new Date(a.fecha_hora_inicio) - new Date(b.fecha_hora_inicio));
+    useEffect(() => {
+        let activa = true;
+        if (!formData.cliente_id) {
+            Promise.resolve().then(() => { if (activa) setVehiculos([]); });
+            return () => { activa = false; };
+        }
+        obtenerVehiculosCliente(formData.cliente_id)
+            .then((data) => { if (activa) setVehiculos(Array.isArray(data) ? data : []); })
+            .catch(() => { if (activa) setVehiculos([]); });
+        return () => { activa = false; };
+    }, [formData.cliente_id]);
+
+    const citasFiltradas = citas.filter((cita) => {
+        const query = busqueda.trim().toLowerCase();
+        const coincideTexto = !query || [cita.cliente_nombre, cita.vehiculo_placa, cita.observaciones].some((valor) => String(valor || "").toLowerCase().includes(query));
+        return coincideTexto && (estadoFiltro === "Todos" || cita.estado === estadoFiltro);
+    });
+    const estadosDisponibles = [...new Set(citas.map((cita) => cita.estado).filter(Boolean))].sort();
+    const inicioSemana = new Date(fechaReferencia);
+    inicioSemana.setHours(0, 0, 0, 0);
+    inicioSemana.setDate(inicioSemana.getDate() - ((inicioSemana.getDay() + 6) % 7));
+    const diasSemana = Array.from({ length: 7 }, (_, index) => {
+        const fechaDia = new Date(inicioSemana);
+        fechaDia.setDate(inicioSemana.getDate() + index);
+        return fechaDia;
+    });
+    const finSemana = new Date(inicioSemana);
+    finSemana.setDate(finSemana.getDate() + 7);
+    const citasSemana = citasFiltradas.filter((cita) => {
+        const fechaInicio = new Date(cita.fecha_hora_inicio);
+        return fechaInicio >= inicioSemana && fechaInicio < finSemana;
+    }).sort((a, b) => new Date(a.fecha_hora_inicio) - new Date(b.fecha_hora_inicio));
 
     const manejarCambio = (e) => {
         const { name, value } = e.target;
-        setFormData((prev) => ({ ...prev, [name]: value }));
+        setFormData((prev) => ({ ...prev, [name]: value, ...(name === "cliente_id" ? { vehiculo_id: "" } : {}) }));
     };
 
     const guardarCita = async (e) => {
@@ -97,16 +137,13 @@ function Citas() {
                 <div className="citas-search">
                     <div className="citas-search-box">
                         <span className="material-symbols-outlined">search</span>
-                        <input type="text" placeholder="Buscar órdenes, clientes..." />
+                        <input type="search" placeholder="Buscar cliente, placa u observación..." value={busqueda} onChange={(event) => setBusqueda(event.target.value)} />
                     </div>
                 </div>
 
                 <div className="citas-top-actions">
                     <button className="citas-top-action" onClick={() => setShowNewAppointment(true)} title="Registrar cita">
                         <span className="material-symbols-outlined">add_circle</span>
-                    </button>
-                    <button className="citas-top-action" title="Configuración">
-                        <span className="material-symbols-outlined">settings</span>
                     </button>
                 </div>
             </header>
@@ -121,20 +158,14 @@ function Citas() {
 
                         <div className="citas-filters">
                             <div className="citas-date-selector">
-                                <button><span className="material-symbols-outlined">chevron_left</span></button>
-                                <span className="citas-date">Calendario</span>
-                                <button><span className="material-symbols-outlined">chevron_right</span></button>
+                                <button type="button" onClick={() => setFechaReferencia((fecha) => new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate() - 7))}><span className="material-symbols-outlined">chevron_left</span></button>
+                                <span className="citas-date">{diasSemana[0].toLocaleDateString("es-PE")} – {diasSemana[6].toLocaleDateString("es-PE")}</span>
+                                <button type="button" onClick={() => setFechaReferencia((fecha) => new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate() + 7))}><span className="material-symbols-outlined">chevron_right</span></button>
                             </div>
 
-                            <select className="citas-filter-select">
-                                <option>Todos los Técnicos</option>
-                            </select>
-
-                            <select className="citas-filter-select">
-                                <option>Todos los Estados</option>
-                                <option>Pendiente</option>
-                                <option>Confirmada</option>
-                                <option>Completada</option>
+                            <select className="citas-filter-select" value={estadoFiltro} onChange={(event) => setEstadoFiltro(event.target.value)}>
+                                <option value="Todos">Todos los estados</option>
+                                {estadosDisponibles.map((estado) => <option key={estado} value={estado}>{estado}</option>)}
                             </select>
 
                             <button className="citas-new-button" onClick={() => setShowNewAppointment(true)}>
@@ -147,40 +178,38 @@ function Citas() {
                     <div className="citas-calendar">
                         <div className="calendar-days">
                             <div className="calendar-day"><span className="calendar-day-label">Hora</span></div>
-                            <div className="calendar-day"><span className="calendar-day-label">Lun</span><span className="calendar-day-number">-</span></div>
-                            <div className="calendar-day today"><span className="calendar-day-label">Mar</span><span className="calendar-day-number">-</span></div>
-                            <div className="calendar-day"><span className="calendar-day-label">Mié</span><span className="calendar-day-number">-</span></div>
-                            <div className="calendar-day"><span className="calendar-day-label">Jue</span><span className="calendar-day-number">-</span></div>
-                            <div className="calendar-day"><span className="calendar-day-label">Vie</span><span className="calendar-day-number">-</span></div>
-                            <div className="calendar-day"><span className="calendar-day-label">Sáb</span><span className="calendar-day-number">-</span></div>
-                            <div className="calendar-day"><span className="calendar-day-label">Dom</span><span className="calendar-day-number">-</span></div>
+                            {diasSemana.map((dia) => (
+                                <div key={dia.toISOString()} className={`calendar-day ${dia.toDateString() === new Date().toDateString() ? "today" : ""}`}>
+                                    <span className="calendar-day-label">{dia.toLocaleDateString("es-PE", { weekday: "short" })}</span>
+                                    <span className="calendar-day-number">{dia.getDate()}</span>
+                                </div>
+                            ))}
                         </div>
 
                         <div className="calendar-body">
                             <div className="calendar-grid">
-                                {citasOrdenadas.length > 0 ? citasOrdenadas.map((cita) => {
+                                {citasSemana.length > 0 ? citasSemana.map((cita) => {
                                     const inicio = new Date(cita.fecha_hora_inicio);
                                     const fin = new Date(cita.fecha_hora_fin);
                                     const hora = inicio.toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", hour12: false });
                                     const estado = cita.estado || "Pendiente";
+                                    const diaCita = (inicio.getDay() + 6) % 7;
 
                                     return (
                                         <div key={cita.cita_id} className="calendar-row">
                                             <div className="calendar-time">{hora}</div>
-                                            <div className="calendar-cell today">
-                                                <div className="calendar-appointment appointment-confirmed">
-                                                    <div className="appointment-status"><span className="appointment-dot"></span>{estado}</div>
-                                                    <h4 className="appointment-name">{cita.cliente_nombre || "Cliente"}</h4>
-                                                    <p className="appointment-vehicle">{cita.vehiculo_placa || "Sin vehículo"}</p>
-                                                    <div className="appointment-technician"><span className="material-symbols-outlined">schedule</span>{fin.toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", hour12: false })}</div>
+                                            {diasSemana.map((dia, index) => (
+                                                <div key={dia.toISOString()} className={`calendar-cell ${dia.toDateString() === new Date().toDateString() ? "today" : ""}`}>
+                                                    {index === diaCita && (
+                                                        <div className="calendar-appointment appointment-confirmed">
+                                                            <div className="appointment-status"><span className="appointment-dot"></span>{estado}</div>
+                                                            <h4 className="appointment-name">{cita.cliente_nombre}</h4>
+                                                            <p className="appointment-vehicle">{cita.vehiculo_placa || "Sin vehículo"}</p>
+                                                            <div className="appointment-technician"><span className="material-symbols-outlined">schedule</span>{fin.toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", hour12: false })}</div>
+                                                        </div>
+                                                    )}
                                                 </div>
-                                            </div>
-                                            <div className="calendar-cell"></div>
-                                            <div className="calendar-cell"></div>
-                                            <div className="calendar-cell"></div>
-                                            <div className="calendar-cell"></div>
-                                            <div className="calendar-cell"></div>
-                                            <div className="calendar-cell"></div>
+                                            ))}
                                         </div>
                                     );
                                 }) : (
@@ -231,7 +260,10 @@ function Citas() {
                         <div className="form-grid">
                             <div className="form-field">
                                 <label>Placa / vehículo</label>
-                                <input type="text" name="vehiculo_id" value={formData.vehiculo_id} onChange={manejarCambio} placeholder="Opcional: vehículo asignado" />
+                                <select name="vehiculo_id" value={formData.vehiculo_id} onChange={manejarCambio} disabled={!formData.cliente_id}>
+                                    <option value="">Sin vehículo asociado</option>
+                                    {vehiculos.map((vehiculo) => <option key={vehiculo.vehiculo_id} value={vehiculo.vehiculo_id}>{vehiculo.placa} · {vehiculo.marca} {vehiculo.modelo}</option>)}
+                                </select>
                             </div>
                             <div className="form-field">
                                 <label>Estado</label>

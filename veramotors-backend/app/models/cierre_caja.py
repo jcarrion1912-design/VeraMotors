@@ -6,6 +6,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey
 )
+from sqlalchemy.orm import relationship
 
 from sqlalchemy.sql import func
 
@@ -41,6 +42,12 @@ class CierreCaja(Base):
             ondelete="RESTRICT"
         ),
         nullable=False
+    )
+
+    usuario_cierre_id = Column(
+        BigInteger,
+        ForeignKey("usuarios.user_id", onupdate="CASCADE", ondelete="RESTRICT"),
+        nullable=True
     )
 
     monto_inicial = Column(
@@ -79,6 +86,18 @@ class CierreCaja(Base):
         default=0
     )
 
+    total_otros = Column(
+        Numeric(12, 2),
+        nullable=False,
+        default=0
+    )
+
+    cantidad_operaciones = Column(
+        BigInteger,
+        nullable=False,
+        default=0
+    )
+
     total_ventas = Column(
         Numeric(12, 2),
         nullable=False,
@@ -113,3 +132,5 @@ class CierreCaja(Base):
         nullable=False,
         default="Cerrada"
     )
+
+    pagos = relationship("Pago", back_populates="cierre_caja")

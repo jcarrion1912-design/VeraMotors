@@ -1,35 +1,17 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useRole } from "../../context/RoleContext";
+import { useRole } from "../../context/authContext";
 import "./Header.css";
 
 function Header() {
     const navigate = useNavigate();
 
-    const { notificaciones } = useRole();
+    const { usuarioActual, rolActivo, notificaciones, cerrarSesion: cerrarSesionContexto } = useRole();
 
     const [mostrarNotif, setMostrarNotif] = useState(false);
     const [mostrarMenuUsuario, setMostrarMenuUsuario] = useState(false);
 
-    // ==========================================
-    // USUARIO AUTENTICADO
-    // ==========================================
-
-    const usuarioGuardado = localStorage.getItem("usuario");
-
-    let usuario = null;
-
-    try {
-        usuario = usuarioGuardado
-            ? JSON.parse(usuarioGuardado)
-            : null;
-    } catch (error) {
-        console.error("Error leyendo usuario:", error);
-        usuario = null;
-    }
-
-    const rolActivo = usuario?.rol || "Usuario";
-    const nombreUsuario = usuario?.nombre || "Usuario";
+    const nombreUsuario = usuarioActual?.nombre || "Usuario";
 
 
     // ==========================================
@@ -47,9 +29,7 @@ function Header() {
 
     const cerrarSesion = () => {
 
-        // Eliminar información de sesión
-        localStorage.removeItem("usuario");
-        localStorage.removeItem("loginTime");
+        cerrarSesionContexto();
 
         // Cerrar menús
         setMostrarNotif(false);
@@ -310,7 +290,7 @@ function Header() {
                                         color: "#94a3b8"
                                     }}
                                 >
-                                    {usuario?.email}
+                                    {usuarioActual?.email}
                                 </span>
 
                             </div>

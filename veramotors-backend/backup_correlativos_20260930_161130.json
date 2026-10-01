@@ -1,0 +1,58 @@
+[
+    {
+        "correlativo_id": 6,
+        "tipo_documento": "NOTA_DEBITO",
+        "prefijo": "BD01",
+        "siguiente_correlativo": 1,
+        "activo": true
+    },
+    {
+        "correlativo_id": 7,
+        "tipo_documento": "REMISION",
+        "prefijo": "R001",
+        "siguiente_correlativo": 1,
+        "activo": true
+    },
+    {
+        "correlativo_id": 8,
+        "tipo_documento": "COMPRA",
+        "prefijo": "CMP",
+        "siguiente_correlativo": 1,
+        "activo": true
+    },
+    {
+        "correlativo_id": 2,
+        "tipo_documento": "BOLETA",
+        "prefijo": "B001",
+        "siguiente_correlativo": 8,
+        "activo": true
+    },
+    {
+        "correlativo_id": 5,
+        "tipo_documento": "NOTA_CREDITO",
+        "prefijo": "BC01",
+        "siguiente_correlativo": 5,
+        "activo": true
+    },
+    {
+        "correlativo_id": 4,
+        "tipo_documento": "ODS",
+        "prefijo": "ODS",
+        "siguiente_correlativo": 4,
+        "activo": true
+    },
+    {
+        "correlativo_id": 3,
+        "tipo_documento": "COTIZACION",
+        "prefijo": "COT",
+        "siguiente_correlativo": 7,
+        "activo": true
+    },
+    {
+        "correlativo_id": 1,
+        "tipo_documento": "FACTURA",
+        "prefijo": "F001",
+        "siguiente_correlativo": 6,
+        "activo": true
+    }
+]

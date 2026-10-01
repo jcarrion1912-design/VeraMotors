@@ -4,8 +4,8 @@ from pydantic import BaseModel, Field
 
 
 class OrdenServicioBase(BaseModel):
-    codigo_ods: str
-    numero_ticket: str
+    codigo_ods: Optional[str] = None
+    numero_ticket: Optional[str] = None
     cita_id: Optional[int] = None
     cliente_id: int
     vehiculo_id: int

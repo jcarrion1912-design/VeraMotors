@@ -24,7 +24,13 @@ from app.routers import (
     notas_debito,
     remisiones,
     cierre_caja,
+    cuentas_por_cobrar,
+    pagos,
+    caja,
     compras,
+    recepciones,
+    facturas_proveedor,
+    pagos_proveedor,
     proveedores,
     bancos,
     reportes
@@ -49,8 +55,10 @@ origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_origin_regex=r"http://(localhost|127\.0\.0\.1)(:\d+)?",
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -193,12 +201,54 @@ app.include_router(
     tags=["Cierre de Caja"]
 )
 
+app.include_router(
+    cuentas_por_cobrar.router,
+    prefix=f"{settings.API_V1_STR}/cuentas-por-cobrar",
+    tags=["Cuentas por Cobrar"]
+)
+
+app.include_router(
+    pagos.router,
+    prefix=f"{settings.API_V1_STR}/pagos",
+    tags=["Pagos"]
+)
+
+app.include_router(
+    caja.router,
+    prefix=f"{settings.API_V1_STR}/caja",
+    tags=["Caja"]
+)
+
 
 # Compras
 app.include_router(
     compras.router,
     prefix=f"{settings.API_V1_STR}/compras",
     tags=["Compras"]
+)
+
+
+# Recepciones
+app.include_router(
+    recepciones.router,
+    prefix=f"{settings.API_V1_STR}/recepciones",
+    tags=["Recepciones"]
+)
+
+
+# Facturas de Proveedor
+app.include_router(
+    facturas_proveedor.router,
+    prefix=f"{settings.API_V1_STR}/facturas-proveedor",
+    tags=["Facturas Proveedor"]
+)
+
+
+# Pagos de Proveedor
+app.include_router(
+    pagos_proveedor.router,
+    prefix=f"{settings.API_V1_STR}/pagos-proveedor",
+    tags=["Pagos Proveedor"]
 )
 
 

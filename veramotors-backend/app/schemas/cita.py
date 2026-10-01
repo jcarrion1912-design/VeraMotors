@@ -27,5 +27,9 @@ class CitaResponse(CitaCreate):
 
     vehiculo_placa: Optional[str] = None
 
+    cliente_nombre: Optional[str] = None
+
+    vehiculo_placa: Optional[str] = None
+
     class Config:
         from_attributes = True
