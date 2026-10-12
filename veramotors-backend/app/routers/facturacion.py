@@ -1,8 +1,12 @@
 import json
+import re
 from datetime import datetime
 from decimal import Decimal
+from typing import Optional
 
+import requests
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -11,6 +15,7 @@ from app.config.settings import settings
 from app.models.factura import Factura
 from app.models.detalle_factura import DetalleFactura
 from app.models.cliente import Cliente
+from app.models.ods import OrdenServicio
 from app.models.cuenta_por_cobrar import CuentaPorCobrar
 from app.models.configuracion_correlativo import ConfiguracionCorrelativo
 
@@ -41,6 +46,30 @@ def listar_facturas(
 # OBTENER FACTURA
 # ============================================================
 
+def _extraer_document_id(respuesta_dict: dict) -> Optional[str]:
+    if not isinstance(respuesta_dict, dict):
+        return None
+    doc_id = (
+        respuesta_dict.get("documentId")
+        or respuesta_dict.get("documentID")
+        or respuesta_dict.get("document_id")
+        or respuesta_dict.get("id")
+    )
+    if doc_id:
+        return str(doc_id).strip()
+
+    # Fallback mediante inspección de URLs generadas por APISUNAT
+    for val in [respuesta_dict.get("xml"), respuesta_dict.get("cdr"), str(respuesta_dict.get("pdf"))]:
+        if val:
+            m = re.search(r"/documents/([a-f0-9]{20,32})/", str(val))
+            if m:
+                return m.group(1)
+            m_zip = re.search(r"-([a-f0-9]{24})\.ZIP", str(val), re.IGNORECASE)
+            if m_zip:
+                return m_zip.group(1)
+    return None
+
+
 @router.get("/{factura_id}/estado-sunat")
 def consultar_estado_sunat_factura(
     factura_id: int,
@@ -67,12 +96,7 @@ def consultar_estado_sunat_factura(
         except (TypeError, json.JSONDecodeError):
             respuesta_guardada = {}
 
-        document_id = (
-            respuesta_guardada.get("documentId")
-            or respuesta_guardada.get("documentID")
-            or respuesta_guardada.get("document_id")
-            or respuesta_guardada.get("id")
-        ) if isinstance(respuesta_guardada, dict) else None
+        document_id = _extraer_document_id(respuesta_guardada)
 
         if not document_id:
             raise HTTPException(
@@ -88,12 +112,11 @@ def consultar_estado_sunat_factura(
 
         if estado_api == "ACEPTADO":
             factura.estado_sunat = "Aceptado"
-        elif estado_api == "RECHAZADO":
+        elif estado_api in ("RECHAZADO", "EXCEPCION"):
             factura.estado_sunat = "Rechazado"
         elif estado_api == "ANULADO":
             factura.estado_sunat = "Anulado"
         else:
-            # APISUNAT usa PENDIENTE/EXCEPCION además de los estados finales.
             factura.estado_sunat = "Pendiente"
 
         factura.codigo_sunat = estado_api or factura.codigo_sunat or "PENDIENTE"
@@ -120,6 +143,214 @@ def consultar_estado_sunat_factura(
         raise HTTPException(
             status_code=502,
             detail=f"No se pudo consultar el estado en APISUNAT: {error}"
+        )
+
+
+@router.get("/{factura_id}/pdf")
+def descargar_pdf_factura(
+    factura_id: int,
+    formato: str = "A4",
+    db: Session = Depends(get_db)
+):
+    factura = db.query(Factura).filter(Factura.factura_id == factura_id).first()
+    if not factura:
+        raise HTTPException(status_code=404, detail="Factura no encontrada.")
+
+    respuesta_guardada = {}
+    if factura.respuesta_sunat:
+        try:
+            respuesta_guardada = json.loads(factura.respuesta_sunat)
+        except Exception:
+            respuesta_guardada = {}
+
+    pdf_url = None
+    file_name = factura.numero_comprobante or f"factura_{factura_id}"
+
+    if isinstance(respuesta_guardada, dict):
+        if respuesta_guardada.get("fileName"):
+            file_name = respuesta_guardada.get("fileName")
+        pdf_dict = respuesta_guardada.get("pdf")
+        if isinstance(pdf_dict, dict):
+            pdf_url = pdf_dict.get(formato) or pdf_dict.get("A4") or pdf_dict.get("80mm") or pdf_dict.get("58mm")
+        elif isinstance(pdf_dict, str):
+            pdf_url = pdf_dict
+
+    # Si no tiene pdf_url en la BD, consultar APISUNAT para actualizarla
+    if not pdf_url:
+        document_id = _extraer_document_id(respuesta_guardada)
+        if document_id:
+            try:
+                nueva_resp = SunatService().consultar_estado(str(document_id))
+                if isinstance(nueva_resp, dict):
+                    factura.respuesta_sunat = json.dumps(nueva_resp, ensure_ascii=False)
+                    estado_api = str(nueva_resp.get("status", "")).strip().upper()
+                    if estado_api == "ACEPTADO":
+                        factura.estado_sunat = "Aceptado"
+                    elif estado_api in ("RECHAZADO", "EXCEPCION"):
+                        factura.estado_sunat = "Rechazado"
+                    db.commit()
+                    db.refresh(factura)
+
+                    if nueva_resp.get("fileName"):
+                        file_name = nueva_resp.get("fileName")
+                    pdf_dict = nueva_resp.get("pdf")
+                    if isinstance(pdf_dict, dict):
+                        pdf_url = pdf_dict.get(formato) or pdf_dict.get("A4") or pdf_dict.get("80mm") or pdf_dict.get("58mm")
+                    elif isinstance(pdf_dict, str):
+                        pdf_url = pdf_dict
+            except Exception:
+                pass
+
+    if not pdf_url:
+        raise HTTPException(
+            status_code=404,
+            detail=f"El PDF de este comprobante no está disponible en APISUNAT (estado: {factura.estado_sunat or 'Pendiente'})."
+        )
+
+    try:
+        resp = requests.get(pdf_url, timeout=25)
+        if resp.status_code != 200:
+            raise HTTPException(
+                status_code=resp.status_code,
+                detail=f"APISUNAT devolvió código {resp.status_code} al solicitar el archivo PDF."
+            )
+        return Response(
+            content=resp.content,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'inline; filename="{file_name}.pdf"'
+            }
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Error al descargar PDF desde APISUNAT: {str(e)}"
+        )
+
+
+@router.get("/{factura_id}/xml")
+def descargar_xml_factura(
+    factura_id: int,
+    db: Session = Depends(get_db)
+):
+    factura = db.query(Factura).filter(Factura.factura_id == factura_id).first()
+    if not factura:
+        raise HTTPException(status_code=404, detail="Factura no encontrada.")
+
+    respuesta_guardada = {}
+    if factura.respuesta_sunat:
+        try:
+            respuesta_guardada = json.loads(factura.respuesta_sunat)
+        except Exception:
+            pass
+
+    xml_url = respuesta_guardada.get("xml") if isinstance(respuesta_guardada, dict) else None
+    file_name = respuesta_guardada.get("fileName", factura.numero_comprobante)
+
+    if not xml_url:
+        document_id = _extraer_document_id(respuesta_guardada)
+        if document_id:
+            try:
+                nueva_resp = SunatService().consultar_estado(str(document_id))
+                if isinstance(nueva_resp, dict):
+                    factura.respuesta_sunat = json.dumps(nueva_resp, ensure_ascii=False)
+                    db.commit()
+                    xml_url = nueva_resp.get("xml")
+                    if nueva_resp.get("fileName"):
+                        file_name = nueva_resp.get("fileName")
+            except Exception:
+                pass
+
+    if not xml_url:
+        raise HTTPException(
+            status_code=404,
+            detail="El XML firmado no está disponible para este comprobante."
+        )
+
+    try:
+        resp = requests.get(xml_url, timeout=25)
+        if resp.status_code != 200:
+            raise HTTPException(
+                status_code=resp.status_code,
+                detail=f"APISUNAT devolvió código {resp.status_code} al solicitar el XML."
+            )
+        return Response(
+            content=resp.content,
+            media_type="application/zip",
+            headers={
+                "Content-Disposition": f'attachment; filename="{file_name}-XML.zip"'
+            }
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Error al descargar XML desde APISUNAT: {str(e)}"
+        )
+
+
+@router.get("/{factura_id}/cdr")
+def descargar_cdr_factura(
+    factura_id: int,
+    db: Session = Depends(get_db)
+):
+    factura = db.query(Factura).filter(Factura.factura_id == factura_id).first()
+    if not factura:
+        raise HTTPException(status_code=404, detail="Factura no encontrada.")
+
+    respuesta_guardada = {}
+    if factura.respuesta_sunat:
+        try:
+            respuesta_guardada = json.loads(factura.respuesta_sunat)
+        except Exception:
+            pass
+
+    cdr_url = respuesta_guardada.get("cdr") if isinstance(respuesta_guardada, dict) else None
+    file_name = respuesta_guardada.get("fileName", factura.numero_comprobante)
+
+    if not cdr_url:
+        document_id = _extraer_document_id(respuesta_guardada)
+        if document_id:
+            try:
+                nueva_resp = SunatService().consultar_estado(str(document_id))
+                if isinstance(nueva_resp, dict):
+                    factura.respuesta_sunat = json.dumps(nueva_resp, ensure_ascii=False)
+                    db.commit()
+                    cdr_url = nueva_resp.get("cdr")
+                    if nueva_resp.get("fileName"):
+                        file_name = nueva_resp.get("fileName")
+            except Exception:
+                pass
+
+    if not cdr_url:
+        raise HTTPException(
+            status_code=404,
+            detail="La Constancia de Recepción (CDR) aún no está disponible (solo disponible cuando el comprobante ha sido Aceptado por SUNAT)."
+        )
+
+    try:
+        resp = requests.get(cdr_url, timeout=25)
+        if resp.status_code != 200:
+            raise HTTPException(
+                status_code=resp.status_code,
+                detail=f"APISUNAT devolvió código {resp.status_code} al solicitar el CDR."
+            )
+        return Response(
+            content=resp.content,
+            media_type="application/zip",
+            headers={
+                "Content-Disposition": f'attachment; filename="R-{file_name}-CDR.zip"'
+            }
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Error al descargar CDR desde APISUNAT: {str(e)}"
         )
 
 
@@ -238,6 +469,41 @@ def crear_factura(
                 )
 
         # ========================================================
+        # 3.1. VALIDAR ORDEN DE SERVICIO (ODS)
+        # ========================================================
+        if datos.ods_id is not None:
+            ods = (
+                db.query(OrdenServicio)
+                .filter(OrdenServicio.ods_id == datos.ods_id)
+                .first()
+            )
+            if not ods:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Orden de Servicio {datos.ods_id} no encontrada."
+                )
+            if ods.cliente_id != datos.cliente_id:
+                raise HTTPException(
+                    status_code=400,
+                    detail="La Orden de Servicio no corresponde al cliente seleccionado."
+                )
+
+            # Validar si ya existe una factura activa para esta ODS
+            factura_existente = (
+                db.query(Factura)
+                .filter(
+                    Factura.ods_id == datos.ods_id,
+                    Factura.estado_pago != "Anulado"
+                )
+                .first()
+            )
+            if factura_existente:
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"La Orden de Servicio ya tiene una factura activa registrada ({factura_existente.numero_comprobante})."
+                )
+
+        # ========================================================
         # 4. OBTENER CORRELATIVO
         # ========================================================
 
@@ -282,7 +548,7 @@ def crear_factura(
         # ========================================================
 
         factura = Factura(
-            ods_id=None,
+            ods_id=datos.ods_id,
             cliente_id=datos.cliente_id,
             tipo_comprobante=datos.tipo_comprobante,
             serie=serie,
@@ -338,14 +604,19 @@ def crear_factura(
         ))
 
         # ========================================================
-        # 7. ACTUALIZAR CORRELATIVO
+        # 7. ACTUALIZAR CORRELATIVO Y ESTADO ODS
         # ========================================================
 
         correlativo_config.siguiente_correlativo = (
             correlativo + 1
         )
 
-        # Guardamos la factura y el nuevo correlativo.
+        if datos.ods_id is not None:
+            ods_asoc = db.query(OrdenServicio).filter(OrdenServicio.ods_id == datos.ods_id).first()
+            if ods_asoc:
+                ods_asoc.estado_actual = "Facturado"
+
+        # Guardamos la factura, estado ODS y el nuevo correlativo.
         db.commit()
 
         db.refresh(factura)

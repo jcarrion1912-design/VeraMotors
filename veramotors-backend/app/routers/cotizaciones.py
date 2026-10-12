@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
@@ -17,13 +18,18 @@ router = APIRouter()
 
 def _serializar_cotizacion(c: Cotizacion):
     return {
+        "id": c.cotizacion_id,
         "cotizacion_id": c.cotizacion_id,
         "codigo_cotizacion": c.codigo_cotizacion,
         "cliente_id": c.cliente_id,
         "vehiculo_id": c.vehiculo_id,
         "fecha": c.fecha,
+        "subtotal": c.subtotal,
+        "descuentos": c.descuentos,
+        "impuestos": c.impuestos,
         "total": c.total,
         "estado": c.estado,
+        "observaciones": c.observaciones,
         "aprobado_por": c.aprobado_por,
         "fecha_aprobacion": c.fecha_aprobacion,
         "rechazado_por": c.rechazado_por,
@@ -112,18 +118,41 @@ def crear_cotizacion(datos: CotizacionCreate, db: Session = Depends(get_db)):
             codigo = f"{configuracion.prefijo}-{configuracion.siguiente_correlativo}"
             configuracion.siguiente_correlativo += 1
 
+        subtotal = datos.subtotal
+        descuentos = datos.descuentos
+        impuestos = datos.impuestos
+        total = datos.total
+
+        if (subtotal is None or subtotal == 0) and datos.detalles:
+            subtotal = sum((Decimal(str(d.cantidad)) * Decimal(str(d.precio_unitario)) for d in datos.detalles), Decimal("0"))
+        if (descuentos is None or descuentos == 0) and datos.detalles:
+            descuentos = sum((Decimal(str(d.descuento)) for d in datos.detalles), Decimal("0"))
+        if (impuestos is None or impuestos == 0) and datos.detalles:
+            impuestos = sum((Decimal(str(d.impuesto)) for d in datos.detalles), Decimal("0"))
+        if (total is None or total == 0) and datos.detalles:
+            total = (subtotal or Decimal("0")) - (descuentos or Decimal("0"))
+
         cotizacion = Cotizacion(
             codigo_cotizacion=codigo,
             cliente_id=datos.cliente_id,
             vehiculo_id=datos.vehiculo_id,
-            total=datos.total,
-            estado=datos.estado
+            subtotal=subtotal if subtotal is not None else Decimal("0"),
+            descuentos=descuentos if descuentos is not None else Decimal("0"),
+            impuestos=impuestos if impuestos is not None else Decimal("0"),
+            total=total if total is not None else Decimal("0"),
+            estado=datos.estado or "Pendiente",
+            observaciones=datos.observaciones
         )
         db.add(cotizacion)
         db.flush()
 
         if datos.detalles:
             for d in datos.detalles:
+                det_total = d.total if (d.total is not None and d.total > 0) else (
+                    (Decimal(str(d.cantidad)) * Decimal(str(d.precio_unitario)))
+                    - Decimal(str(d.descuento or 0))
+                    + Decimal(str(d.impuesto or 0))
+                )
                 det = DetalleCotizacion(
                     cotizacion_id=cotizacion.cotizacion_id,
                     item_id=d.item_id,
@@ -132,27 +161,14 @@ def crear_cotizacion(datos: CotizacionCreate, db: Session = Depends(get_db)):
                     precio_unitario=d.precio_unitario,
                     descuento=d.descuento,
                     impuesto=d.impuesto,
-                    total=d.total
+                    total=det_total
                 )
                 db.add(det)
 
         db.commit()
         db.refresh(cotizacion)
 
-        return {
-            "cotizacion_id": cotizacion.cotizacion_id,
-            "codigo_cotizacion": cotizacion.codigo_cotizacion,
-            "cliente_id": cotizacion.cliente_id,
-            "vehiculo_id": cotizacion.vehiculo_id,
-            "fecha": cotizacion.fecha,
-            "total": cotizacion.total,
-            "estado": cotizacion.estado,
-            "cliente_nombre": cotizacion.cliente.nombre_razon_social if cotizacion.cliente else None,
-            "cliente_documento": cotizacion.cliente.documento_identidad if cotizacion.cliente else None,
-            "vehiculo_placa": cotizacion.vehiculo.placa if cotizacion.vehiculo else None,
-            "vehiculo_modelo": f"{cotizacion.vehiculo.marca} {cotizacion.vehiculo.modelo}" if cotizacion.vehiculo else None,
-            "detalles": cotizacion.detalles or []
-        }
+        return _serializar_cotizacion(cotizacion)
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))

@@ -11,7 +11,7 @@ class DetalleCotizacionBase(BaseModel):
     precio_unitario: Decimal = Field(..., ge=0)
     descuento: Decimal = Field(default=Decimal("0"), ge=0)
     impuesto: Decimal = Field(default=Decimal("0"), ge=0)
-    total: Decimal = Field(..., ge=0)
+    total: Optional[Decimal] = Field(default=Decimal("0"), ge=0)
 
 
 class DetalleCotizacionResponse(DetalleCotizacionBase):
@@ -25,8 +25,12 @@ class DetalleCotizacionResponse(DetalleCotizacionBase):
 class CotizacionBase(BaseModel):
     cliente_id: int
     vehiculo_id: int
+    subtotal: Optional[Decimal] = Field(default=Decimal("0"), ge=0)
+    descuentos: Optional[Decimal] = Field(default=Decimal("0"), ge=0)
+    impuestos: Optional[Decimal] = Field(default=Decimal("0"), ge=0)
     total: Decimal = Field(..., ge=0)
     estado: str = Field(default="Pendiente", max_length=20)
+    observaciones: Optional[str] = None
 
 
 class CotizacionCreate(CotizacionBase):
@@ -40,6 +44,7 @@ class CotizacionAprobacionRequest(BaseModel):
 
 class CotizacionResponse(CotizacionBase):
     cotizacion_id: int
+    id: Optional[int] = None
     codigo_cotizacion: str
     fecha: datetime
     aprobado_por: Optional[int] = None
@@ -55,3 +60,5 @@ class CotizacionResponse(CotizacionBase):
 
     class Config:
         from_attributes = True
+
+

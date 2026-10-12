@@ -120,3 +120,37 @@ export const crearNotaDebito = async (datos) => {
 
     return procesarRespuesta(res);
 };
+
+/* =========================================================
+   DESCARGAS Y CONSULTAS APISUNAT
+========================================================= */
+
+export const obtenerUrlPdfFactura = (facturaId, formato = "A4") =>
+    `${API_URL}/${facturaId}/pdf?formato=${formato}`;
+
+export const obtenerUrlXmlFactura = (facturaId) =>
+    `${API_URL}/${facturaId}/xml`;
+
+export const obtenerUrlCdrFactura = (facturaId) =>
+    `${API_URL}/${facturaId}/cdr`;
+
+export const consultarEstadoSunatFactura = async (facturaId) => {
+    const res = await fetch(`${API_URL}/${facturaId}/estado-sunat`);
+    return procesarRespuesta(res);
+};
+
+export const obtenerUrlPdfNotaCredito = (notaCreditoId, formato = "A4") =>
+    `${API_NOTAS_CREDITO_URL}/${notaCreditoId}/pdf?formato=${formato}`;
+
+export const consultarEstadoSunatNotaCredito = async (notaCreditoId) => {
+    const res = await fetch(`${API_NOTAS_CREDITO_URL}/${notaCreditoId}/estado-sunat`);
+    return procesarRespuesta(res);
+};
+
+export const obtenerUrlPdfNotaDebito = (notaDebitoId, formato = "A4") =>
+    `${API_NOTAS_DEBITO_URL}/${notaDebitoId}/pdf?formato=${formato}`;
+
+export const consultarEstadoSunatNotaDebito = async (notaDebitoId) => {
+    const res = await fetch(`${API_NOTAS_DEBITO_URL}/${notaDebitoId}/estado-sunat`);
+    return procesarRespuesta(res);
+};

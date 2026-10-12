@@ -1,4 +1,4 @@
-from sqlalchemy import Column, BigInteger, String, DateTime, ForeignKey, Numeric
+from sqlalchemy import Column, BigInteger, String, DateTime, ForeignKey, Numeric, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database import Base
@@ -20,8 +20,12 @@ class Cotizacion(Base):
         nullable=False
     )
     fecha = Column(DateTime, nullable=False, server_default=func.current_timestamp())
+    subtotal = Column(Numeric(12, 2), nullable=False, default=0)
+    descuentos = Column(Numeric(12, 2), nullable=False, default=0)
+    impuestos = Column(Numeric(12, 2), nullable=False, default=0)
     total = Column(Numeric(12, 2), nullable=False, default=0)
     estado = Column(String(20), nullable=False, default="Pendiente")
+    observaciones = Column(Text, nullable=True)
     aprobado_por = Column(BigInteger, ForeignKey("usuarios.user_id"), nullable=True)
     fecha_aprobacion = Column(DateTime, nullable=True)
     rechazado_por = Column(BigInteger, ForeignKey("usuarios.user_id"), nullable=True)

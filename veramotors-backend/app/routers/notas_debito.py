@@ -1,7 +1,12 @@
 import json
+import re
 from datetime import datetime
 from decimal import Decimal
+from typing import Optional
+
+import requests
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
@@ -163,6 +168,179 @@ def consultar_estado_sunat_nota_debito(
     except Exception as error:
         db.rollback()
         raise HTTPException(status_code=502, detail=f"No se pudo consultar el estado en APISUNAT: {error}")
+
+
+@router.get("/{nota_debito_id}/pdf")
+def descargar_pdf_nota_debito(
+    nota_debito_id: int,
+    formato: str = "A4",
+    db: Session = Depends(get_db)
+):
+    nota = db.query(NotaDebito).filter(NotaDebito.nota_debito_id == nota_debito_id).first()
+    if not nota:
+        raise HTTPException(status_code=404, detail="Nota de débito no encontrada.")
+
+    respuesta_guardada = {}
+    if nota.respuesta_sunat:
+        try:
+            respuesta_guardada = json.loads(nota.respuesta_sunat)
+        except Exception:
+            respuesta_guardada = {}
+
+    pdf_url = None
+    file_name = nota.numero_nota or f"nota_debito_{nota_debito_id}"
+
+    if isinstance(respuesta_guardada, dict):
+        if respuesta_guardada.get("fileName"):
+            file_name = respuesta_guardada.get("fileName")
+        pdf_dict = respuesta_guardada.get("pdf")
+        if isinstance(pdf_dict, dict):
+            pdf_url = pdf_dict.get(formato) or pdf_dict.get("A4") or pdf_dict.get("80mm") or pdf_dict.get("58mm")
+        elif isinstance(pdf_dict, str):
+            pdf_url = pdf_dict
+
+    if not pdf_url:
+        document_id = None
+        if isinstance(respuesta_guardada, dict):
+            document_id = (
+                respuesta_guardada.get("documentId")
+                or respuesta_guardada.get("documentID")
+                or respuesta_guardada.get("document_id")
+                or respuesta_guardada.get("id")
+            )
+            if not document_id:
+                for val in [respuesta_guardada.get("xml"), respuesta_guardada.get("cdr"), str(respuesta_guardada.get("pdf"))]:
+                    if val:
+                        m = re.search(r"/documents/([a-f0-9]{20,32})/", str(val)) or re.search(r"-([a-f0-9]{24})\.ZIP", str(val), re.IGNORECASE)
+                        if m:
+                            document_id = m.group(1)
+                            break
+        if document_id:
+            try:
+                nueva_resp = SunatService().consultar_estado(str(document_id))
+                if isinstance(nueva_resp, dict):
+                    nota.respuesta_sunat = json.dumps(nueva_resp, ensure_ascii=False)
+                    estado_api = str(nueva_resp.get("status", "")).strip().upper()
+                    if estado_api == "ACEPTADO":
+                        nota.estado_sunat = "Aceptado"
+                    elif estado_api in ("RECHAZADO", "EXCEPCION"):
+                        nota.estado_sunat = "Rechazado"
+                    db.commit()
+                    db.refresh(nota)
+                    if nueva_resp.get("fileName"):
+                        file_name = nueva_resp.get("fileName")
+                    pdf_dict = nueva_resp.get("pdf")
+                    if isinstance(pdf_dict, dict):
+                        pdf_url = pdf_dict.get(formato) or pdf_dict.get("A4") or pdf_dict.get("80mm")
+                    elif isinstance(pdf_dict, str):
+                        pdf_url = pdf_dict
+            except Exception:
+                pass
+
+    if not pdf_url:
+        raise HTTPException(
+            status_code=404,
+            detail=f"El PDF de esta nota de débito no está disponible en APISUNAT (estado: {nota.estado_sunat or 'Pendiente'})."
+        )
+
+    try:
+        resp = requests.get(pdf_url, timeout=25)
+        if resp.status_code != 200:
+            raise HTTPException(
+                status_code=resp.status_code,
+                detail=f"APISUNAT devolvió código {resp.status_code} al solicitar el archivo PDF."
+            )
+        return Response(
+            content=resp.content,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'inline; filename="{file_name}.pdf"'
+            }
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Error al descargar PDF desde APISUNAT: {str(e)}"
+        )
+
+
+@router.get("/{nota_debito_id}/xml")
+def descargar_xml_nota_debito(
+    nota_debito_id: int,
+    db: Session = Depends(get_db)
+):
+    nota = db.query(NotaDebito).filter(NotaDebito.nota_debito_id == nota_debito_id).first()
+    if not nota:
+        raise HTTPException(status_code=404, detail="Nota de débito no encontrada.")
+
+    respuesta_guardada = {}
+    if nota.respuesta_sunat:
+        try:
+            respuesta_guardada = json.loads(nota.respuesta_sunat)
+        except Exception:
+            pass
+
+    xml_url = respuesta_guardada.get("xml") if isinstance(respuesta_guardada, dict) else None
+    file_name = respuesta_guardada.get("fileName", nota.numero_nota)
+
+    if not xml_url:
+        raise HTTPException(status_code=404, detail="El XML firmado no está disponible para esta nota de débito.")
+
+    try:
+        resp = requests.get(xml_url, timeout=25)
+        if resp.status_code != 200:
+            raise HTTPException(status_code=resp.status_code, detail="No se pudo descargar el XML de APISUNAT.")
+        return Response(
+            content=resp.content,
+            media_type="application/zip",
+            headers={"Content-Disposition": f'attachment; filename="{file_name}-XML.zip"'}
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Error al descargar XML: {str(e)}")
+
+
+@router.get("/{nota_debito_id}/cdr")
+def descargar_cdr_nota_debito(
+    nota_debito_id: int,
+    db: Session = Depends(get_db)
+):
+    nota = db.query(NotaDebito).filter(NotaDebito.nota_debito_id == nota_debito_id).first()
+    if not nota:
+        raise HTTPException(status_code=404, detail="Nota de débito no encontrada.")
+
+    respuesta_guardada = {}
+    if nota.respuesta_sunat:
+        try:
+            respuesta_guardada = json.loads(nota.respuesta_sunat)
+        except Exception:
+            pass
+
+    cdr_url = respuesta_guardada.get("cdr") if isinstance(respuesta_guardada, dict) else None
+    file_name = respuesta_guardada.get("fileName", nota.numero_nota)
+
+    if not cdr_url:
+        raise HTTPException(
+            status_code=404,
+            detail="La Constancia de Recepción (CDR) aún no está disponible (solo disponible cuando la nota ha sido Aceptada por SUNAT)."
+        )
+
+    try:
+        resp = requests.get(cdr_url, timeout=25)
+        if resp.status_code != 200:
+            raise HTTPException(status_code=resp.status_code, detail="No se pudo descargar el CDR de APISUNAT.")
+        return Response(
+            content=resp.content,
+            media_type="application/zip",
+            headers={"Content-Disposition": f'attachment; filename="R-{file_name}-CDR.zip"'}
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Error al descargar CDR: {str(e)}")
 
 
 @router.get(

@@ -52,6 +52,7 @@ function Facturacion() {
     const [cargandoNotasCredito, setCargandoNotasCredito] = useState(false);
     const [cargandoRemisiones, setCargandoRemisiones] = useState(false);
     const [cargandoCierresCaja, setCargandoCierresCaja] = useState(false);
+    const [consultandoFactura, setConsultandoFactura] = useState(null);
 
     // =========================================================
     // WIZARD
@@ -564,6 +565,59 @@ function Facturacion() {
     };
 
     // =========================================================
+    // CONSULTAR ESTADO SUNAT - FACTURA / BOLETA
+    // =========================================================
+    const consultarEstadoSunatFactura = async (factura) => {
+        if (!factura?.factura_id) return;
+
+        try {
+            setConsultandoFactura(factura.factura_id);
+
+            const response = await fetch(
+                `${API_URL}/facturacion/${factura.factura_id}/estado-sunat`
+            );
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                const mensaje =
+                    typeof data.detail === "string"
+                        ? data.detail
+                        : data.detail?.mensaje ||
+                        data.detail?.error ||
+                        "No se pudo consultar el estado SUNAT del comprobante.";
+                throw new Error(mensaje);
+            }
+
+            setFacturasList((lista) =>
+                lista.map((item) =>
+                    item.factura_id === factura.factura_id
+                        ? {
+                            ...item,
+                            estado_sunat: data.estado_sunat,
+                            codigo_sunat: data.codigo_sunat,
+                            respuesta_sunat: data.respuesta_sunat,
+                            fecha_envio_sunat: data.fecha_envio_sunat
+                        }
+                        : item
+                )
+            );
+
+            alert(
+                `Comprobante ${data.numero_comprobante || factura.numero_comprobante || ""}: ${data.estado_sunat || "Actualizado"}`
+            );
+        } catch (error) {
+            console.error("Error consultando estado SUNAT Factura:", error);
+            alert(
+                error.message ||
+                "No se pudo consultar el estado SUNAT del comprobante."
+            );
+        } finally {
+            setConsultandoFactura(null);
+        }
+    };
+
+    // =========================================================
     // ABRIR MODAL NOTA DE CRÉDITO
     // =========================================================
     const abrirModalNC = (factura = null) => {
@@ -998,9 +1052,28 @@ function Facturacion() {
 
             setGuardandoCotizacion(true);
 
+            const subtotalCalculado = itemsCotizacion.reduce(
+                (acc, item) => acc + (Number(item.cantidad) * Number(item.precio_unitario)),
+                0
+            );
+            const descuentosCalculados = itemsCotizacion.reduce(
+                (acc, item) => acc + Number(item.descuento || 0),
+                0
+            );
+            const impuestosCalculados = itemsCotizacion.reduce(
+                (acc, item) => {
+                    const base = (Number(item.cantidad) * Number(item.precio_unitario)) - Number(item.descuento || 0);
+                    return acc + (base * 0.18);
+                },
+                0
+            );
+
             const payload = {
                 cliente_id: Number(cotizacionCliente),
                 vehiculo_id: Number(cotizacionVehiculo),
+                subtotal: Number(subtotalCalculado.toFixed(2)),
+                descuentos: Number(descuentosCalculados.toFixed(2)),
+                impuestos: Number(impuestosCalculados.toFixed(2)),
                 total: Number(totalCotizacion.toFixed(2)),
                 estado: "Pendiente",
                 detalles: itemsCotizacion.map((item) => {
@@ -2005,7 +2078,54 @@ function Facturacion() {
 
                                             <td>
 
-                                                <div className="table-actions">
+                                                <div className="table-actions" style={{ display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center" }}>
+
+                                                    <a
+                                                        href={`${API_URL}/facturacion/${factura.factura_id}/pdf?formato=A4`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="btn-act-table link"
+                                                        style={{ padding: "6px 10px", fontSize: "12px", textDecoration: "none", backgroundColor: "#3b82f6", color: "#ffffff", borderColor: "#3b82f6" }}
+                                                        title="Ver / Descargar PDF oficial generado por APISUNAT"
+                                                    >
+                                                        📄 PDF
+                                                    </a>
+
+                                                    <button
+                                                        type="button"
+                                                        className="btn-act-table link"
+                                                        style={{ padding: "6px 10px", fontSize: "12px" }}
+                                                        onClick={() => consultarEstadoSunatFactura(factura)}
+                                                        disabled={consultandoFactura === factura.factura_id}
+                                                        title="Consultar estado del comprobante directamente en APISUNAT"
+                                                    >
+                                                        {consultandoFactura === factura.factura_id ? "Consultando..." : "🔄 Consultar"}
+                                                    </button>
+
+                                                    {factura.estado_sunat === "Aceptado" && (
+                                                        <>
+                                                            <a
+                                                                href={`${API_URL}/facturacion/${factura.factura_id}/xml`}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="btn-act-table link"
+                                                                style={{ padding: "6px 8px", fontSize: "11px", textDecoration: "none" }}
+                                                                title="Descargar XML firmado de APISUNAT"
+                                                            >
+                                                                📦 XML
+                                                            </a>
+                                                            <a
+                                                                href={`${API_URL}/facturacion/${factura.factura_id}/cdr`}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="btn-act-table link"
+                                                                style={{ padding: "6px 8px", fontSize: "11px", textDecoration: "none" }}
+                                                                title="Descargar Constancia de Recepción (CDR) de SUNAT"
+                                                            >
+                                                                📜 CDR
+                                                            </a>
+                                                        </>
+                                                    )}
 
                                                     {factura.estado_pago !== "Pagado" && factura.estado_pago !== "Anulado" && (
                                                         <button
@@ -2272,6 +2392,24 @@ function Facturacion() {
                                                         {nota.estado_sunat || "Pendiente"}
                                                     </span>
 
+                                                    <a
+                                                        href={`${API_URL}/notas-credito/${nota.nota_credito_id}/pdf?formato=A4`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="btn-act-table link"
+                                                        style={{
+                                                            padding: "6px 10px",
+                                                            fontSize: "12px",
+                                                            textDecoration: "none",
+                                                            backgroundColor: "#3b82f6",
+                                                            color: "#ffffff",
+                                                            borderColor: "#3b82f6"
+                                                        }}
+                                                        title="Ver / Descargar PDF oficial generado por APISUNAT"
+                                                    >
+                                                        📄 PDF
+                                                    </a>
+
                                                     <button
                                                         type="button"
                                                         className="btn-act-table link"
@@ -2413,6 +2551,24 @@ function Facturacion() {
                                                 >
                                                     {nota.estado_sunat || "Pendiente"}
                                                 </span>
+
+                                                <a
+                                                    href={`${API_URL}/notas-debito/${nota.nota_debito_id}/pdf?formato=A4`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="btn-act-table link"
+                                                    style={{
+                                                        padding: "6px 10px",
+                                                        fontSize: "12px",
+                                                        textDecoration: "none",
+                                                        backgroundColor: "#3b82f6",
+                                                        color: "#ffffff",
+                                                        borderColor: "#3b82f6"
+                                                    }}
+                                                    title="Ver / Descargar PDF oficial generado por APISUNAT"
+                                                >
+                                                    📄 PDF
+                                                </a>
 
                                                 <button
                                                     type="button"
@@ -2923,6 +3079,12 @@ function Facturacion() {
 
                                 <th>Cliente</th>
 
+                                <th>Vehículo</th>
+
+                                <th>Subtotal</th>
+
+                                <th>Impuestos</th>
+
                                 <th>Total</th>
 
                                 <th>Estado</th>
@@ -2940,7 +3102,7 @@ function Facturacion() {
                                 <tr>
 
                                     <td
-                                        colSpan="6"
+                                        colSpan="9"
                                         style={{
                                             textAlign:
                                                 "center",
@@ -2958,7 +3120,7 @@ function Facturacion() {
                                 <tr>
 
                                     <td
-                                        colSpan="6"
+                                        colSpan="9"
                                         style={{
                                             textAlign:
                                                 "center",
@@ -3006,6 +3168,26 @@ function Facturacion() {
                                                         cotizacion.cliente_id
                                                     )
                                                 }
+                                            </td>
+
+                                            <td>
+                                                {
+                                                    cotizacion.vehiculo_placa
+                                                        ? `${cotizacion.vehiculo_placa}${cotizacion.vehiculo_modelo ? ` (${cotizacion.vehiculo_modelo})` : ""}`
+                                                        : "-"
+                                                }
+                                            </td>
+
+                                            <td>
+                                                {moneda(
+                                                    cotizacion.subtotal || 0
+                                                )}
+                                            </td>
+
+                                            <td>
+                                                {moneda(
+                                                    cotizacion.impuestos || 0
+                                                )}
                                             </td>
 
                                             <td>
