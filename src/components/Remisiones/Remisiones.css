@@ -193,7 +193,7 @@
 
 .remisiones-table {
     width: 100%;
-    min-width: 850px;
+    min-width: 1000px;
     border-collapse: collapse;
     text-align: left;
 }
@@ -254,6 +254,39 @@
     background: #fbe9e7;
     color: #8a3530;
 }
+
+/* Badges específicos para estado SUNAT */
+.remisiones-state-sunat-aceptado {
+    background: #e0f3eb;
+    color: #17604d;
+}
+
+.remisiones-state-sunat-rechazado,
+.remisiones-state-sunat-excepcion {
+    background: #fbe9e7;
+    color: #8a3530;
+}
+
+.remisiones-state-sunat-pendiente {
+    background: #fef5e7;
+    color: #7a5204;
+}
+
+.remisiones-alert-info {
+    border-color: #2a9d8f;
+    color: #145a4d;
+    background: #f2f8f7;
+}
+
+.remisiones-pdf-notice {
+    margin: 4px 0;
+    padding: 8px 12px;
+    border-left: 3px solid #e5a100;
+    background: #fef9ec;
+    color: #7a5204;
+    font-size: .85rem;
+}
+
 
 .remisiones-overlay {
     position: fixed;

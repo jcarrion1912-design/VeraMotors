@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { obtenerUsuarios } from "../../services/usuariosService";
 import {
     actualizarEstadoRemision,
@@ -7,11 +7,13 @@ import {
     obtenerRemisiones,
     obtenerVentasDisponiblesRemision,
     registrarDespachoRemision,
+    descargarPdfRemision,
 } from "../../services/remisionesService";
 import "./Remisiones.css";
 
 const fechaHora = (valor) => valor ? new Date(valor).toLocaleString("es-PE") : "-";
 const moneda = (valor) => Number(valor || 0).toLocaleString("es-PE", { style: "currency", currency: "PEN" });
+const slugEstado = (estado) => (estado || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "-");
 
 function Remisiones() {
     const [remisiones, setRemisiones] = useState([]);
@@ -19,6 +21,7 @@ function Remisiones() {
     const [usuarios, setUsuarios] = useState([]);
     const [cargando, setCargando] = useState(true);
     const [guardando, setGuardando] = useState(false);
+    const [descargandoPdf, setDescargandoPdf] = useState(null); // remision_id en descarga
     const [error, setError] = useState("");
     const [mensaje, setMensaje] = useState("");
     const [mostrarFormulario, setMostrarFormulario] = useState(false);
@@ -30,6 +33,9 @@ function Remisiones() {
     const [detalleAbierto, setDetalleAbierto] = useState(null);
     const [confirmarDespacho, setConfirmarDespacho] = useState(null);
     const [usuarioDespachoId, setUsuarioDespachoId] = useState("");
+
+    // Rastreamos object URLs para liberarlas después de usar
+    const pdfUrlRef = useRef(null);
 
     const cargarDatos = async () => {
         setCargando(true);
@@ -62,8 +68,16 @@ function Remisiones() {
             .finally(() => {
                 if (activo) setCargando(false);
             });
+        return () => { activo = false; };
+    }, []);
+
+    // Libera la object URL anterior al desmontar
+    useEffect(() => {
         return () => {
-            activo = false;
+            if (pdfUrlRef.current) {
+                URL.revokeObjectURL(pdfUrlRef.current);
+                pdfUrlRef.current = null;
+            }
         };
     }, []);
 
@@ -118,9 +132,41 @@ function Remisiones() {
     const verDetalle = async (remisionId) => {
         setError("");
         try {
-            setDetalleAbierto(await obtenerDocumentosRemision(remisionId));
+            const data = await obtenerDocumentosRemision(remisionId);
+            setDetalleAbierto(data);
         } catch (detailError) {
             setError(detailError.message || "No se pudo consultar el detalle.");
+        }
+    };
+
+    const verPdf = async (guia) => {
+        setDescargandoPdf(guia.remision_id);
+        setError("");
+        try {
+            const blob = await descargarPdfRemision(guia.remision_id);
+
+            // Verificamos que sea realmente un PDF
+            if (!blob || blob.type !== "application/pdf") {
+                throw new Error("El servidor no devolvió un archivo PDF válido.");
+            }
+
+            // Liberamos la URL anterior si existe
+            if (pdfUrlRef.current) {
+                URL.revokeObjectURL(pdfUrlRef.current);
+            }
+            const url = URL.createObjectURL(blob);
+            pdfUrlRef.current = url;
+            window.open(url, "_blank", "noopener,noreferrer");
+        } catch (pdfError) {
+            // Extraer el mensaje de error del JSON si viene como texto
+            let msg = pdfError.message || "No se pudo obtener el PDF.";
+            try {
+                const parsed = JSON.parse(msg);
+                if (parsed?.detail) msg = parsed.detail;
+            } catch { /* msg ya es legible */ }
+            setError(`PDF no disponible para ${guia.numero_remision}: ${msg}`);
+        } finally {
+            setDescargandoPdf(null);
         }
     };
 
@@ -194,6 +240,11 @@ function Remisiones() {
                 </div>
             </header>
 
+            {!ventas.length && !cargando && !mostrarFormulario && (
+                <div className="remisiones-alert remisiones-alert-info" role="note">
+                    No hay ventas pagadas y aceptadas sin guía. Regístralas primero en Facturación.
+                </div>
+            )}
             {error && <div className="remisiones-alert remisiones-alert-error" role="alert">{error}</div>}
             {mensaje && <div className="remisiones-alert remisiones-alert-success" role="status">{mensaje}</div>}
 
@@ -227,16 +278,16 @@ function Remisiones() {
                         </label>
                         <label>
                             Punto de partida
-                            <input value={puntoPartida} onChange={(event) => setPuntoPartida(event.target.value)} maxLength={255} />
+                            <input value={puntoPartida} onChange={(event) => setPuntoPartida(event.target.value)} maxLength={255} placeholder="Dirección de origen (opcional)" />
                         </label>
                         <label>
                             Punto de llegada
-                            <input value={puntoLlegada} onChange={(event) => setPuntoLlegada(event.target.value)} maxLength={255} required />
+                            <input value={puntoLlegada} onChange={(event) => setPuntoLlegada(event.target.value)} maxLength={255} required placeholder="Dirección de destino" />
                         </label>
                     </div>
                     {detalles.length > 0 && (
                         <div className="remisiones-lines">
-                            <h4>Productos y cantidades</h4>
+                            <h4>Productos y cantidades a trasladar</h4>
                             {detalles.map((detalle, index) => (
                                 <label className="remisiones-line" key={detalle.factura_detalle_id}>
                                     <span>{detalle.descripcion}<small>Vendido: {detalle.cantidad_vendida}</small></span>
@@ -272,14 +323,15 @@ function Remisiones() {
                             <th>Emisión</th>
                             <th>Destino</th>
                             <th>Estado</th>
+                            <th>SUNAT</th>
                             <th>Operaciones</th>
                         </tr>
                     </thead>
                     <tbody>
                         {cargando ? (
-                            <tr><td colSpan="7" className="remisiones-empty">Consultando PostgreSQL...</td></tr>
+                            <tr><td colSpan="8" className="remisiones-empty">Consultando PostgreSQL...</td></tr>
                         ) : remisiones.length === 0 ? (
-                            <tr><td colSpan="7" className="remisiones-empty">No hay guías registradas.</td></tr>
+                            <tr><td colSpan="8" className="remisiones-empty">No hay guías registradas.</td></tr>
                         ) : remisiones.map((guia) => (
                             <tr key={guia.remision_id}>
                                 <td><strong>{guia.numero_remision}</strong></td>
@@ -287,9 +339,18 @@ function Remisiones() {
                                 <td>{guia.cliente_nombre || `Cliente #${guia.cliente_id}`}</td>
                                 <td>{fechaHora(guia.fecha_emision)}</td>
                                 <td>{guia.punto_llegada || "-"}</td>
-                                <td><span className={`remisiones-state remisiones-state-${guia.estado.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "-")}`}>{guia.estado}</span></td>
+                                <td><span className={`remisiones-state remisiones-state-${slugEstado(guia.estado)}`}>{guia.estado}</span></td>
+                                <td><span className={`remisiones-state remisiones-state-sunat-${slugEstado(guia.estado_sunat)}`}>{guia.estado_sunat || "Pendiente"}</span></td>
                                 <td className="remisiones-row-actions">
                                     <button type="button" onClick={() => verDetalle(guia.remision_id)}>Detalle</button>
+                                    <button
+                                        type="button"
+                                        onClick={() => verPdf(guia)}
+                                        disabled={descargandoPdf === guia.remision_id}
+                                        title={guia.estado_sunat === "Aceptado" ? "Descargar PDF oficial SUNAT" : "PDF no disponible (guía no aceptada por SUNAT)"}
+                                    >
+                                        {descargandoPdf === guia.remision_id ? "..." : "Ver PDF"}
+                                    </button>
                                     {guia.estado === "Pendiente" && <button type="button" onClick={() => cargarUsuariosDespacho(guia)}>Despachar</button>}
                                     {guia.estado === "Pendiente" && <button type="button" onClick={() => cambiarEstado(guia, "Anulada")} disabled={guardando}>Anular</button>}
                                     {guia.estado === "En tránsito" && <button type="button" onClick={() => cambiarEstado(guia, "Entregada")} disabled={guardando}>Marcar entregada</button>}
@@ -304,21 +365,47 @@ function Remisiones() {
                 <div className="remisiones-overlay" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setDetalleAbierto(null)}>
                     <section className="remisiones-dialog" role="dialog" aria-modal="true" aria-labelledby="remisiones-detail-title">
                         <div className="remisiones-form-heading">
-                            <div><h3 id="remisiones-detail-title">{detalleAbierto.guia.numero_remision}</h3><p>{detalleAbierto.venta?.numero_comprobante || "Guía histórica"}</p></div>
-                            <button type="button" className="remisiones-text-button" onClick={() => setDetalleAbierto(null)}>Cerrar</button>
+                            <div>
+                                <h3 id="remisiones-detail-title">{detalleAbierto.guia?.numero_remision}</h3>
+                                <p>{detalleAbierto.venta?.numero_comprobante || "Guía histórica"}</p>
+                            </div>
+                            <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                                <button
+                                    type="button"
+                                    className="remisiones-secondary"
+                                    onClick={() => verPdf(detalleAbierto.guia)}
+                                    disabled={descargandoPdf === detalleAbierto.guia?.remision_id}
+                                    title={detalleAbierto.guia?.estado_sunat === "Aceptado" ? "PDF oficial SUNAT" : "Guía pendiente de aceptación SUNAT"}
+                                >
+                                    {descargandoPdf === detalleAbierto.guia?.remision_id ? "Obteniendo..." : "Ver PDF"}
+                                </button>
+                                <button type="button" className="remisiones-text-button" onClick={() => setDetalleAbierto(null)}>Cerrar</button>
+                            </div>
                         </div>
                         <dl className="remisiones-detail-grid">
                             <div><dt>Cliente</dt><dd>{detalleAbierto.cliente?.nombre_razon_social || "-"}</dd></div>
                             <div><dt>Documento</dt><dd>{detalleAbierto.cliente?.documento_identidad || "-"}</dd></div>
-                            <div><dt>Estado</dt><dd>{detalleAbierto.guia.estado}</dd></div>
-                            <div><dt>Despacho</dt><dd>{fechaHora(detalleAbierto.guia.fecha_despacho)}</dd></div>
-                            <div><dt>Destino</dt><dd>{detalleAbierto.guia.punto_llegada || "-"}</dd></div>
+                            <div><dt>Motivo</dt><dd>{detalleAbierto.guia?.motivo_traslado || "-"}</dd></div>
+                            <div><dt>Origen</dt><dd>{detalleAbierto.guia?.punto_partida || "-"}</dd></div>
+                            <div><dt>Destino</dt><dd>{detalleAbierto.guia?.punto_llegada || "-"}</dd></div>
+                            <div><dt>Estado guía</dt><dd><span className={`remisiones-state remisiones-state-${slugEstado(detalleAbierto.guia?.estado)}`}>{detalleAbierto.guia?.estado}</span></dd></div>
+                            <div><dt>Estado SUNAT</dt><dd><span className={`remisiones-state remisiones-state-sunat-${slugEstado(detalleAbierto.guia?.estado_sunat)}`}>{detalleAbierto.guia?.estado_sunat || "Pendiente"}</span></dd></div>
+                            <div><dt>Fecha emisión</dt><dd>{fechaHora(detalleAbierto.guia?.fecha_emision)}</dd></div>
+                            <div><dt>Fecha despacho</dt><dd>{fechaHora(detalleAbierto.guia?.fecha_despacho)}</dd></div>
                             <div><dt>Vehículo</dt><dd>{detalleAbierto.vehiculo ? `${detalleAbierto.vehiculo.placa} · ${detalleAbierto.vehiculo.marca} ${detalleAbierto.vehiculo.modelo}` : "-"}</dd></div>
                         </dl>
-                        <h4>Detalle de la guía</h4>
+                        {detalleAbierto.guia?.estado_sunat !== "Aceptado" && (
+                            <p className="remisiones-pdf-notice">
+                                ⚠ Esta guía aún no ha sido aceptada por SUNAT. El PDF electrónico oficial no está disponible.
+                            </p>
+                        )}
+                        <h4>Detalle de bienes a trasladar</h4>
                         <div className="remisiones-detail-lines">
-                            {detalleAbierto.guia.detalles.map((detalle) => (
-                                <div key={detalle.detalle_remision_id}><span>{detalle.descripcion}</span><strong>{detalle.cantidad}</strong></div>
+                            {(detalleAbierto.guia?.detalles || []).map((detalle) => (
+                                <div key={detalle.detalle_remision_id}>
+                                    <span>{detalle.descripcion}</span>
+                                    <strong>{Number(detalle.cantidad).toLocaleString("es-PE")}</strong>
+                                </div>
                             ))}
                         </div>
                     </section>

@@ -18,6 +18,11 @@ from app.models.movimiento_inventario import MovimientoInventario
 from app.models.remision import Remision
 from app.models.usuario import Usuario
 from app.models.vehiculo import Vehiculo
+import json
+import re
+import requests
+from fastapi.responses import Response
+from app.services.sunat_service import SunatService
 from app.schemas.remision import (
     DespachoRequest,
     RemisionCreate,
@@ -194,7 +199,16 @@ def crear_remision(datos: RemisionCreate, db: Session = Depends(get_db)):
             .first()
         )
         if not configuracion:
-            raise HTTPException(status_code=409, detail="No existe configuración activa para REMISION.")
+            # If no active configuration exists, create a default one with prefijo R001
+            configuracion = ConfiguracionCorrelativo(
+                tipo_documento="REMISION",
+                prefijo="R001",
+                siguiente_correlativo=1,
+                activo=True,
+            )
+            db.add(configuracion)
+            db.flush()
+
 
         correlativo = configuracion.siguiente_correlativo
         serie = configuracion.prefijo
@@ -206,7 +220,7 @@ def crear_remision(datos: RemisionCreate, db: Session = Depends(get_db)):
             tipo_remision=datos.tipo_remision,
             serie=serie,
             correlativo=correlativo,
-            numero_remision=f"{serie}-{correlativo:06d}",
+            numero_remision=f"{serie}-{correlativo:08d}",
             motivo_traslado=datos.motivo_traslado.strip(),
             punto_partida=datos.punto_partida.strip() if datos.punto_partida else None,
             punto_llegada=datos.punto_llegada.strip(),
@@ -299,6 +313,116 @@ def obtener_remision(remision_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Guía de remisión no encontrada.")
     return _serializar_remision(db, remision)
 
+
+# ============================================================
+# DESCARGAR PDF DE GUÍA DE REMISIÓN
+# GET /api/remisiones/{remision_id}/pdf
+# ============================================================
+@router.get("/{remision_id}/pdf")
+def descargar_pdf_remision(
+    remision_id: int,
+    formato: str = "A4",
+    db: Session = Depends(get_db),
+):
+    remision = db.query(Remision).filter(Remision.remision_id == remision_id).first()
+    if not remision:
+        raise HTTPException(status_code=404, detail="Guía de remisión no encontrada.")
+
+    # Intentar obtener URL del PDF desde respuesta SUNAT almacenada
+    respuesta_guardada = {}
+    if remision.respuesta_sunat:
+        try:
+            respuesta_guardada = json.loads(remision.respuesta_sunat)
+        except Exception:
+            respuesta_guardada = {}
+
+    pdf_url = None
+    file_name = remision.numero_remision or f"remision_{remision_id}"
+    if isinstance(respuesta_guardada, dict):
+        if respuesta_guardada.get("fileName"):
+            file_name = respuesta_guardada.get("fileName")
+        pdf_dict = respuesta_guardada.get("pdf")
+        if isinstance(pdf_dict, dict):
+            pdf_url = pdf_dict.get(formato) or pdf_dict.get("A4") or pdf_dict.get("80mm") or pdf_dict.get("58mm")
+        elif isinstance(pdf_dict, str):
+            pdf_url = pdf_dict
+
+    # Si no se encontró URL, intentar consultar de nuevo a SUNAT usando documentId
+    if not pdf_url:
+        document_id = None
+        if isinstance(respuesta_guardada, dict):
+            document_id = (
+                respuesta_guardada.get("documentId")
+                or respuesta_guardada.get("documentID")
+                or respuesta_guardada.get("document_id")
+                or respuesta_guardada.get("id")
+            )
+            if not document_id:
+                for val in [respuesta_guardada.get("xml"), respuesta_guardada.get("cdr"), str(respuesta_guardada.get("pdf"))]:
+                    if val:
+                        m = re.search(r"/documents/([a-f0-9]{20,32})/", str(val)) or re.search(r"-([a-f0-9]{24})\\.ZIP", str(val), re.IGNORECASE)
+                        if m:
+                            document_id = m.group(1)
+                            break
+        if document_id:
+            try:
+                nueva_resp = SunatService().consultar_estado(str(document_id))
+                if isinstance(nueva_resp, dict):
+                    remision.respuesta_sunat = json.dumps(nueva_resp, ensure_ascii=False)
+                    estado_api = str(nueva_resp.get("status", "")).strip().upper()
+                    if estado_api == "ACEPTADO":
+                        remision.estado_sunat = "Aceptado"
+                    elif estado_api in ("RECHAZADO", "EXCEPCION"):
+                        remision.estado_sunat = "Rechazado"
+                    else:
+                        remision.estado_sunat = "Pendiente"
+                    db.commit()
+                    db.refresh(remision)
+                    if nueva_resp.get("fileName"):
+                        file_name = nueva_resp.get("fileName")
+                    pdf_dict = nueva_resp.get("pdf")
+                    if isinstance(pdf_dict, dict):
+                        pdf_url = pdf_dict.get(formato) or pdf_dict.get("A4") or pdf_dict.get("80mm") or pdf_dict.get("58mm")
+                    elif isinstance(pdf_dict, str):
+                        pdf_url = pdf_dict
+            except Exception:
+                pass
+
+    if not pdf_url:
+        raise HTTPException(
+            status_code=404,
+            detail=f"El PDF de esta guía de remisión no está disponible en APISUNAT (estado: {remision.estado_sunat or 'Pendiente'})."
+        )
+
+    # Validar que la URL sea pública (http/https) antes de descargar
+    if not isinstance(pdf_url, str) or not re.match(r"^https?://", pdf_url.strip()):
+        raise HTTPException(
+            status_code=502,
+            detail="La URL del PDF obtenida de APISUNAT no es válida o no es accesible públicamente."
+        )
+
+    try:
+        resp = requests.get(pdf_url.strip(), timeout=25)
+        if resp.status_code != 200:
+            raise HTTPException(
+                status_code=resp.status_code,
+                detail=f"APISUNAT devolvió código {resp.status_code} al solicitar el archivo PDF."
+            )
+        content_type = resp.headers.get("Content-Type", "")
+        if "pdf" not in content_type.lower():
+            raise HTTPException(
+                status_code=502,
+                detail=f"El servidor remoto devolvió un archivo no PDF (Content-Type: {content_type})."
+            )
+        return Response(
+            content=resp.content,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f'inline; filename="{file_name}.pdf"'}
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Error al descargar PDF desde APISUNAT: {str(e)}")
 
 @router.post("/{remision_id}/despacho", response_model=RemisionResponse)
 def registrar_despacho(
