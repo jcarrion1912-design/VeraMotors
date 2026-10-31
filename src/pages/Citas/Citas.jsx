@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import "./Citas.css";
 import { obtenerCitas, obtenerVehiculosCliente, crearCita } from "../../services/citaService";
 import { obtenerClientes } from "../../services/clientesService";
+import ModalNuevoCliente from "../../components/ModalNuevoCliente/ModalNuevoCliente";
 
 const estadoInicial = {
     cliente_id: "",
@@ -22,6 +23,27 @@ function Citas() {
     const [busqueda, setBusqueda] = useState("");
     const [estadoFiltro, setEstadoFiltro] = useState("Todos");
     const [fechaReferencia, setFechaReferencia] = useState(() => new Date());
+    const [mostrarModalNuevoCliente, setMostrarModalNuevoCliente] = useState(false);
+
+    const handleClienteCreadoDesdeCita = async ({ cliente: nuevoCli, vehiculo: nuevoVeh }) => {
+        setMostrarModalNuevoCliente(false);
+        await cargarClientes();
+        if (nuevoCli?.cliente_id) {
+            const nuevoCliId = String(nuevoCli.cliente_id);
+            const nuevoVehId = nuevoVeh?.vehiculo_id ? String(nuevoVeh.vehiculo_id) : "";
+            setFormData((prev) => ({
+                ...prev,
+                cliente_id: nuevoCliId,
+                vehiculo_id: nuevoVehId
+            }));
+            try {
+                const vehs = await obtenerVehiculosCliente(nuevoCli.cliente_id);
+                setVehiculos(Array.isArray(vehs) ? vehs : []);
+            } catch (err) {
+                console.error("Error al cargar vehículos del nuevo cliente:", err);
+            }
+        }
+    };
 
     const cargarCitas = async () => {
         try {
@@ -235,10 +257,21 @@ function Citas() {
 
                 <form className="new-appointment-body" onSubmit={guardarCita}>
                     <div className="form-section">
-                        <h4 className="form-section-title">
-                            <span className="material-symbols-outlined">person</span>
-                            Cliente
-                        </h4>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                            <h4 className="form-section-title" style={{ margin: 0 }}>
+                                <span className="material-symbols-outlined">person</span>
+                                Cliente
+                            </h4>
+                            <button
+                                type="button"
+                                className="btn-registrar-cliente-rapido"
+                                onClick={() => setMostrarModalNuevoCliente(true)}
+                                title="Registrar un nuevo cliente sin salir de la cita"
+                            >
+                                <span className="material-symbols-outlined">person_add</span>
+                                Registrar cliente
+                            </button>
+                        </div>
                         <div className="form-field">
                             <label>Seleccionar cliente</label>
                             <select name="cliente_id" value={formData.cliente_id} onChange={manejarCambio} required>
@@ -315,6 +348,12 @@ function Citas() {
                     </div>
                 </form>
             </aside>
+
+            <ModalNuevoCliente
+                isOpen={mostrarModalNuevoCliente}
+                onClose={() => setMostrarModalNuevoCliente(false)}
+                onClienteRegistrado={handleClienteCreadoDesdeCita}
+            />
         </div>
     );
 }

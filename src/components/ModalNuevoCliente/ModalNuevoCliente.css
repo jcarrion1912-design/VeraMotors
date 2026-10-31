@@ -1,0 +1,109 @@
+/* =========================================
+   MODAL NUEVO CLIENTE (REUTILIZABLE)
+   ========================================= */
+
+.modal-nuevo-cliente-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(15, 23, 42, 0.55);
+    backdrop-filter: blur(2px);
+}
+
+.modal-nuevo-cliente-card {
+    width: 100%;
+    max-width: 850px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    background: #ffffff;
+    border: 1px solid #c5c6cd;
+    border-radius: 8px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.18);
+    overflow: hidden;
+}
+
+.modal-nuevo-cliente-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 24px 28px;
+    background: #f2f4f6;
+    border-bottom: 1px solid #c5c6cd;
+}
+
+.modal-nuevo-cliente-header h2 {
+    margin: 0;
+    color: #191c1e;
+    font-size: 24px;
+    line-height: 32px;
+    font-weight: 600;
+}
+
+.modal-nuevo-cliente-header p {
+    margin: 4px 0 0;
+    color: #45474c;
+    font-size: 14px;
+    line-height: 20px;
+}
+
+.btn-cerrar-modal-nc {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: #45474c;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn-cerrar-modal-nc:hover {
+    background: #e0e3e5;
+    color: #191c1e;
+}
+
+.form-nuevo-cliente {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+.form-nuevo-cliente::-webkit-scrollbar {
+    width: 6px;
+}
+
+.form-nuevo-cliente::-webkit-scrollbar-thumb {
+    background: #c5c6cd;
+    border-radius: 4px;
+}
+
+.modal-nuevo-cliente-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 18px 28px;
+    background: #f7f9fb;
+    border-top: 1px solid #e0e3e5;
+}
+
+@media (max-width: 640px) {
+    .modal-nuevo-cliente-overlay {
+        padding: 12px;
+    }
+    .modal-nuevo-cliente-card {
+        max-height: 95vh;
+    }
+    .modal-nuevo-cliente-header {
+        padding: 16px 20px;
+    }
+}
+

@@ -12,6 +12,7 @@ import Clientes from "./pages/Clientes/Clientes";
 import Inventario from "./pages/Inventario/Inventario";
 import OrdenesServicio from "./pages/OrdenesServicio/OrdenesServicio";
 import Facturacion from "./pages/Facturacion/Facturacion";
+import Cotizaciones from "./pages/Cotizaciones/Cotizaciones";
 import Reportes from "./pages/Reportes/Reportes";
 import Metricas from "./pages/Metricas/Metricas";
 import Proveedores from "./pages/Proveedores/Proveedores";
@@ -114,6 +115,17 @@ function App() {
               <ProtectedRoute>
                 <MainLayout>
                   <Facturacion />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/cotizaciones"
+            element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <Cotizaciones />
                 </MainLayout>
               </ProtectedRoute>
             }

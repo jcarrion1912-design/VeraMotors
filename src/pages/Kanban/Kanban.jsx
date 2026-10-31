@@ -25,7 +25,7 @@ const normalizarEstado = (estado) => {
 };
 
 function Kanban() {
-    const { rolActivo, ROLES } = useRole();
+    const { rolActivo, usuarioActual, ROLES } = useRole();
     const esTecnico = rolActivo === ROLES.TECNICO;
 
     const [busqueda, setBusqueda] = useState("");
@@ -44,6 +44,16 @@ function Kanban() {
             const mapeadas = lista.map((item) => {
                 const tecnico = listaUsuarios.find((u) => Number(u.user_id) === Number(item.tecnico_id));
                 const estadoLimpio = normalizarEstado(item.estado_actual);
+                const prioridadesPorEstado = {
+                    "Recepción": "Normal",
+                    "Diagnóstico": "Alta",
+                    "Repuestos": "Alta",
+                    "Aprobación": "Normal",
+                    "Reparación": "Normal",
+                    "Control de Calidad": "Normal",
+                    "Entrega": "Normal",
+                    "Archivado": "Normal"
+                };
 
                 return {
                     id: item.ods_id,
@@ -52,8 +62,9 @@ function Kanban() {
                     vehiculo: `${item.vehiculo_placa || "Sin placa"}`,
                     motivo: item.tipo_procedimiento || "Servicio general",
                     personal: tecnico ? tecnico.nombre : `Técnico ${item.tecnico_id || "sin asignar"}`,
+                    tecnico_id: item.tecnico_id,
                     estado: estadoLimpio,
-                    prioridad: estadoLimpio === "Entrega" ? "Normal" : "Alta"
+                    prioridad: prioridadesPorEstado[estadoLimpio] || "Normal"
                 };
             });
 
@@ -87,7 +98,12 @@ function Kanban() {
     };
 
     const tarjetasFiltradas = tarjetas.filter((t) => {
-        if (esTecnico && !/Técnico/i.test(t.personal)) return false;
+        if (
+            esTecnico &&
+            Number(t.tecnico_id) !== Number(usuarioActual?.user_id)
+        ) {
+            return false;
+        }
         const match = t.cliente.toLowerCase().includes(busqueda.toLowerCase()) ||
             t.vehiculo.toLowerCase().includes(busqueda.toLowerCase()) ||
             String(t.codigo).toLowerCase().includes(busqueda.toLowerCase());

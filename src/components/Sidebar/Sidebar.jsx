@@ -94,6 +94,16 @@ function Sidebar() {
                             </NavLink>
 
                             <NavLink
+                                to="/cotizaciones"
+                                className={({ isActive }) =>
+                                    `menu-item ${isActive ? "active" : ""}`
+                                }
+                            >
+                                <span className="menu-icon">📑</span>
+                                <span>Cotizaciones</span>
+                            </NavLink>
+
+                            <NavLink
                                 to="/inventario"
                                 className={({ isActive }) =>
                                     `menu-item ${isActive ? "active" : ""}`
@@ -260,6 +270,16 @@ function Sidebar() {
                             >
                                 <span className="menu-icon">♙</span>
                                 <span>Clientes</span>
+                            </NavLink>
+
+                            <NavLink
+                                to="/cotizaciones"
+                                className={({ isActive }) =>
+                                    `menu-item ${isActive ? "active" : ""}`
+                                }
+                            >
+                                <span className="menu-icon">📑</span>
+                                <span>Cotizaciones</span>
                             </NavLink>
 
                             <NavLink

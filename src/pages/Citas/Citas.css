@@ -890,3 +890,28 @@
         padding: 16px;
     }
 }
+
+/* BOTON ACCESO RAPIDO REGISTRAR CLIENTE EN CITA */
+.btn-registrar-cliente-rapido {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border: 1px solid #0058be;
+    border-radius: 6px;
+    background: #eff6ff;
+    color: #0058be;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-registrar-cliente-rapido:hover {
+    background: #0058be;
+    color: #ffffff;
+}
+
+.btn-registrar-cliente-rapido .material-symbols-outlined {
+    font-size: 16px;
+}

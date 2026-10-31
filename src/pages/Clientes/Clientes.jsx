@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import "./Clientes.css";
 import { actualizarCliente, obtenerClientes } from "../../services/clientesService";
+import ModalNuevoCliente from "../../components/ModalNuevoCliente/ModalNuevoCliente";
 
 const API_URL = "http://127.0.0.1:8000/api";
 
@@ -54,6 +55,8 @@ function Clientes() {
                         modelo: v.modelo,
                         placa: v.placa,
                         anio: v.anio || "2022",
+                        color: v.color || "No especificado",
+                        vin: v.vin || "No especificado",
                         motor: "2.0",
                         kilometraje: "45,000 km",
                         estado: "Al día"
@@ -811,6 +814,22 @@ function Clientes() {
                                                         {vehiculo.anio}
                                                     </span>
 
+                                                    <span className="label">
+                                                        Color:
+                                                    </span>
+
+                                                    <span className="valor">
+                                                        {vehiculo.color}
+                                                    </span>
+
+                                                    <span className="label">
+                                                        VIN:
+                                                    </span>
+
+                                                    <span className="valor">
+                                                        {vehiculo.vin}
+                                                    </span>
+
 
                                                     <span className="label">
                                                         Motor:
@@ -1044,341 +1063,19 @@ function Clientes() {
                 </div>
             )}
 
-            {mostrarFormulario && (
-
-                <div
-                    className="modal-overlay"
-                    onMouseDown={(e) => {
-                        if (e.target === e.currentTarget) {
-                            cerrarFormulario();
-                        }
-                    }}
-                >
-
-                    <div className="modal-cliente">
-
-                        {/* HEADER */}
-
-                        <div className="modal-cliente-header">
-
-                            <div>
-
-                                <h2>
-                                    Nuevo Cliente
-                                </h2>
-
-                                <p>
-                                    Registra la información del nuevo cliente.
-                                </p>
-
-                            </div>
-
-
-                            <button
-                                type="button"
-                                className="btn-cerrar-modal"
-                                onClick={cerrarFormulario}
-                            >
-
-                                <span className="material-symbols-outlined">
-                                    close
-                                </span>
-
-                            </button>
-
-                        </div>
-
-
-                        {/* FORMULARIO */}
-
-                        <form
-                            className="form-cliente"
-                            onSubmit={registrarCliente}
-                        >
-
-                            {/* INFORMACIÓN DEL CLIENTE */}
-
-                            <div className="form-section">
-
-                                <h3>
-                                    Información del cliente
-                                </h3>
-
-
-                                <div className="form-grid">
-
-                                    <div className="form-group">
-
-                                        <label>
-                                            Tipo de cliente
-                                        </label>
-
-                                        <select
-                                            value={tipoPersona}
-                                            onChange={(e) => setTipoPersona(e.target.value)}
-                                        >
-
-                                            <option value="Natural">
-                                                Persona natural
-                                            </option>
-
-                                            <option value="Jurídica">
-                                                Empresa
-                                            </option>
-
-                                        </select>
-
-                                    </div>
-
-
-                                    <div className="form-group">
-
-                                        <label>
-                                            {tipoPersona === "Natural" ? "DNI (8 dígitos)" : "RUC (11 dígitos)"}
-                                        </label>
-
-                                        <input
-                                            type="text"
-                                            value={nuevoDoc}
-                                            onChange={(e) => setNuevoDoc(e.target.value)}
-                                            placeholder={tipoPersona === "Natural" ? "Ingrese DNI" : "Ingrese RUC"}
-                                            required
-                                        />
-
-                                    </div>
-
-
-                                    <div className="form-group">
-
-                                        <label>
-                                            {tipoPersona === "Natural" ? "Nombres y Apellidos" : "Razón Social"}
-                                        </label>
-
-                                        <input
-                                            type="text"
-                                            value={nuevoNombre}
-                                            onChange={(e) => setNuevoNombre(e.target.value)}
-                                            placeholder={tipoPersona === "Natural" ? "Ingrese nombres completos" : "Ingrese Razón Social"}
-                                            required
-                                        />
-
-                                    </div>
-
-
-                                    <div className="form-group">
-
-                                        <label>
-                                            Teléfono / Celular
-                                        </label>
-
-                                        <input
-                                            type="tel"
-                                            value={nuevoTelefono}
-                                            onChange={(e) => setNuevoTelefono(e.target.value)}
-                                            placeholder="Ingrese teléfono"
-                                        />
-
-                                    </div>
-
-
-                                    <div className="form-group">
-
-                                        <label>
-                                            Correo electrónico
-                                        </label>
-
-                                        <input
-                                            type="email"
-                                            value={nuevoEmail}
-                                            onChange={(e) => setNuevoEmail(e.target.value)}
-                                            placeholder="Ingrese correo"
-                                        />
-
-                                    </div>
-
-
-                                    <div className="form-group form-group-full">
-
-                                        <label>
-                                            Dirección Ubigeo (Departamento, Provincia, Distrito - Autoguarda última)
-                                        </label>
-
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '8px' }}>
-                                            <input type="text" value={ubigeoDept} onChange={(e) => setUbigeoDept(e.target.value)} placeholder="Departamento" required />
-                                            <input type="text" value={ubigeoProv} onChange={(e) => setUbigeoProv(e.target.value)} placeholder="Provincia" required />
-                                            <input type="text" value={ubigeoDist} onChange={(e) => setUbigeoDist(e.target.value)} placeholder="Distrito" required />
-                                        </div>
-
-                                    </div>
-
-                                </div>
-
-                            </div>
-
-
-                            {/* INFORMACIÓN VEHÍCULO */}
-
-                            <div className="form-section">
-
-                                <h3>
-                                    Información del vehículo
-                                </h3>
-
-
-                                <div className="form-grid">
-
-                                    <div className="form-group">
-
-                                        <label>
-                                            Tipo de vehículo
-                                        </label>
-
-                                        <select
-                                            value={nuevoTipoVehiculo}
-                                            onChange={(e) => setNuevoTipoVehiculo(e.target.value)}
-                                        >
-                                            <option value="Automóvil">Automóvil</option>
-                                            <option value="SUV">SUV</option>
-                                            <option value="Camioneta">Camioneta</option>
-                                            <option value="Camión">Camión</option>
-                                            <option value="Motocicleta">Motocicleta</option>
-                                            <option value="Otro">Otro</option>
-                                        </select>
-
-                                    </div>
-
-                                    <div className="form-group">
-
-                                        <label>
-                                            Marca
-                                        </label>
-
-                                        <input
-                                            type="text"
-                                            placeholder="Ej. Toyota"
-                                            value={nuevaMarca}
-                                            onChange={(e) => setNuevaMarca(e.target.value)}
-                                        />
-
-                                    </div>
-
-
-                                    <div className="form-group">
-
-                                        <label>
-                                            Modelo
-                                        </label>
-
-                                        <input
-                                            type="text"
-                                            placeholder="Ej. Corolla"
-                                            value={nuevoModelo}
-                                            onChange={(e) => setNuevoModelo(e.target.value)}
-                                        />
-
-                                    </div>
-
-
-                                    <div className="form-group">
-
-                                        <label>
-                                            Placa
-                                        </label>
-
-                                        <input
-                                            type="text"
-                                            placeholder="Ej. ABC-123"
-                                            value={nuevaPlaca}
-                                            onChange={(e) => setNuevaPlaca(e.target.value)}
-                                        />
-
-                                    </div>
-
-
-                                    <div className="form-group">
-
-                                        <label>
-                                            Año
-                                        </label>
-
-                                        <input
-                                            type="number"
-                                            placeholder="Ej. 2024"
-                                            value={nuevoAnio}
-                                            onChange={(e) => setNuevoAnio(e.target.value)}
-                                        />
-
-                                    </div>
-
-
-                                    <div className="form-group">
-
-                                        <label>
-                                            Motor
-                                        </label>
-
-                                        <input
-                                            type="text"
-                                            placeholder="Ej. 2.0"
-                                        />
-
-                                    </div>
-
-
-                                    <div className="form-group">
-
-                                        <label>
-                                            Kilometraje
-                                        </label>
-
-                                        <input
-                                            type="number"
-                                            placeholder="Ej. 45000"
-                                        />
-
-                                    </div>
-
-                                </div>
-
-                            </div>
-
-
-                            {/* FOOTER */}
-
-                            <div className="modal-cliente-footer">
-
-                                <button
-                                    type="button"
-                                    className="btn-cancelar"
-                                    onClick={cerrarFormulario}
-                                >
-                                    Cancelar
-                                </button>
-
-
-                                <button
-                                    type="submit"
-                                    className="btn-guardar-cliente"
-                                >
-
-                                    <span className="material-symbols-outlined">
-                                        save
-                                    </span>
-
-                                    Registrar cliente
-
-                                </button>
-
-                            </div>
-
-                        </form>
-
-                    </div>
-
-                </div>
-
-            )}
-
+            <ModalNuevoCliente
+                isOpen={mostrarFormulario}
+                onClose={() => setMostrarFormulario(false)}
+                onClienteRegistrado={async ({ cliente: nuevoCli, vehiculo: nuevoVeh }) => {
+                    setMostrarFormulario(false);
+                    await cargarDatos();
+                    alert(
+                        "¡Cliente y vehículo registrados correctamente!\n\n" +
+                        `Cliente ID: ${nuevoCli?.cliente_id}\n` +
+                        `Vehículo ID: ${nuevoVeh?.vehiculo_id || "Registrado"}`
+                    );
+                }}
+            />
         </div>
     );
 }

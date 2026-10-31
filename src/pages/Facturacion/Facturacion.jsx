@@ -1,5 +1,6 @@
 
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { useRole } from "../../context/authContext";
 import Remisiones from "../../components/Remisiones/Remisiones";
 import CuentasPorCobrar from "../../components/CuentasPorCobrar/CuentasPorCobrar";
@@ -19,7 +20,6 @@ const SUBMENUS_FACTURACION = [
     "Notas de Crédito",
     "Notas de Débito",
     "Cuentas por Cobrar",
-    "Cotizaciones",
     "Remisiones",
     "Cierre de Caja"
 ];
@@ -28,6 +28,7 @@ function Facturacion() {
 
     const { usuarioActual } = useRole();
 
+    const location = useLocation();
     const [submodulo, setSubmodulo] = useState("Facturas");
 
     const [mostrarWizard, setMostrarWizard] = useState(false);
@@ -52,6 +53,28 @@ function Facturacion() {
     const [cargandoNotasCredito, setCargandoNotasCredito] = useState(false);
     const [cargandoRemisiones, setCargandoRemisiones] = useState(false);
     const [cargandoCierresCaja, setCargandoCierresCaja] = useState(false);
+
+    // Pre-cargar datos si se navega desde el módulo independiente de Cotizaciones con una cotización aprobada
+    useEffect(() => {
+        if (location.state?.cotizacion) {
+            const cot = location.state.cotizacion;
+            if (cot.cliente_id) setClienteFactura(String(cot.cliente_id));
+            if (cot.vehiculo_id) setVehiculoFactura(String(cot.vehiculo_id));
+            if (Array.isArray(cot.detalles) && cot.detalles.length > 0) {
+                setItemsFactura(cot.detalles.map((d, index) => ({
+                    id: index + 1,
+                    item_id: d.item_id || null,
+                    descripcion: d.descripcion,
+                    cantidad: Number(d.cantidad || 1),
+                    precio_unitario: Number(d.precio_unitario || 0),
+                    descuento: Number(d.descuento || 0)
+                })));
+            }
+            setSubmodulo("Facturas");
+            setMostrarWizard(true);
+            setPasoWizard(1);
+        }
+    }, [location.state]);
     const [consultandoFactura, setConsultandoFactura] = useState(null);
 
     // =========================================================
@@ -1244,7 +1267,6 @@ function Facturacion() {
         queueMicrotask(() => {
             if (!activa) return;
             cargarFacturas();
-            cargarCotizaciones();
             cargarNotasCredito();
             cargarNotasDebito();
             cargarRemisiones();
@@ -2847,471 +2869,6 @@ function Facturacion() {
                     </div>
                 );
             })()}
-
-            {/* =================================================
-                COTIZACIONES
-            ================================================= */}
-
-            {submodulo === "Cotizaciones" && (
-
-                <div
-                    className="os-table-wrapper"
-                    style={{
-                        marginTop: "16px"
-                    }}
-                >
-
-                    <div
-                        style={{
-                            padding: "12px 16px",
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center"
-                        }}
-                    >
-
-                        <h3>
-                            Lista de Cotizaciones
-                        </h3>
-
-                        <button
-                            className="btn-act-table link"
-                            style={{
-                                padding: "8px 16px"
-                            }}
-                            type="button"
-                            onClick={abrirModalCotizacion}
-                        >
-                            + Nueva Cotización
-                        </button>
-
-                    </div>
-
-                    {mostrarModalCotizacion && (
-                        <div
-                            style={{
-                                background: "#ffffff",
-                                border: "1px solid #e2e8f0",
-                                borderRadius: "12px",
-                                padding: "20px",
-                                margin: "0 0 18px 0"
-                            }}
-                        >
-                            <div
-                                style={{
-                                    display: "flex",
-                                    justifyContent: "space-between",
-                                    alignItems: "center",
-                                    marginBottom: "16px"
-                                }}
-                            >
-                                <h3 style={{ margin: 0 }}>Registrar cotización</h3>
-                                <button
-                                    type="button"
-                                    className="btn-act-table nps"
-                                    onClick={cerrarModalCotizacion}
-                                >
-                                    Cerrar
-                                </button>
-                            </div>
-
-                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-                                <div>
-                                    <label style={{ display: "block", marginBottom: "6px", fontWeight: 600 }}>Cliente</label>
-                                    <select
-                                        value={cotizacionCliente}
-                                        onChange={(e) => {
-                                            setCotizacionCliente(e.target.value);
-                                            setCotizacionVehiculo("");
-                                        }}
-                                        style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
-                                    >
-                                        <option value="">Seleccione un cliente</option>
-                                        {clientes.map((cliente) => (
-                                            <option key={cliente.cliente_id ?? cliente.id} value={cliente.cliente_id ?? cliente.id}>
-                                                {cliente.nombre_razon_social || cliente.nombre || cliente.razon_social || `Cliente ${cliente.cliente_id ?? cliente.id}`}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label style={{ display: "block", marginBottom: "6px", fontWeight: 600 }}>Vehículo</label>
-                                    <select
-                                        value={cotizacionVehiculo}
-                                        onChange={(e) => setCotizacionVehiculo(e.target.value)}
-                                        disabled={!cotizacionCliente}
-                                        style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
-                                    >
-                                        <option value="">Seleccione un vehículo</option>
-                                        {vehiculosClienteCotizacion.map((vehiculo) => (
-                                            <option key={vehiculo.vehiculo_id} value={vehiculo.vehiculo_id}>
-                                                {vehiculo.marca} {vehiculo.modelo} - {vehiculo.placa}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div style={{ marginTop: "18px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "14px" }}>
-                                <h4 style={{ margin: "0 0 12px" }}>Items de cotización</h4>
-
-                                <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 0.8fr 0.7fr auto", gap: "10px", alignItems: "end" }}>
-                                    <div>
-                                        <label style={{ display: "block", marginBottom: "6px", fontWeight: 600 }}>Descripción</label>
-                                        <input
-                                            type="text"
-                                            value={nuevoItemCotizacionDesc}
-                                            onChange={(e) => setNuevoItemCotizacionDesc(e.target.value)}
-                                            style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label style={{ display: "block", marginBottom: "6px", fontWeight: 600 }}>Precio</label>
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            step="0.01"
-                                            value={nuevoItemCotizacionPrecio}
-                                            onChange={(e) => setNuevoItemCotizacionPrecio(e.target.value)}
-                                            style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label style={{ display: "block", marginBottom: "6px", fontWeight: 600 }}>Cantidad</label>
-                                        <input
-                                            type="number"
-                                            min="1"
-                                            step="1"
-                                            value={nuevoItemCotizacionCantidad}
-                                            onChange={(e) => setNuevoItemCotizacionCantidad(e.target.value)}
-                                            style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label style={{ display: "block", marginBottom: "6px", fontWeight: 600 }}>Desc.</label>
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            step="0.01"
-                                            value={nuevoItemCotizacionDescuento}
-                                            onChange={(e) => setNuevoItemCotizacionDescuento(e.target.value)}
-                                            style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
-                                        />
-                                    </div>
-
-                                    <button
-                                        type="button"
-                                        className="btn-act-table link"
-                                        onClick={agregarItemCotizacion}
-                                    >
-                                        Agregar
-                                    </button>
-                                </div>
-
-                                <div style={{ marginTop: "14px" }}>
-                                    {itemsCotizacion.length === 0 ? (
-                                        <div style={{ color: "#64748b", padding: "8px 0" }}>Todavía no hay items agregados.</div>
-                                    ) : (
-                                        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                                            <thead>
-                                                <tr>
-                                                    <th style={{ textAlign: "left", padding: "8px 6px" }}>Descripción</th>
-                                                    <th style={{ textAlign: "right", padding: "8px 6px" }}>Cant.</th>
-                                                    <th style={{ textAlign: "right", padding: "8px 6px" }}>P. Unit</th>
-                                                    <th style={{ textAlign: "right", padding: "8px 6px" }}>Desc.</th>
-                                                    <th style={{ textAlign: "right", padding: "8px 6px" }}>Total</th>
-                                                    <th style={{ textAlign: "center", padding: "8px 6px" }}>Acción</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {itemsCotizacion.map((item) => {
-                                                    const subtotal = Number(item.cantidad) * Number(item.precio_unitario);
-                                                    const totalItem = subtotal - Number(item.descuento || 0);
-                                                    return (
-                                                        <tr key={item.id}>
-                                                            <td style={{ padding: "8px 6px" }}>{item.descripcion}</td>
-                                                            <td style={{ textAlign: "right", padding: "8px 6px" }}>{item.cantidad}</td>
-                                                            <td style={{ textAlign: "right", padding: "8px 6px" }}>{moneda(item.precio_unitario)}</td>
-                                                            <td style={{ textAlign: "right", padding: "8px 6px" }}>{moneda(item.descuento || 0)}</td>
-                                                            <td style={{ textAlign: "right", padding: "8px 6px" }}>{moneda(totalItem)}</td>
-                                                            <td style={{ textAlign: "center", padding: "8px 6px" }}>
-                                                                <button type="button" className="btn-act-table diag" onClick={() => eliminarItemCotizacion(item.id)}>
-                                                                    Quitar
-                                                                </button>
-                                                            </td>
-                                                        </tr>
-                                                    );
-                                                })}
-                                            </tbody>
-                                        </table>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "18px" }}>
-                                <strong>Total cotización: {moneda(totalCotizacion)}</strong>
-                                <button
-                                    type="button"
-                                    className="btn-act-table link"
-                                    onClick={guardarCotizacion}
-                                    disabled={guardandoCotizacion}
-                                    style={{ opacity: guardandoCotizacion ? 0.7 : 1 }}
-                                >
-                                    {guardandoCotizacion ? "Guardando..." : "Guardar Cotización"}
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
-                    <table className="os-table">
-
-                        <thead>
-
-                            <tr>
-
-                                <th>ID Cotización</th>
-
-                                <th>Fecha</th>
-
-                                <th>Cliente</th>
-
-                                <th>Vehículo</th>
-
-                                <th>Subtotal</th>
-
-                                <th>Impuestos</th>
-
-                                <th>Total</th>
-
-                                <th>Estado</th>
-
-                                <th>Acciones</th>
-
-                            </tr>
-
-                        </thead>
-
-                        <tbody>
-
-                            {cargandoCotizaciones ? (
-
-                                <tr>
-
-                                    <td
-                                        colSpan="9"
-                                        style={{
-                                            textAlign:
-                                                "center",
-                                            padding:
-                                                "30px"
-                                        }}
-                                    >
-                                        Cargando cotizaciones...
-                                    </td>
-
-                                </tr>
-
-                            ) : cotizacionesList.length === 0 ? (
-
-                                <tr>
-
-                                    <td
-                                        colSpan="9"
-                                        style={{
-                                            textAlign:
-                                                "center",
-                                            padding:
-                                                "30px"
-                                        }}
-                                    >
-                                        No existen cotizaciones.
-                                    </td>
-
-                                </tr>
-
-                            ) : (
-
-                                cotizacionesList.map(
-                                    (cotizacion) => (
-
-                                        <tr
-                                            key={
-                                                cotizacion.cotizacion_id
-                                            }
-                                        >
-
-                                            <td>
-
-                                                <strong>
-                                                    {
-                                                        cotizacion.codigo_cotizacion
-                                                    }
-                                                </strong>
-
-                                            </td>
-
-                                            <td>
-                                                {fecha(
-                                                    cotizacion.fecha
-                                                )}
-                                            </td>
-
-                                            <td>
-                                                {
-                                                    cotizacion.cliente_nombre ||
-                                                    cotizacion.nombre_razon_social ||
-                                                    obtenerNombreCliente(
-                                                        cotizacion.cliente_id
-                                                    )
-                                                }
-                                            </td>
-
-                                            <td>
-                                                {
-                                                    cotizacion.vehiculo_placa
-                                                        ? `${cotizacion.vehiculo_placa}${cotizacion.vehiculo_modelo ? ` (${cotizacion.vehiculo_modelo})` : ""}`
-                                                        : "-"
-                                                }
-                                            </td>
-
-                                            <td>
-                                                {moneda(
-                                                    cotizacion.subtotal || 0
-                                                )}
-                                            </td>
-
-                                            <td>
-                                                {moneda(
-                                                    cotizacion.impuestos || 0
-                                                )}
-                                            </td>
-
-                                            <td>
-
-                                                <strong>
-                                                    {moneda(
-                                                        cotizacion.total
-                                                    )}
-                                                </strong>
-
-                                            </td>
-
-                                            <td>
-
-                                                <span
-                                                    className={
-                                                        `proc-tag ${cotizacion.estado ===
-                                                            "Aprobada"
-                                                            ? "preventivo"
-                                                            : "correctivo"
-                                                        }`
-                                                    }
-                                                >
-                                                    {
-                                                        cotizacion.estado
-                                                    }
-                                                </span>
-
-                                            </td>
-
-                                            <td>
-                                                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                                                    {cotizacion.estado === "Pendiente" && (
-                                                        <>
-                                                            <button
-                                                                className="btn-act-table success"
-                                                                type="button"
-                                                                onClick={async () => {
-                                                                    await actualizarEstadoCotizacion(cotizacion.cotizacion_id, "aprobar");
-                                                                }}
-                                                            >
-                                                                Aprobar
-                                                            </button>
-                                                            <button
-                                                                className="btn-act-table danger"
-                                                                type="button"
-                                                                onClick={async () => {
-                                                                    await actualizarEstadoCotizacion(
-                                                                        cotizacion.cotizacion_id,
-                                                                        "rechazar",
-                                                                        "No cumple requisitos para continuar con la venta."
-                                                                    );
-                                                                }}
-                                                            >
-                                                                Rechazar
-                                                            </button>
-                                                        </>
-                                                    )}
-
-                                                    <button
-                                                        className="btn-act-table nps"
-                                                        type="button"
-                                                        disabled={cotizacion.estado !== "Aprobada"}
-                                                        onClick={() => {
-                                                            if (cotizacion.estado !== "Aprobada") {
-                                                                alert("La cotización debe estar aprobada antes de facturar.");
-                                                                return;
-                                                            }
-                                                            setClienteFactura(String(cotizacion.cliente_id));
-                                                            const clienteCotizacion =
-                                                                clientes.find(
-                                                                    (cliente) =>
-                                                                        String(
-                                                                            cliente.cliente_id ??
-                                                                            cliente.id
-                                                                        ) ===
-                                                                        String(
-                                                                            cotizacion.cliente_id
-                                                                        )
-                                                                );
-
-                                                            setTipoComprobante(
-                                                                obtenerTipoComprobanteCliente(
-                                                                    clienteCotizacion
-                                                                )
-                                                            );
-
-                                                            if (cotizacion.vehiculo_id) {
-                                                                setVehiculoFactura(String(cotizacion.vehiculo_id));
-                                                            }
-                                                            if (Array.isArray(cotizacion.detalles) && cotizacion.detalles.length > 0) {
-                                                                setItemsFactura(cotizacion.detalles.map((d, index) => ({
-                                                                    id: index + 1,
-                                                                    item_id: d.item_id || null,
-                                                                    descripcion: d.descripcion,
-                                                                    cantidad: Number(d.cantidad || 1),
-                                                                    precio_unitario: Number(d.precio_unitario || 0),
-                                                                    descuento: Number(d.descuento || 0)
-                                                                })));
-                                                            }
-                                                            setMostrarWizard(true);
-                                                            setPasoWizard(1);
-                                                        }}
-                                                    >
-                                                        Facturar
-                                                    </button>
-                                                </div>
-
-                                            </td>
-
-                                        </tr>
-
-                                    )
-                                )
-
-                            )}
-
-                        </tbody>
-
-                    </table>
-
-                </div>
-
-            )}
 
             {/* =================================================
                 REMISIONES

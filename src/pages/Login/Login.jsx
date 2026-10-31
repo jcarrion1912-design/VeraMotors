@@ -16,7 +16,10 @@ function Login() {
     const [error, setError] = useState("");
 
     useEffect(() => {
-        if (usuarioActual?.activo) navigate("/dashboard", { replace: true });
+        if (usuarioActual?.activo) {
+            const destino = usuarioActual.rol?.trim() === "Técnico Automotriz" ? "/kanban" : "/dashboard";
+            navigate(destino, { replace: true });
+        }
     }, [navigate, usuarioActual]);
 
 
@@ -50,7 +53,8 @@ function Login() {
             // ==========================================
             // IR AL DASHBOARD
             // ==========================================
-            navigate("/dashboard", {
+            const destino = data.rol?.trim() === "Técnico Automotriz" ? "/kanban" : "/dashboard";
+            navigate(destino, {
                 replace: true
             });
 

@@ -15,11 +15,14 @@ function ProtectedRoute({ children, rolesPermitidos = [] }) {
         );
     }
 
+    const rolUsuario = usuarioActual?.rol ? String(usuarioActual.rol).trim() : "";
+
     if (
         rolesPermitidos.length > 0 &&
-        !rolesPermitidos.includes(usuarioActual.rol)
+        !rolesPermitidos.some((r) => String(r).trim() === rolUsuario)
     ) {
-        return <Navigate to="/dashboard" replace />;
+        const rutaFallback = rolUsuario === "Técnico Automotriz" ? "/kanban" : "/dashboard";
+        return <Navigate to={rutaFallback} replace />;
     }
 
     return children;

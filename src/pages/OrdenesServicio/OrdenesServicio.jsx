@@ -421,7 +421,7 @@ function OrdenesServicio() {
                     requiere_diagnostico: realizaraDiagnostico === "Sí",
                     cotizacion_previa: cotizacionPrevia,
                     tipo_procedimiento: procedimiento,
-                            motivo_detallado: motivoDetallado.trim(),
+                    motivo_detallado: motivoDetallado.trim(),
                     fotos_ingreso: fotosMotivo,
                     cliente: clienteSeleccionadoNombre,
                     asesor_asignado: asesorSeleccionadoNombre,
@@ -749,7 +749,7 @@ function OrdenesServicio() {
                                         <option value="">Seleccione un vehículo</option>
                                         {vehiculosCliente.map((vehiculo) => (
                                             <option key={vehiculo.vehiculo_id} value={vehiculo.vehiculo_id}>
-                                                {vehiculo.marca} {vehiculo.modelo} - {vehiculo.placa}
+                                                {vehiculo.marca} {vehiculo.modelo} / {vehiculo.placa}
                                             </option>
                                         ))}
                                     </select>
