@@ -20,13 +20,21 @@ class DetalleRecepcionCreate(DetalleRecepcionBase):
 
 
 class RecepcionCreate(BaseModel):
-    compra_id: int
-    proveedor_id: int
+    recepcion_id: Optional[int] = Field(default=None, gt=0)
+    compra_id: Optional[int] = Field(default=None, gt=0)
+    proveedor_id: Optional[int] = Field(default=None, gt=0)
     usuario_id: int
-    estado: str = Field(default="Confirmada")
+    estado: Optional[str] = None
     observaciones: Optional[str] = None
     confirmar: bool = True
     detalles: List[DetalleRecepcionCreate] = Field(default_factory=list)
+
+
+class DetalleRecepcionResponse(DetalleRecepcionBase):
+    detalle_recepcion_id: int
+
+    class Config:
+        from_attributes = True
 
 
 class RecepcionResponse(BaseModel):
@@ -37,7 +45,7 @@ class RecepcionResponse(BaseModel):
     fecha_recepcion: datetime
     estado: str
     observaciones: Optional[str] = None
-    detalles: List[DetalleRecepcionBase] = Field(default_factory=list)
+    detalles: List[DetalleRecepcionResponse] = Field(default_factory=list)
 
     class Config:
         from_attributes = True

@@ -1,5 +1,5 @@
 from decimal import Decimal
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -50,3 +50,15 @@ class InventarioResponse(InventarioBase):
 
     class Config:
         from_attributes = True
+
+
+class DetalleSalidaInventario(BaseModel):
+    item_id: int = Field(..., gt=0)
+    cantidad: Decimal = Field(..., gt=0, max_digits=12, decimal_places=2)
+
+
+class SalidaInventarioCreate(BaseModel):
+    usuario_id: int = Field(..., gt=0)
+    referencia: str = Field(..., min_length=1, max_length=100)
+    observaciones: Optional[str] = None
+    detalles: List[DetalleSalidaInventario] = Field(..., min_length=1)

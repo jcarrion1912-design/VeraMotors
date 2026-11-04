@@ -22,7 +22,6 @@ from app.routers import (
     ia_rag,
     notas_credito,
     notas_debito,
-    remisiones,
     cierre_caja,
     cuentas_por_cobrar,
     pagos,
@@ -185,14 +184,6 @@ app.include_router(
     prefix=f"{settings.API_V1_STR}/notas-debito",
     tags=["Notas de Débito"]
 )
-
-# Remisiones
-app.include_router(
-    remisiones.router,
-    prefix=f"{settings.API_V1_STR}/remisiones",
-    tags=["Remisiones"]
-)
-
 
 # Cierre de Caja
 app.include_router(

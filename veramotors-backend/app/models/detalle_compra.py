@@ -14,7 +14,12 @@ class DetalleCompra(Base):
         nullable=False,
         index=True,
     )
-    item_id = Column(BigInteger, nullable=False)
+    item_id = Column(
+        BigInteger,
+        ForeignKey("inventario.item_id", onupdate="CASCADE", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
+    )
     cantidad = Column(Numeric(12, 2), nullable=False, default=0)
     precio_unitario = Column(Numeric(12, 2), nullable=False, default=0)
     descuento = Column(Numeric(12, 2), nullable=False, default=0)
@@ -22,3 +27,4 @@ class DetalleCompra(Base):
     total = Column(Numeric(12, 2), nullable=False, default=0)
 
     compra = relationship("Compra", back_populates="detalles")
+    item = relationship("Inventario", foreign_keys=[item_id], lazy="joined")

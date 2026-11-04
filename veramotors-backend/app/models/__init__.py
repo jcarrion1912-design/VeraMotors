@@ -9,8 +9,6 @@ from app.models.ods import OrdenServicio
 from app.models.factura import Factura
 from app.models.detalle_factura import DetalleFactura
 from app.models.nota_credito import NotaCredito
-from app.models.remision import Remision
-from app.models.detalle_remision import DetalleRemision
 from app.models.cierre_caja import CierreCaja
 from app.models.asistencia import Asistencia
 from app.models.configuracion_correlativo import ConfiguracionCorrelativo
@@ -46,8 +44,6 @@ __all__ = [
     "Factura",
     "DetalleFactura",
     "NotaCredito",
-    "Remision",
-    "DetalleRemision",
     "CierreCaja",
     "Asistencia",
     "ConfiguracionCorrelativo",

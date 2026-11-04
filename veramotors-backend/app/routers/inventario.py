@@ -1,19 +1,26 @@
+import logging
+from decimal import Decimal
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import func, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.inventario import Inventario
 from app.models.categoria import Categoria
+from app.models.movimiento_inventario import MovimientoInventario
+from app.models.usuario import Usuario
 from app.schemas.inventario import (
     InventarioCreate,
     InventarioResponse,
+    SalidaInventarioCreate,
     InventarioUpdate,
 )
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 def serializar_item(item: Inventario):
@@ -298,3 +305,112 @@ def desactivar_item(
         "message": "Ítem desactivado correctamente.",
         "item_id": item.item_id,
     }
+
+
+@router.post("/salidas", status_code=201)
+def registrar_salida_inventario(
+    datos: SalidaInventarioCreate,
+    db: Session = Depends(get_db),
+):
+    referencia = datos.referencia.strip()
+    if not referencia:
+        raise HTTPException(status_code=400, detail="La referencia de salida es obligatoria.")
+
+    item_ids = [detalle.item_id for detalle in datos.detalles]
+    if len(item_ids) != len(set(item_ids)):
+        raise HTTPException(status_code=400, detail="Cada producto debe aparecer una sola vez en la salida.")
+
+    try:
+        db.execute(
+            text("SELECT pg_advisory_xact_lock(hashtext(:lock_key))"),
+            {"lock_key": f"inventario-salida:{referencia.lower()}"},
+        )
+
+        salida_existente = (
+            db.query(MovimientoInventario.movimiento_id)
+            .filter(
+                MovimientoInventario.tipo_movimiento == "Salida",
+                func.lower(MovimientoInventario.referencia) == referencia.lower(),
+            )
+            .first()
+        )
+        if salida_existente:
+            raise HTTPException(
+                status_code=409,
+                detail="Ya existe una salida de inventario con esa referencia.",
+            )
+
+        usuario = (
+            db.query(Usuario)
+            .filter(
+                Usuario.user_id == datos.usuario_id,
+                Usuario.activo.is_(True),
+            )
+            .first()
+        )
+        if not usuario:
+            raise HTTPException(status_code=400, detail="El usuario no existe o está inactivo.")
+
+        items = {}
+        for item_id in sorted(item_ids):
+            item = (
+                db.query(Inventario)
+                .filter(Inventario.item_id == item_id)
+                .with_for_update(of=Inventario)
+                .first()
+            )
+            if not item or not item.activo:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"El producto {item_id} no existe o está inactivo.",
+                )
+            items[item_id] = item
+
+        movimientos = []
+        for detalle in datos.detalles:
+            item = items[detalle.item_id]
+            cantidad = Decimal(str(detalle.cantidad))
+            stock_anterior = Decimal(str(item.stock_actual))
+            if cantidad > stock_anterior:
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"Stock insuficiente para {item.nombre_nomenclatura}. Disponible: {stock_anterior}.",
+                )
+
+            stock_nuevo = stock_anterior - cantidad
+            item.stock_actual = stock_nuevo
+            db.add(
+                MovimientoInventario(
+                    item_id=item.item_id,
+                    usuario_id=usuario.user_id,
+                    tipo_movimiento="Salida",
+                    cantidad=cantidad,
+                    stock_anterior=stock_anterior,
+                    stock_nuevo=stock_nuevo,
+                    referencia=referencia,
+                    observaciones=datos.observaciones,
+                )
+            )
+            movimientos.append(
+                {
+                    "item_id": item.item_id,
+                    "cantidad": cantidad,
+                    "stock_anterior": stock_anterior,
+                    "stock_nuevo": stock_nuevo,
+                }
+            )
+
+        db.commit()
+        return {"referencia": referencia, "movimientos": movimientos}
+
+    except HTTPException:
+        db.rollback()
+        raise
+    except IntegrityError:
+        db.rollback()
+        logger.exception("Error de integridad registrando salida de inventario: %s", referencia)
+        raise HTTPException(status_code=409, detail="No se pudo registrar la salida de inventario.")
+    except Exception:
+        db.rollback()
+        logger.exception("Error registrando salida de inventario: %s", referencia)
+        raise HTTPException(status_code=500, detail="No se pudo registrar la salida de inventario.")

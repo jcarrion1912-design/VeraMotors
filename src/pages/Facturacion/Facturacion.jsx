@@ -2,7 +2,6 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useRole } from "../../context/authContext";
-import Remisiones from "../../components/Remisiones/Remisiones";
 import CuentasPorCobrar from "../../components/CuentasPorCobrar/CuentasPorCobrar";
 import Caja from "../../components/Caja/Caja";
 import {
@@ -20,7 +19,6 @@ const SUBMENUS_FACTURACION = [
     "Notas de Crédito",
     "Notas de Débito",
     "Cuentas por Cobrar",
-    "Remisiones",
     "Cierre de Caja"
 ];
 
@@ -41,7 +39,6 @@ function Facturacion() {
     const [facturasList, setFacturasList] = useState([]);
     const [cotizacionesList, setCotizacionesList] = useState([]);
     const [notasCreditoList, setNotasCreditoList] = useState([]);
-    const [remisionesList, setRemisionesList] = useState([]);
     const [cierresCajaList, setCierresCajaList] = useState([]);
 
     const [clientes, setClientes] = useState([]);
@@ -51,7 +48,6 @@ function Facturacion() {
     const [cargandoFacturas, setCargandoFacturas] = useState(false);
     const [cargandoCotizaciones, setCargandoCotizaciones] = useState(false);
     const [cargandoNotasCredito, setCargandoNotasCredito] = useState(false);
-    const [cargandoRemisiones, setCargandoRemisiones] = useState(false);
     const [cargandoCierresCaja, setCargandoCierresCaja] = useState(false);
 
     // Pre-cargar datos si se navega desde el módulo independiente de Cotizaciones con una cotización aprobada
@@ -855,66 +851,6 @@ function Facturacion() {
     };
 
     // =========================================================
-    // CARGAR REMISIONES
-    // =========================================================
-
-    const cargarRemisiones = async () => {
-
-        try {
-
-            setCargandoRemisiones(true);
-
-            const response = await fetch(
-                `${API_URL}/remisiones`
-            );
-
-            if (!response.ok) {
-
-                const errorText = await response.text();
-
-                console.error(
-                    "Error HTTP remisiones:",
-                    response.status,
-                    errorText
-                );
-
-                throw new Error(
-                    `Error ${response.status} al cargar remisiones.`
-                );
-            }
-
-            const data = await response.json();
-
-            console.log(
-                "Remisiones recibidas:",
-                data
-            );
-
-            setRemisionesList(
-                Array.isArray(data) ? data : []
-            );
-
-        } catch (error) {
-
-            console.error(
-                "Error cargando remisiones:",
-                error
-            );
-
-            setRemisionesList([]);
-
-            alert(
-                "No se pudieron cargar las remisiones."
-            );
-
-        } finally {
-
-            setCargandoRemisiones(false);
-
-        }
-    };
-
-    // =========================================================
     // CARGAR CIERRES DE CAJA
     // =========================================================
 
@@ -1269,7 +1205,6 @@ function Facturacion() {
             cargarFacturas();
             cargarNotasCredito();
             cargarNotasDebito();
-            cargarRemisiones();
             cargarCierresCaja();
             cargarClientes();
             cargarVehiculos();
@@ -1811,30 +1746,6 @@ function Facturacion() {
             cliente.razon_social ||
             cliente.cliente_id
         );
-    };
-
-    // =========================================================
-    // NOMBRE VEHÍCULO
-    // =========================================================
-
-    const obtenerVehiculo = (vehiculoId) => {
-
-        const vehiculo = vehiculos.find(
-            (item) =>
-                String(
-                    item.vehiculo_id
-                ) === String(vehiculoId)
-        );
-
-        if (!vehiculo) {
-            return vehiculoId || "-";
-        }
-
-        return `${vehiculo.marca || ""} ${vehiculo.modelo || ""
-            } ${vehiculo.placa
-                ? `(${vehiculo.placa})`
-                : ""
-            }`;
     };
 
     // =========================================================
@@ -2869,240 +2780,6 @@ function Facturacion() {
                     </div>
                 );
             })()}
-
-            {/* =================================================
-                REMISIONES
-            ================================================= */}
-
-            {submodulo === "Remisiones" && <Remisiones />}
-
-            {submodulo === "RemisionesLegacy" && (
-
-                <div
-                    className="os-table-wrapper"
-                    style={{
-                        marginTop: "16px"
-                    }}
-                >
-
-                    <div
-                        style={{
-                            padding: "12px 16px",
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center"
-                        }}
-                    >
-
-                        <div>
-
-                            <h3>
-                                Remisiones
-                            </h3>
-
-                            <p
-                                style={{
-                                    margin: "4px 0",
-                                    color: "#64748b"
-                                }}
-                            >
-                                Guías de remisión registradas
-                                en PostgreSQL.
-                            </p>
-
-                        </div>
-
-                    </div>
-
-                    <table className="os-table">
-
-                        <thead>
-
-                            <tr>
-
-                                <th>N° Remisión</th>
-
-                                <th>Fecha</th>
-
-                                <th>Cliente</th>
-
-                                <th>Vehículo</th>
-
-                                <th>ODS</th>
-
-                                <th>Motivo Traslado</th>
-
-                                <th>Punto Partida</th>
-
-                                <th>Punto Llegada</th>
-
-                                <th>Estado</th>
-
-                                <th>Estado SUNAT</th>
-
-                            </tr>
-
-                        </thead>
-
-                        <tbody>
-
-                            {cargandoRemisiones ? (
-
-                                <tr>
-
-                                    <td
-                                        colSpan="10"
-                                        style={{
-                                            textAlign: "center",
-                                            padding: "30px"
-                                        }}
-                                    >
-                                        Cargando remisiones...
-                                    </td>
-
-                                </tr>
-
-                            ) : remisionesList.length === 0 ? (
-
-                                <tr>
-
-                                    <td
-                                        colSpan="10"
-                                        style={{
-                                            textAlign: "center",
-                                            padding: "30px"
-                                        }}
-                                    >
-                                        No existen remisiones
-                                        registradas.
-                                    </td>
-
-                                </tr>
-
-                            ) : (
-
-                                remisionesList.map(
-                                    (remision) => (
-
-                                        <tr
-                                            key={
-                                                remision.remision_id
-                                            }
-                                        >
-
-                                            <td>
-
-                                                <strong>
-                                                    {
-                                                        remision.numero_remision
-                                                    }
-                                                </strong>
-
-                                            </td>
-
-                                            <td>
-                                                {fecha(
-                                                    remision.fecha_emision
-                                                )}
-                                            </td>
-
-                                            <td>
-                                                {
-                                                    remision.cliente_nombre ||
-                                                    remision.nombre_razon_social ||
-                                                    obtenerNombreCliente(
-                                                        remision.cliente_id
-                                                    )
-                                                }
-                                            </td>
-
-                                            <td>
-                                                {obtenerVehiculo(
-                                                    remision.vehiculo_id
-                                                )}
-                                            </td>
-
-                                            <td>
-                                                {
-                                                    remision.ods_id ||
-                                                    "-"
-                                                }
-                                            </td>
-
-                                            <td>
-                                                {
-                                                    remision.motivo_traslado
-                                                }
-                                            </td>
-
-                                            <td>
-                                                {
-                                                    remision.punto_partida ||
-                                                    "-"
-                                                }
-                                            </td>
-
-                                            <td>
-                                                {
-                                                    remision.punto_llegada ||
-                                                    "-"
-                                                }
-                                            </td>
-
-                                            <td>
-
-                                                <span
-                                                    className={
-                                                        `proc-tag ${remision.estado ===
-                                                            "Emitida" ||
-                                                            remision.estado ===
-                                                            "Aceptada"
-                                                            ? "preventivo"
-                                                            : "correctivo"
-                                                        }`
-                                                    }
-                                                >
-                                                    {
-                                                        remision.estado ||
-                                                        "Pendiente"
-                                                    }
-                                                </span>
-
-                                            </td>
-
-                                            <td>
-
-                                                <span
-                                                    className={
-                                                        `proc-tag ${remision.estado_sunat ===
-                                                            "Aceptado"
-                                                            ? "preventivo"
-                                                            : "correctivo"
-                                                        }`
-                                                    }
-                                                >
-                                                    {
-                                                        remision.estado_sunat ||
-                                                        "Pendiente"
-                                                    }
-                                                </span>
-
-                                            </td>
-
-                                        </tr>
-
-                                    )
-                                )
-
-                            )}
-
-                        </tbody>
-
-                    </table>
-
-                </div>
-
-            )}
 
             {/* =================================================
                 CIERRE DE CAJA
@@ -4752,4 +4429,3 @@ function Facturacion() {
 }
 
 export default Facturacion;
-

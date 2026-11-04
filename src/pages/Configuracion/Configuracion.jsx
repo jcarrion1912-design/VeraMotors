@@ -1490,8 +1490,9 @@ function Configuracion() {
                                 <tbody>
                                     {series
                                         .slice()
+                                        .filter((serie) => serie.tipo_documento !== "REMISION")
                                         .sort((a, b) => {
-                                            const orden = ["FACTURA", "BOLETA", "COTIZACION", "ODS", "NOTA_CREDITO", "REMISION", "COMPRA"];
+                                            const orden = ["FACTURA", "BOLETA", "COTIZACION", "ODS", "NOTA_CREDITO", "COMPRA"];
                                             return orden.indexOf(a.tipo_documento) - orden.indexOf(b.tipo_documento);
                                         })
                                         .map((serie) => {
@@ -1501,7 +1502,6 @@ function Configuracion() {
                                                 COTIZACION: { nombre: "Cotización de Servicios", icono: "📋", desc: "Presupuesto previo al servicio" },
                                                 ODS: { nombre: "Orden de Servicio (ODS)", icono: "🔧", desc: "Ingreso de vehículo al taller" },
                                                 NOTA_CREDITO: { nombre: "Nota de Crédito", icono: "↩️", desc: "Anulación o devolución parcial" },
-                                                REMISION: { nombre: "Guía de Remisión", icono: "🚚", desc: "Traslado de bienes / repuestos" },
                                                 COMPRA: { nombre: "Orden de Compra (ODC)", icono: "🛒", desc: "Compras a proveedores" },
                                             };
                                             const meta = etiquetas[serie.tipo_documento] || { nombre: serie.tipo_documento, icono: "📄", desc: "Documento interno" };
@@ -1988,4 +1988,3 @@ function Configuracion() {
 
 
 export default Configuracion;
-

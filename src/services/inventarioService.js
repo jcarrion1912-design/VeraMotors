@@ -119,3 +119,21 @@ export const desactivarItem = async (
 
     return procesarRespuesta(res);
 };
+
+
+export const registrarSalidaInventario = async (datos) => {
+
+    const res = await fetch(
+        `${API_URL}/salidas`,
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            body: JSON.stringify(datos)
+        }
+    );
+
+    return procesarRespuesta(res);
+};

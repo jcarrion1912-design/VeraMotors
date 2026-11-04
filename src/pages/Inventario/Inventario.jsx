@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import "./Inventario.css";
+import { useRole } from "../../context/authContext";
 
 import {
     obtenerInventario,
     obtenerCategoriasInventario,
     crearItem,
     actualizarItem,
-    desactivarItem
+    desactivarItem,
+    registrarSalidaInventario
 } from "../../services/inventarioService";
 
 
@@ -27,6 +29,8 @@ const estadoInicial = {
 
 
 function Inventario() {
+
+    const { usuarioActual } = useRole();
 
     const [submodulo, setSubmodulo] =
         useState("Ítem de venta");
@@ -63,6 +67,27 @@ function Inventario() {
 
     const [nuevoProducto, setNuevoProducto] =
         useState(estadoInicial);
+
+    const [mostrarSalidaInventario, setMostrarSalidaInventario] =
+        useState(false);
+
+    const [referenciaSalida, setReferenciaSalida] =
+        useState("");
+
+    const [observacionesSalida, setObservacionesSalida] =
+        useState("");
+
+    const [productoSalida, setProductoSalida] =
+        useState("");
+
+    const [cantidadSalida, setCantidadSalida] =
+        useState("1");
+
+    const [detallesSalida, setDetallesSalida] =
+        useState([]);
+
+    const [guardandoSalida, setGuardandoSalida] =
+        useState(false);
 
 
     const cargarDatos = async () => {
@@ -410,6 +435,97 @@ function Inventario() {
         }
     };
 
+    const abrirSalidaInventario = () => {
+        setReferenciaSalida("");
+        setObservacionesSalida("");
+        setProductoSalida("");
+        setCantidadSalida("1");
+        setDetallesSalida([]);
+        setMostrarSalidaInventario(true);
+    };
+
+
+    const agregarDetalleSalida = () => {
+        const producto = productos.find(
+            (item) => String(item.id) === productoSalida
+        );
+        const cantidad = Number(cantidadSalida);
+
+        if (!producto || !Number.isFinite(cantidad) || cantidad <= 0) {
+            alert("Selecciona un producto e ingresa una cantidad válida.");
+            return;
+        }
+
+        const cantidadExistente = detallesSalida
+            .filter((detalle) => detalle.item_id === producto.id)
+            .reduce((total, detalle) => total + detalle.cantidad, 0);
+
+        if (cantidadExistente + cantidad > producto.stock) {
+            alert(`Stock insuficiente para ${producto.nombre}. Disponible: ${producto.stock}.`);
+            return;
+        }
+
+        setDetallesSalida((actuales) => {
+            const existente = actuales.find(
+                (detalle) => detalle.item_id === producto.id
+            );
+
+            if (existente) {
+                return actuales.map((detalle) =>
+                    detalle.item_id === producto.id
+                        ? { ...detalle, cantidad: detalle.cantidad + cantidad }
+                        : detalle
+                );
+            }
+
+            return [
+                ...actuales,
+                { item_id: producto.id, cantidad }
+            ];
+        });
+        setProductoSalida("");
+        setCantidadSalida("1");
+    };
+
+
+    const guardarSalidaInventario = async (event) => {
+        event.preventDefault();
+
+        if (!usuarioActual?.user_id) {
+            alert("Inicia sesión para registrar una salida de inventario.");
+            return;
+        }
+
+        if (!referenciaSalida.trim()) {
+            alert("Ingresa una referencia única para la salida.");
+            return;
+        }
+
+        if (!detallesSalida.length) {
+            alert("Agrega al menos un producto a la salida.");
+            return;
+        }
+
+        try {
+            setGuardandoSalida(true);
+            await registrarSalidaInventario({
+                usuario_id: usuarioActual.user_id,
+                referencia: referenciaSalida.trim(),
+                observaciones: observacionesSalida.trim() || null,
+                detalles: detallesSalida
+            });
+
+            alert("Salida registrada y stock actualizado correctamente.");
+            setMostrarSalidaInventario(false);
+            await cargarDatos();
+        } catch (error) {
+            console.error("Error registrando salida de inventario:", error);
+            alert(error.message || "No se pudo registrar la salida de inventario.");
+        } finally {
+            setGuardandoSalida(false);
+        }
+    };
+
 
     const exportarCSV = () => {
 
@@ -529,6 +645,14 @@ function Inventario() {
 
 
                 <div className="inventario-header-actions">
+
+                    <button
+                        className="btn-filtrar"
+                        onClick={abrirSalidaInventario}
+                        type="button"
+                    >
+                        Registrar salida
+                    </button>
 
                     <button
                         className="btn-filtrar"
@@ -941,6 +1065,174 @@ function Inventario() {
                 </table>
 
             </div>
+
+
+            {mostrarSalidaInventario && (
+                <div className="modal-overlay">
+                    <div className="modal-content inv-modal" style={{ maxWidth: "720px" }}>
+                        <div className="modal-header">
+                            <div>
+                                <h2>Salida de inventario</h2>
+                                <p>Registra la salida física una sola vez con una referencia única.</p>
+                            </div>
+                            <button
+                                className="btn-close"
+                                type="button"
+                                onClick={() => setMostrarSalidaInventario(false)}
+                                disabled={guardandoSalida}
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <form onSubmit={guardarSalidaInventario}>
+                            <div className="modal-body">
+                                <p style={{ marginTop: 0, color: "#475569" }}>
+                                    Cotizaciones y facturas no descuentan stock. Registra aquí el despacho físico.
+                                </p>
+
+                                <div className="inv-field" style={{ marginBottom: "14px" }}>
+                                    <label className="inv-label" htmlFor="referencia-salida">
+                                        Referencia única *
+                                    </label>
+                                    <input
+                                        id="referencia-salida"
+                                        className="inv-input"
+                                        value={referenciaSalida}
+                                        onChange={(event) => setReferenciaSalida(event.target.value)}
+                                        maxLength="100"
+                                        placeholder="Ej.: despacho interno 2026-001"
+                                        required
+                                    />
+                                </div>
+
+                                <div
+                                    style={{
+                                        display: "grid",
+                                        gridTemplateColumns: "minmax(0, 1fr) 120px auto",
+                                        gap: "10px",
+                                        alignItems: "end",
+                                        marginBottom: "16px"
+                                    }}
+                                >
+                                    <div className="inv-field">
+                                        <label className="inv-label" htmlFor="producto-salida">
+                                            Producto *
+                                        </label>
+                                        <select
+                                            id="producto-salida"
+                                            className="inv-select"
+                                            value={productoSalida}
+                                            onChange={(event) => setProductoSalida(event.target.value)}
+                                        >
+                                            <option value="">Selecciona un producto</option>
+                                            {productos
+                                                .filter((producto) => producto.tipo !== "Servicio" && producto.stock > 0)
+                                                .map((producto) => (
+                                                    <option key={producto.id} value={producto.id}>
+                                                        {producto.codigo} - {producto.nombre} (stock: {producto.stock})
+                                                    </option>
+                                                ))}
+                                        </select>
+                                    </div>
+
+                                    <div className="inv-field">
+                                        <label className="inv-label" htmlFor="cantidad-salida">
+                                            Cantidad *
+                                        </label>
+                                        <input
+                                            id="cantidad-salida"
+                                            className="inv-input"
+                                            type="number"
+                                            min="0.01"
+                                            step="0.01"
+                                            value={cantidadSalida}
+                                            onChange={(event) => setCantidadSalida(event.target.value)}
+                                        />
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        className="btn-filtrar"
+                                        onClick={agregarDetalleSalida}
+                                    >
+                                        Agregar
+                                    </button>
+                                </div>
+
+                                {detallesSalida.length > 0 && (
+                                    <div className="os-table-wrapper" style={{ marginBottom: "16px" }}>
+                                        <table className="os-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Producto</th>
+                                                    <th>Cantidad</th>
+                                                    <th>Acción</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {detallesSalida.map((detalle) => {
+                                                    const producto = productos.find(
+                                                        (item) => item.id === detalle.item_id
+                                                    );
+                                                    return (
+                                                        <tr key={detalle.item_id}>
+                                                            <td>{producto?.nombre || detalle.item_id}</td>
+                                                            <td>{detalle.cantidad}</td>
+                                                            <td>
+                                                                <button
+                                                                    type="button"
+                                                                    className="btn-act-table btn-reject"
+                                                                    onClick={() => setDetallesSalida((actuales) =>
+                                                                        actuales.filter((item) => item.item_id !== detalle.item_id)
+                                                                    )}
+                                                                >
+                                                                    Quitar
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+
+                                <div className="inv-field">
+                                    <label className="inv-label" htmlFor="observaciones-salida">
+                                        Observaciones
+                                    </label>
+                                    <textarea
+                                        id="observaciones-salida"
+                                        className="inv-input"
+                                        value={observacionesSalida}
+                                        onChange={(event) => setObservacionesSalida(event.target.value)}
+                                        rows="3"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="modal-footer">
+                                <button
+                                    type="button"
+                                    className="btn-cancelar"
+                                    onClick={() => setMostrarSalidaInventario(false)}
+                                    disabled={guardandoSalida}
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="btn-guardar"
+                                    disabled={guardandoSalida || detallesSalida.length === 0}
+                                >
+                                    {guardandoSalida ? "Registrando..." : "Confirmar salida"}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
 
 
             {mostrarFormulario && (
