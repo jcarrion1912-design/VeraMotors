@@ -758,7 +758,16 @@ function OrdenesServicio() {
                                 <div className="campo-group">
                                     <div className="campo">
                                         <label>Tipo de Vehículo</label>
-                                        <input type="text" value={tipoVehiculo} readOnly placeholder="Automóvil" />
+                                        <select
+                                            value={tipoVehiculo || "Sedán"}
+                                            onChange={(e) => setTipoVehiculo(e.target.value)}
+                                        >
+                                            <option value="Sedán">Sedán</option>
+                                            <option value="SUV / Camioneta">SUV / Camioneta</option>
+                                            <option value="Pick-up">Pick-up</option>
+                                            <option value="Hatchback">Hatchback</option>
+                                            <option value="Van / Furgoneta">Van / Furgoneta</option>
+                                        </select>
                                     </div>
                                     <div className="campo">
                                         <label>Placa</label>
@@ -1039,9 +1048,11 @@ function OrdenesServicio() {
                             </div>
 
                             <VisorVehiculo3D
-                                tipoVehiculo={tipoVehiculo}
+                                tipoVehiculo={tipoVehiculo || "Sedán"}
+                                colorVehiculo={color || "#2563eb"}
                                 danios={danios}
                                 setDanios={setDanios}
+                                onTipoVehiculoChange={(nuevoTipo) => setTipoVehiculo(nuevoTipo)}
                             />
                         </section>
 
@@ -1396,7 +1407,12 @@ function OrdenesServicio() {
                                 <VisorVehiculo3D
                                     tipoVehiculo={
                                         odsSeleccionadaModal?.inspeccion_json?.tipo_vehiculo ||
-                                        "Automóvil"
+                                        "Sedán"
+                                    }
+                                    colorVehiculo={
+                                        odsSeleccionadaModal?.inspeccion_json?.color ||
+                                        odsSeleccionadaModal?.color ||
+                                        "#2563eb"
                                     }
                                     danios={daniosODSSeleccionada}
                                     setDanios={setDaniosODSSeleccionada}

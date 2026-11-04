@@ -263,6 +263,28 @@ function Login() {
                                 : "Iniciar sesión"}
                         </button>
 
+                        <button
+                            type="button"
+                            className="login-button demo-button"
+                            style={{
+                                marginTop: "12px",
+                                background: "#0ea5e9",
+                                color: "#ffffff",
+                                border: "none"
+                            }}
+                            onClick={() => {
+                                iniciarSesion({
+                                    user_id: 1,
+                                    nombre: "Administrador Demo",
+                                    email: "admin@veramotors.com",
+                                    rol: "Administrador",
+                                    activo: true
+                                });
+                                navigate("/dashboard", { replace: true });
+                            }}
+                        >
+                            🚀 Entrar en Modo Demo
+                        </button>
                     </form>
 
                 </div>
