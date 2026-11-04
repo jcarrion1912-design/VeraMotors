@@ -1,18 +1,15 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { useRole } from "../../context/authContext";
+import { obtenerSeccionesDeRol } from "../../config/navegacion";
+import { BrandMark } from "../Brand/Brand";
 import "./Sidebar.css";
 
-function Sidebar() {
+function Sidebar({ colapsado, abiertoMovil, alternarColapso, cerrarMovil }) {
     const navigate = useNavigate();
     const { usuarioActual, cerrarSesion: cerrarSesionContexto } = useRole();
 
     const rol = usuarioActual?.rol || "";
-
-    // Roles
-    const esAdministrador = rol === "Administrador";
-    const esAsesorServicio = rol === "Asesor de Servicio";
-    const esAsesorRepuestos = rol === "Asesor de Repuestos";
-    const esTecnico = rol === "Técnico Automotriz";
+    const secciones = obtenerSeccionesDeRol(rol);
 
     // Cerrar sesión
     const cerrarSesion = () => {
@@ -21,463 +18,78 @@ function Sidebar() {
         navigate("/login", { replace: true });
     };
 
-    return (
-        <aside className="sidebar">
+    const clases = [
+        "sidebar",
+        colapsado ? "is-collapsed" : "",
+        abiertoMovil ? "is-open" : "",
+    ].join(" ");
 
-            {/* LOGO */}
+    return (
+        <aside className={clases} aria-label="Navegación principal">
+
+            {/* MARCA */}
             <div className="sidebar-brand">
-                <div className="brand-icon">
-                    VM
-                </div>
+                <BrandMark size={36} />
 
                 <div className="brand-info">
                     <h2>VERAMOTORS</h2>
-                    <span>SAC</span>
+                    <span>Gestión de taller</span>
                 </div>
+
+                <button
+                    type="button"
+                    className="sidebar-close"
+                    onClick={cerrarMovil}
+                    aria-label="Cerrar menú"
+                >
+                    <span className="material-symbols-outlined">close</span>
+                </button>
             </div>
 
 
             {/* MENÚ */}
             <nav className="sidebar-menu">
+                {secciones.map((seccion) => (
+                    <div className="menu-section" key={seccion.titulo}>
+                        <span className="menu-title">{seccion.titulo}</span>
 
-                {/* ==================================================
-                    ADMINISTRADOR
-                ================================================== */}
-
-                {esAdministrador && (
-                    <>
-                        <div className="menu-section">
-                            <span className="menu-title">PRINCIPAL</span>
-
+                        {seccion.items.map((item) => (
                             <NavLink
-                                to="/dashboard"
+                                key={item.to}
+                                to={item.to}
+                                title={colapsado ? item.label : undefined}
+                                onClick={cerrarMovil}
                                 className={({ isActive }) =>
                                     `menu-item ${isActive ? "active" : ""}`
                                 }
                             >
-                                <span className="menu-icon">▦</span>
-                                <span>Dashboard</span>
+                                <span className="material-symbols-outlined menu-icon">{item.icon}</span>
+                                <span className="menu-label">{item.label}</span>
                             </NavLink>
-
-                            <NavLink
-                                to="/citas"
-                                className={({ isActive }) =>
-                                    `menu-item ${isActive ? "active" : ""}`
-                                }
-                            >
-                                <span className="menu-icon">▣</span>
-                                <span>Calendario de Citas</span>
-                            </NavLink>
-
-                            <NavLink
-                                to="/kanban"
-                                className={({ isActive }) =>
-                                    `menu-item ${isActive ? "active" : ""}`
-                                }
-                            >
-                                <span className="menu-icon">▤</span>
-                                <span>Tablero de Control</span>
-                            </NavLink>
-                        </div>
-
-                        <div className="menu-section">
-                            <span className="menu-title">GESTIÓN</span>
-
-                            <NavLink
-                                to="/clientes"
-                                className={({ isActive }) =>
-                                    `menu-item ${isActive ? "active" : ""}`
-                                }
-                            >
-                                <span className="menu-icon">♙</span>
-                                <span>Clientes</span>
-                            </NavLink>
-
-                            <NavLink
-                                to="/cotizaciones"
-                                className={({ isActive }) =>
-                                    `menu-item ${isActive ? "active" : ""}`
-                                }
-                            >
-                                <span className="menu-icon">📑</span>
-                                <span>Cotizaciones</span>
-                            </NavLink>
-
-                            <NavLink
-                                to="/inventario"
-                                className={({ isActive }) =>
-                                    `menu-item ${isActive ? "active" : ""}`
-                                }
-                            >
-                                <span className="menu-icon">▣</span>
-                                <span>Inventario</span>
-                            </NavLink>
-
-                            <NavLink
-                                to="/ordenes-servicio"
-                                className={({ isActive }) =>
-                                    `menu-item ${isActive ? "active" : ""}`
-                                }
-                            >
-                                <span className="menu-icon">⚙</span>
-                                <span>Órdenes de Servicio</span>
-                            </NavLink>
-
-                            <NavLink
-                                to="/facturacion"
-                                className={({ isActive }) =>
-                                    `menu-item ${isActive ? "active" : ""}`
-                                }
-                            >
-                                <span className="menu-icon">▤</span>
-                                <span>Facturación</span>
-                            </NavLink>
-                        </div>
-
-                        <div className="menu-section">
-                            <span className="menu-title">ANÁLISIS</span>
-
-                            <NavLink
-                                to="/reportes"
-                                className={({ isActive }) =>
-                                    `menu-item ${isActive ? "active" : ""}`
-                                }
-                            >
-                                <span className="menu-icon">▥</span>
-                                <span>Reportes</span>
-                            </NavLink>
-
-                            <NavLink
-                                to="/metricas"
-                                className={({ isActive }) =>
-                                    `menu-item ${isActive ? "active" : ""}`
-                                }
-                            >
-                                <span className="menu-icon">◉</span>
-                                <span>Métricas</span>
-                            </NavLink>
-                        </div>
-
-                        <div className="menu-section">
-                            <span className="menu-title">RRHH</span>
-
-                            <NavLink
-                                to="/asistencia"
-                                className={({ isActive }) =>
-                                    `menu-item ${isActive ? "active" : ""}`
-                                }
-                            >
-                                <span className="menu-icon">◷</span>
-                                <span>Asistencia</span>
-                            </NavLink>
-                        </div>
-
-                        <div className="menu-section">
-                            <span className="menu-title">ADMINISTRACIÓN</span>
-
-                            <NavLink
-                                to="/proveedores"
-                                className={({ isActive }) =>
-                                    `menu-item ${isActive ? "active" : ""}`
-                                }
-                            >
-                                <span className="menu-icon">♙</span>
-                                <span>Proveedores</span>
-                            </NavLink>
-
-                            <NavLink
-                                to="/compras"
-                                className={({ isActive }) =>
-                                    `menu-item ${isActive ? "active" : ""}`
-                                }
-                            >
-                                <span className="menu-icon">▤</span>
-                                <span>Compras</span>
-                            </NavLink>
-
-                            <NavLink
-                                to="/bancos"
-                                className={({ isActive }) =>
-                                    `menu-item ${isActive ? "active" : ""}`
-                                }
-                            >
-                                <span className="menu-icon">▥</span>
-                                <span>Bancos</span>
-                            </NavLink>
-
-                            <NavLink
-                                to="/configuracion"
-                                className={({ isActive }) =>
-                                    `menu-item ${isActive ? "active" : ""}`
-                                }
-                            >
-                                <span className="menu-icon">⚙</span>
-                                <span>Configuración</span>
-                            </NavLink>
-                        </div>
-                    </>
-                )}
-
-
-                {/* ==================================================
-                    ASESOR DE SERVICIO
-                ================================================== */}
-
-                {esAsesorServicio && (
-                    <>
-                        <div className="menu-section">
-                            <span className="menu-title">PRINCIPAL</span>
-
-                            <NavLink
-                                to="/dashboard"
-                                className={({ isActive }) =>
-                                    `menu-item ${isActive ? "active" : ""}`
-                                }
-                            >
-                                <span className="menu-icon">▦</span>
-                                <span>Dashboard</span>
-                            </NavLink>
-
-                            <NavLink
-                                to="/citas"
-                                className={({ isActive }) =>
-                                    `menu-item ${isActive ? "active" : ""}`
-                                }
-                            >
-                                <span className="menu-icon">▣</span>
-                                <span>Calendario de Citas</span>
-                            </NavLink>
-
-                            <NavLink
-                                to="/kanban"
-                                className={({ isActive }) =>
-                                    `menu-item ${isActive ? "active" : ""}`
-                                }
-                            >
-                                <span className="menu-icon">▤</span>
-                                <span>Tablero de Control</span>
-                            </NavLink>
-                        </div>
-
-                        <div className="menu-section">
-                            <span className="menu-title">GESTIÓN</span>
-
-                            <NavLink
-                                to="/clientes"
-                                className={({ isActive }) =>
-                                    `menu-item ${isActive ? "active" : ""}`
-                                }
-                            >
-                                <span className="menu-icon">♙</span>
-                                <span>Clientes</span>
-                            </NavLink>
-
-                            <NavLink
-                                to="/cotizaciones"
-                                className={({ isActive }) =>
-                                    `menu-item ${isActive ? "active" : ""}`
-                                }
-                            >
-                                <span className="menu-icon">📑</span>
-                                <span>Cotizaciones</span>
-                            </NavLink>
-
-                            <NavLink
-                                to="/ordenes-servicio"
-                                className={({ isActive }) =>
-                                    `menu-item ${isActive ? "active" : ""}`
-                                }
-                            >
-                                <span className="menu-icon">⚙</span>
-                                <span>Órdenes de Servicio</span>
-                            </NavLink>
-
-                            <NavLink
-                                to="/facturacion"
-                                className={({ isActive }) =>
-                                    `menu-item ${isActive ? "active" : ""}`
-                                }
-                            >
-                                <span className="menu-icon">▤</span>
-                                <span>Facturación</span>
-                            </NavLink>
-                        </div>
-
-                        <div className="menu-section">
-                            <span className="menu-title">ANÁLISIS</span>
-
-                            <NavLink
-                                to="/metricas"
-                                className={({ isActive }) =>
-                                    `menu-item ${isActive ? "active" : ""}`
-                                }
-                            >
-                                <span className="menu-icon">◉</span>
-                                <span>Métricas</span>
-                            </NavLink>
-                        </div>
-                    </>
-                )}
-
-
-                {/* ==================================================
-                    ASESOR DE REPUESTOS
-                ================================================== */}
-
-                {esAsesorRepuestos && (
-                    <>
-                        <div className="menu-section">
-                            <span className="menu-title">PRINCIPAL</span>
-
-                            <NavLink
-                                to="/dashboard"
-                                className={({ isActive }) =>
-                                    `menu-item ${isActive ? "active" : ""}`
-                                }
-                            >
-                                <span className="menu-icon">▦</span>
-                                <span>Dashboard</span>
-                            </NavLink>
-
-                            <NavLink
-                                to="/kanban"
-                                className={({ isActive }) =>
-                                    `menu-item ${isActive ? "active" : ""}`
-                                }
-                            >
-                                <span className="menu-icon">▤</span>
-                                <span>Tablero de Control</span>
-                            </NavLink>
-                        </div>
-
-                        <div className="menu-section">
-                            <span className="menu-title">GESTIÓN</span>
-
-                            <NavLink
-                                to="/inventario"
-                                className={({ isActive }) =>
-                                    `menu-item ${isActive ? "active" : ""}`
-                                }
-                            >
-                                <span className="menu-icon">▣</span>
-                                <span>Inventario</span>
-                            </NavLink>
-
-                            <NavLink
-                                to="/ordenes-servicio"
-                                className={({ isActive }) =>
-                                    `menu-item ${isActive ? "active" : ""}`
-                                }
-                            >
-                                <span className="menu-icon">⚙</span>
-                                <span>Órdenes de Servicio</span>
-                            </NavLink>
-
-                            <NavLink
-                                to="/compras"
-                                className={({ isActive }) =>
-                                    `menu-item ${isActive ? "active" : ""}`
-                                }
-                            >
-                                <span className="menu-icon">▤</span>
-                                <span>Compras</span>
-                            </NavLink>
-
-                            <NavLink
-                                to="/proveedores"
-                                className={({ isActive }) =>
-                                    `menu-item ${isActive ? "active" : ""}`
-                                }
-                            >
-                                <span className="menu-icon">♙</span>
-                                <span>Proveedores</span>
-                            </NavLink>
-                        </div>
-
-                        <div className="menu-section">
-                            <span className="menu-title">ANÁLISIS</span>
-
-                            <NavLink
-                                to="/metricas"
-                                className={({ isActive }) =>
-                                    `menu-item ${isActive ? "active" : ""}`
-                                }
-                            >
-                                <span className="menu-icon">◉</span>
-                                <span>Métricas</span>
-                            </NavLink>
-                        </div>
-                    </>
-                )}
-
-
-                {/* ==================================================
-                    TÉCNICO AUTOMOTRIZ
-                ================================================== */}
-
-                {esTecnico && (
-                    <>
-                        <div className="menu-section">
-                            <span className="menu-title">
-                                PRINCIPAL
-                            </span>
-
-                            <NavLink
-                                to="/kanban"
-                                className={({ isActive }) =>
-                                    `menu-item ${isActive ? "active" : ""}`
-                                }
-                            >
-                                <span className="menu-icon">▤</span>
-                                <span>Mis Tickets Asignados</span>
-                            </NavLink>
-                        </div>
-
-                        <div className="menu-section">
-                            <span className="menu-title">
-                                TALLER & DIAGNÓSTICO
-                            </span>
-
-                            <NavLink
-                                to="/ordenes-servicio"
-                                className={({ isActive }) =>
-                                    `menu-item ${isActive ? "active" : ""}`
-                                }
-                            >
-                                <span className="menu-icon">⚙</span>
-                                <span>Diagnóstico y Reparación</span>
-                            </NavLink>
-                        </div>
-
-                        <div className="menu-section">
-                            <span className="menu-title">
-                                ANÁLISIS
-                            </span>
-
-                            <NavLink
-                                to="/metricas"
-                                className={({ isActive }) =>
-                                    `menu-item ${isActive ? "active" : ""}`
-                                }
-                            >
-                                <span className="menu-icon">◉</span>
-                                <span>Mis Métricas</span>
-                            </NavLink>
-                        </div>
-                    </>
-                )}
-
+                        ))}
+                    </div>
+                ))}
             </nav>
 
 
-            {/* ==================================================
-                USUARIO + CERRAR SESIÓN
-            ================================================== */}
+            {/* CONTRAER */}
+            <button
+                type="button"
+                className="sidebar-toggle"
+                onClick={alternarColapso}
+                aria-expanded={!colapsado}
+                title={colapsado ? "Expandir menú" : "Contraer menú"}
+            >
+                <span className="material-symbols-outlined">
+                    {colapsado ? "keyboard_double_arrow_right" : "keyboard_double_arrow_left"}
+                </span>
+                <span className="menu-label">Contraer menú</span>
+            </button>
 
+
+            {/* USUARIO + CERRAR SESIÓN */}
             <div className="sidebar-user-container">
-
-                <div className="sidebar-user">
-
+                <div className="sidebar-user" title={colapsado ? usuarioActual?.nombre : undefined}>
                     <div className="user-avatar">
                         {usuarioActual?.nombre
                             ? usuarioActual.nombre
@@ -488,28 +100,20 @@ function Sidebar() {
                     </div>
 
                     <div className="user-info">
-                        <strong>
-                            {usuarioActual?.nombre || "Usuario"}
-                        </strong>
-
-                        <span>
-                            {usuarioActual?.rol || "Sin rol"}
-                        </span>
+                        <strong>{usuarioActual?.nombre || "Usuario"}</strong>
+                        <span>{usuarioActual?.rol || "Sin rol"}</span>
                     </div>
-
                 </div>
 
-
-                {/* BOTÓN CERRAR SESIÓN */}
                 <button
                     type="button"
                     className="logout-button"
                     onClick={cerrarSesion}
+                    title="Cerrar sesión"
+                    aria-label="Cerrar sesión"
                 >
-                    <span>↪</span>
-                    <span>Cerrar sesión</span>
+                    <span className="material-symbols-outlined">logout</span>
                 </button>
-
             </div>
 
         </aside>

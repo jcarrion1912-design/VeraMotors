@@ -7,6 +7,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.security import get_current_user
 from app.database import get_db
 from app.models.cierre_caja import CierreCaja
 from app.models.cliente import Cliente
@@ -77,7 +78,10 @@ def listar_pagos(
 
 
 @router.post("", response_model=PagoResponse, status_code=201)
-def registrar_pago(datos: PagoCreate, db: Session = Depends(get_db)):
+def registrar_pago(datos: PagoCreate, db: Session = Depends(get_db), usuario_actual: Usuario = Depends(get_current_user)):
+    # El autor siempre es quien tiene la sesión, no lo que diga el cuerpo.
+    datos.usuario_id = usuario_actual.user_id
+
     try:
         factura = (
             db.query(Factura)

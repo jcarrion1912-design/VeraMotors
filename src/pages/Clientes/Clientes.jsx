@@ -2,11 +2,19 @@ import { useState, useEffect } from "react";
 import "./Clientes.css";
 import { actualizarCliente, obtenerClientes } from "../../services/clientesService";
 import ModalNuevoCliente from "../../components/ModalNuevoCliente/ModalNuevoCliente";
+import { obtenerUrlPdfFactura } from "../../services/facturacionService";
+import { abrirDocumentoProtegido } from "../../services/autenticacion";
 
 const API_URL = "http://127.0.0.1:8000/api";
+const ESTADOS_ODS_CERRADOS = ["Completado", "Entrega", "Archivado", "Archivados"];
+const HISTORIAL_INICIAL = 3;
+
+const formatoSoles = (valor) =>
+    `S/ ${Number(valor).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 function Clientes() {
     const [clienteSeleccionado, setClienteSeleccionado] = useState(0);
+    const [historialCompleto, setHistorialCompleto] = useState(false);
     const [busqueda, setBusqueda] = useState("");
     const [mostrarFormulario, setMostrarFormulario] = useState(false);
     const [tipoPersona, setTipoPersona] = useState("Natural");
@@ -40,9 +48,16 @@ function Clientes() {
     const cargarDatos = async () => {
         try {
             setCargando(true);
-            const [resCli, resVeh] = await Promise.all([
+            const listaOVacio = (url) =>
+                fetch(url)
+                    .then((res) => (res.ok ? res.json() : []))
+                    .catch(() => []);
+
+            const [resCli, resVeh, dataOds, dataFacturas] = await Promise.all([
                 fetch(`${API_URL}/clientes`),
-                fetch(`${API_URL}/vehiculos`)
+                fetch(`${API_URL}/vehiculos`),
+                listaOVacio(`${API_URL}/ods`),
+                listaOVacio(`${API_URL}/facturacion`)
             ]);
 
             if (resCli.ok && resVeh.ok) {
@@ -50,17 +65,55 @@ function Clientes() {
                 const dataVeh = await resVeh.json();
 
                 const estructurados = dataCli.map((c) => {
-                    const vehs = dataVeh.filter((v) => v.cliente_id === c.cliente_id).map((v) => ({
-                        marca: v.marca,
-                        modelo: v.modelo,
-                        placa: v.placa,
-                        anio: v.anio || "2022",
-                        color: v.color || "No especificado",
-                        vin: v.vin || "No especificado",
-                        motor: "2.0",
-                        kilometraje: "45,000 km",
-                        estado: "Al día"
-                    }));
+                    const odsCliente = dataOds
+                        .filter((o) => o.cliente_id === c.cliente_id)
+                        .sort((a, b) => new Date(b.fecha_ingreso) - new Date(a.fecha_ingreso));
+                    const facturasCliente = dataFacturas.filter((f) => f.cliente_id === c.cliente_id);
+
+                    const vehs = dataVeh.filter((v) => v.cliente_id === c.cliente_id).map((v) => {
+                        const odsVehiculo = odsCliente.filter((o) => o.vehiculo_id === v.vehiculo_id);
+                        const ultimoKm = odsVehiculo.find((o) => o.kilometraje_ingreso != null)?.kilometraje_ingreso;
+                        const servicioAbierto = odsVehiculo.some((o) => !ESTADOS_ODS_CERRADOS.includes(o.estado_actual));
+                        return {
+                            marca: v.marca,
+                            modelo: v.modelo,
+                            placa: v.placa,
+                            anio: v.anio || "No registrado",
+                            color: v.color || "No especificado",
+                            vin: v.vin || "No especificado",
+                            kilometraje: ultimoKm != null ? `${Number(ultimoKm).toLocaleString("es-PE")} km` : "Sin registro",
+                            estado: servicioAbierto ? "Servicio pendiente" : "Al día"
+                        };
+                    });
+
+                    const totalPagado = facturasCliente
+                        .filter((f) => f.estado_pago === "Pagado")
+                        .reduce((total, f) => total + Number(f.total || 0), 0);
+
+                    const fechasCliente = [
+                        ...odsCliente.map((o) => o.fecha_ingreso),
+                        ...facturasCliente.map((f) => f.fecha_emision)
+                    ].map((fecha) => new Date(fecha).getFullYear()).filter((anio) => !Number.isNaN(anio));
+
+                    const historial = odsCliente.map((o) => {
+                        const vehiculo = dataVeh.find((v) => v.vehiculo_id === o.vehiculo_id);
+                        const facturasOds = facturasCliente.filter((f) => f.ods_id === o.ods_id);
+                        return {
+                            id: o.ods_id,
+                            vehiculo: vehiculo
+                                ? `${vehiculo.marca} ${vehiculo.modelo} · ${vehiculo.placa}`
+                                : (o.vehiculo_placa || "Vehículo no encontrado"),
+                            titulo: o.tipo_procedimiento || "Servicio general",
+                            fecha: new Date(o.fecha_ingreso).toLocaleDateString("es-PE"),
+                            monto: facturasOds.length > 0
+                                ? formatoSoles(facturasOds.reduce((total, f) => total + Number(f.total || 0), 0))
+                                : "Sin facturar",
+                            descripcion: o.inspeccion_json?.motivo_servicio?.motivo_detallado || "Servicio en taller.",
+                            estado: o.estado_actual || "Pendiente",
+                            cerrado: ESTADOS_ODS_CERRADOS.includes(o.estado_actual),
+                            facturaId: facturasOds[0]?.factura_id || null
+                        };
+                    });
 
                     const palabras = (c.nombre_razon_social || "").trim().split(" ");
                     const iniciales = palabras.length >= 2
@@ -72,24 +125,15 @@ function Clientes() {
                         tipoPersona: c.tipo_persona || "Natural",
                         nombre: c.nombre_razon_social,
                         documento: c.documento_identidad,
-                        telefono: c.telefono || "+51 999 999 999",
-                        correo: c.email || "cliente@correo.com",
-                        ciudad: c.direccion_ubigeo || "Lima, Perú",
-                        desde: "2024",
+                        telefono: c.telefono || "",
+                        correo: c.email || "",
+                        ciudad: c.direccion_ubigeo || "",
+                        desde: fechasCliente.length > 0 ? String(Math.min(...fechasCliente)) : "",
                         vehiculos: vehs.length,
-                        ltv: "S/ 1,250.00",
+                        ltv: formatoSoles(totalPagado),
                         iniciales: iniciales,
                         vehiculosData: vehs,
-                        historial: [
-                            {
-                                vehiculo: vehs[0] ? `${vehs[0].marca} ${vehs[0].modelo} · ${vehs[0].placa}` : "Vehículo asignado",
-                                titulo: "Mantenimiento preventivo",
-                                fecha: "Reciente",
-                                monto: "S/ 350.00",
-                                descripcion: "Revisión general y servicios en taller.",
-                                estado: "Completado"
-                            }
-                        ]
+                        historial
                     };
                 });
 
@@ -516,13 +560,13 @@ function Clientes() {
                     LISTA DE CLIENTES
                 ========================================= */}
 
-                <div className="clientes-list">
+                <div className="vm-card clientes-list">
 
                     {/* BUSCADOR */}
 
                     <div className="clientes-search">
 
-                        <div className="clientes-search-box">
+                        <div className="vm-search">
 
                             <span className="material-symbols-outlined">
                                 search
@@ -533,6 +577,7 @@ function Clientes() {
                                 value={busqueda}
                                 onChange={(e) => setBusqueda(e.target.value)}
                                 placeholder="Buscar cliente..."
+                                aria-label="Buscar cliente por nombre o documento"
                             />
 
                         </div>
@@ -542,7 +587,11 @@ function Clientes() {
 
                     {/* CLIENTES */}
 
-                    <div className="clientes-list-content">
+                    <div className={`clientes-list-content ${cargando ? "is-cargando" : ""}`}>
+
+                        <div className="vm-loading clientes-cargando" role="status">
+                            Cargando clientes...
+                        </div>
 
                         {clientesFiltrados.length > 0 ? (
 
@@ -556,7 +605,7 @@ function Clientes() {
                                     posicionOriginal === clienteSeleccionado;
 
                                 return (
-                                    <div
+                                    <button
                                         key={item.id}
                                         className={`cliente-item ${activo ? "activo" : ""
                                             }`}
@@ -565,13 +614,14 @@ function Clientes() {
                                                 posicionOriginal
                                             )
                                         }
+                                        aria-current={activo}
                                     >
 
-                                        <div className="cliente-item-header">
+                                        <span className="cliente-item-header">
 
-                                            <h3>
+                                            <span className="cliente-item-nombre">
                                                 {item.nombre}
-                                            </h3>
+                                            </span>
 
                                             <span className="cliente-vehiculos">
 
@@ -583,10 +633,10 @@ function Clientes() {
 
                                             </span>
 
-                                        </div>
+                                        </span>
 
 
-                                        <div className="cliente-telefono">
+                                        <span className="cliente-telefono">
 
                                             <span className="material-symbols-outlined">
                                                 call
@@ -594,37 +644,40 @@ function Clientes() {
 
                                             {item.telefono}
 
-                                        </div>
+                                        </span>
 
 
-                                        <div className="cliente-item-footer">
+                                        <span className="cliente-item-footer">
 
                                             <span className="cliente-ltv">
-                                                LTV: {item.ltv}
+                                                Pagado: {item.ltv}
                                             </span>
 
                                             {activo && (
                                                 <span className="cliente-ver">
-                                                    Ver detalles →
+                                                    Ver detalles
+                                                    <span className="material-symbols-outlined">
+                                                        arrow_forward
+                                                    </span>
                                                 </span>
                                             )}
 
-                                        </div>
+                                        </span>
 
-                                    </div>
+                                    </button>
                                 );
                             })
 
                         ) : (
 
-                            <div className="clientes-sin-resultados">
+                            <div className="vm-empty clientes-sin-resultados">
                                 <span className="material-symbols-outlined">
                                     person_search
                                 </span>
 
-                                <p>
+                                <strong>
                                     No se encontraron clientes
-                                </p>
+                                </strong>
                             </div>
 
                         )}
@@ -640,7 +693,7 @@ function Clientes() {
 
                 <div className="cliente-detalle-container">
 
-                    <div className="cliente-detalle">
+                    <div className="vm-card cliente-detalle">
 
                         {/* HEADER CLIENTE */}
 
@@ -659,51 +712,57 @@ function Clientes() {
 
                                         <div className="cliente-detalle-nombre">
 
-                                            <h1>
+                                            <h3>
                                                 {cliente.nombre}
-                                            </h1>
+                                            </h3>
 
-                                            <p className="cliente-ubicacion">
+                                            <p className="cliente-dato">
 
                                                 <span className="material-symbols-outlined">
                                                     location_on
                                                 </span>
 
-                                                {cliente.ciudad} · Cliente desde{" "}
-                                                {cliente.desde}
+                                                <span>
+                                                    {cliente.ciudad || "Dirección no registrada"}
+                                                    {cliente.desde ? ` · Cliente desde ${cliente.desde}` : ""}
+                                                </span>
 
                                             </p>
 
-                                            <p className="cliente-correo">
+                                            <p className="cliente-dato">
 
                                                 <span className="material-symbols-outlined">
                                                     mail
                                                 </span>
 
-                                                {cliente.correo}
+                                                <span>
+                                                    {cliente.correo || "Correo no registrado"}
+                                                </span>
 
                                             </p>
 
-                                            <p className="cliente-correo">
+                                            <p className="cliente-dato">
 
                                                 <span className="material-symbols-outlined">
                                                     call
                                                 </span>
 
-                                                {cliente.telefono}
+                                                <span>
+                                                    {cliente.telefono || "Teléfono no registrado"}
+                                                </span>
 
                                             </p>
 
                                         </div>
 
 
-                                        <div className="cliente-ltv-box">
+                                        <div className="vm-kpi cliente-ltv-box">
 
-                                            <span>
-                                                Valor total del cliente
+                                            <span className="vm-kpi-label">
+                                                Total pagado por el cliente
                                             </span>
 
-                                            <strong>
+                                            <strong className="vm-kpi-value">
                                                 {cliente.ltv}
                                             </strong>
 
@@ -716,26 +775,24 @@ function Clientes() {
 
                                     <div className="cliente-acciones">
 
-                                        <button
-                                            className="btn-cliente"
-                                            onClick={() =>
-                                                alert(
-                                                    `Correo: ${cliente.correo}`
-                                                )
-                                            }
-                                        >
+                                        {cliente.correo && cliente.correo !== "-" && (
+                                            <a
+                                                className="vm-btn vm-btn-secondary cliente-accion-enlace"
+                                                href={`mailto:${cliente.correo}`}
+                                            >
 
-                                            <span className="material-symbols-outlined">
-                                                mail
-                                            </span>
+                                                <span className="material-symbols-outlined">
+                                                    mail
+                                                </span>
 
-                                            Email
+                                                Email
 
-                                        </button>
+                                            </a>
+                                        )}
 
 
                                         <button
-                                            className="btn-cliente"
+                                            className="vm-btn vm-btn-primary"
                                             onClick={abrirEdicionCliente}
                                         >
 
@@ -766,11 +823,14 @@ function Clientes() {
 
                             <div className="vehiculos-section">
 
-                                <h3>
+                                <h4 className="cliente-seccion-titulo">
+                                    <span className="material-symbols-outlined">
+                                        directions_car
+                                    </span>
                                     Vehículos registrados (
                                     {cliente.vehiculos}
                                     )
-                                </h3>
+                                </h4>
 
 
                                 <div className="vehiculos-list">
@@ -786,28 +846,32 @@ function Clientes() {
                                                 {vehiculo.estado ===
                                                     "Servicio pendiente" && (
 
-                                                        <div className="vehiculo-estado">
+                                                        <div className="vm-badge vm-badge-warning vehiculo-estado">
                                                             Servicio pendiente
                                                         </div>
 
                                                     )}
 
 
-                                                <h4>
-                                                    {vehiculo.marca}{" "}
-                                                    {vehiculo.modelo}
-                                                </h4>
+                                                <div className="vehiculo-card-head">
+
+                                                    <h5>
+                                                        {vehiculo.marca}{" "}
+                                                        {vehiculo.modelo}
+                                                    </h5>
 
 
-                                                <span className="vehiculo-placa">
-                                                    {vehiculo.placa}
-                                                </span>
+                                                    <span className="vm-plate">
+                                                        {vehiculo.placa}
+                                                    </span>
+
+                                                </div>
 
 
                                                 <div className="vehiculo-datos">
 
                                                     <span className="label">
-                                                        Año:
+                                                        Año
                                                     </span>
 
                                                     <span className="valor">
@@ -815,7 +879,7 @@ function Clientes() {
                                                     </span>
 
                                                     <span className="label">
-                                                        Color:
+                                                        Color
                                                     </span>
 
                                                     <span className="valor">
@@ -823,25 +887,16 @@ function Clientes() {
                                                     </span>
 
                                                     <span className="label">
-                                                        VIN:
+                                                        VIN
                                                     </span>
 
-                                                    <span className="valor">
+                                                    <span className="valor vehiculo-vin">
                                                         {vehiculo.vin}
                                                     </span>
 
 
                                                     <span className="label">
-                                                        Motor:
-                                                    </span>
-
-                                                    <span className="valor">
-                                                        {vehiculo.motor}
-                                                    </span>
-
-
-                                                    <span className="label">
-                                                        Kilometraje:
+                                                        Último kilometraje
                                                     </span>
 
                                                     <span className="valor">
@@ -864,26 +919,41 @@ function Clientes() {
 
                             <div className="historial-section">
 
-                                <div className="historial-header">
+                                <div className="cliente-seccion-titulo historial-header">
 
-                                    <h3>
+                                    <h4>
+                                        <span className="material-symbols-outlined">
+                                            history
+                                        </span>
                                         Historial de servicios
-                                    </h3>
+                                    </h4>
 
-                                    <button className="btn-ver-historial">
-                                        Ver historial completo
-                                    </button>
+                                    {cliente.historial.length > HISTORIAL_INICIAL && (
+                                        <button
+                                            className="vm-btn vm-btn-ghost vm-btn-sm"
+                                            onClick={() => setHistorialCompleto((actual) => !actual)}
+                                        >
+                                            {historialCompleto ? "Ver menos" : `Ver historial completo (${cliente.historial.length})`}
+                                        </button>
+                                    )}
 
                                 </div>
 
 
+                                {cliente.historial.length === 0 && (
+                                    <div className="vm-empty">
+                                        <span className="material-symbols-outlined">history</span>
+                                        <span>Este cliente todavía no tiene órdenes de servicio.</span>
+                                    </div>
+                                )}
+
                                 <div className="historial">
 
-                                    {cliente.historial.map(
-                                        (servicio, index) => (
+                                    {(historialCompleto ? cliente.historial : cliente.historial.slice(0, HISTORIAL_INICIAL)).map(
+                                        (servicio) => (
 
                                             <div
-                                                key={index}
+                                                key={servicio.id}
                                                 className="historial-item"
                                             >
 
@@ -894,7 +964,7 @@ function Clientes() {
 
                                                     <div className="historial-top">
 
-                                                        <div>
+                                                        <div className="historial-resumen">
 
                                                             <span className="historial-vehiculo">
                                                                 {
@@ -902,11 +972,11 @@ function Clientes() {
                                                                 }
                                                             </span>
 
-                                                            <h4>
+                                                            <h5>
                                                                 {
                                                                     servicio.titulo
                                                                 }
-                                                            </h4>
+                                                            </h5>
 
                                                         </div>
 
@@ -915,7 +985,7 @@ function Clientes() {
 
                                                             {servicio.fecha}
 
-                                                            <div className="historial-monto">
+                                                            <div className="vm-num historial-monto">
                                                                 {
                                                                     servicio.monto
                                                                 }
@@ -935,10 +1005,10 @@ function Clientes() {
 
                                                     <div className="historial-footer">
 
-                                                        <span className="estado-completado">
+                                                        <span className={`vm-badge is-plain ${servicio.cerrado ? "vm-badge-success" : "vm-badge-info"}`}>
 
                                                             <span className="material-symbols-outlined">
-                                                                check_circle
+                                                                {servicio.cerrado ? "check_circle" : "pending"}
                                                             </span>
 
                                                             {servicio.estado}
@@ -946,15 +1016,23 @@ function Clientes() {
                                                         </span>
 
 
-                                                        <button className="btn-factura">
+                                                        {servicio.facturaId && (
+                                                            <a
+                                                                className="btn-act-table link cliente-accion-enlace"
+                                                                href={obtenerUrlPdfFactura(servicio.facturaId)}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                onClick={(e) => abrirDocumentoProtegido(e, obtenerUrlPdfFactura(servicio.facturaId))}
+                                                            >
 
-                                                            <span className="material-symbols-outlined">
-                                                                receipt_long
-                                                            </span>
+                                                                <span className="material-symbols-outlined">
+                                                                    receipt_long
+                                                                </span>
 
-                                                            Ver factura
+                                                                Ver factura
 
-                                                        </button>
+                                                            </a>
+                                                        )}
 
                                                     </div>
 
@@ -986,20 +1064,23 @@ function Clientes() {
                 <div className="modal-overlay" onMouseDown={(e) => {
                     if (e.target === e.currentTarget) cerrarFormulario();
                 }}>
-                    <div className="modal-cliente">
-                        <div className="modal-cliente-header">
+                    <div className="modal-content modal-cliente">
+                        <div className="modal-header">
                             <div>
                                 <h2>Editar cliente</h2>
                                 <p>Actualiza la información del cliente seleccionado.</p>
                             </div>
-                            <button type="button" className="btn-cerrar-modal" onClick={cerrarFormulario}>
+                            <button type="button" className="btn-close" onClick={cerrarFormulario} aria-label="Cerrar">
                                 <span className="material-symbols-outlined">close</span>
                             </button>
                         </div>
 
                         <form className="form-cliente" onSubmit={guardarEdicionCliente}>
-                            <div className="form-section">
-                                <h3>Información del cliente</h3>
+                            <div className="modal-body">
+                                <h3 className="vm-form-section-title">
+                                    <span className="material-symbols-outlined">person</span>
+                                    Información del cliente
+                                </h3>
                                 <div className="form-grid">
                                     <div className="form-group">
                                         <label>Tipo de cliente</label>
@@ -1054,7 +1135,7 @@ function Clientes() {
                                 </div>
                             </div>
 
-                            <div className="modal-cliente-footer">
+                            <div className="modal-footer">
                                 <button type="button" className="btn-cancelar" onClick={cerrarFormulario}>Cancelar</button>
                                 <button type="submit" className="btn-guardar-cliente"><span className="material-symbols-outlined">save</span>Guardar cambios</button>
                             </div>

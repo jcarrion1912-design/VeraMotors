@@ -518,15 +518,9 @@ function Inventario() {
             <div className="inventario-header">
 
                 <div>
-                    <h2>
-                        Inventario de Repuestos e Insumos
-                    </h2>
-
-                    <p>
-                        Catálogo real conectado a PostgreSQL.
-                    </p>
+                    <h2>Inventario de Repuestos e Insumos</h2>
+                    <p>Catálogo de repuestos, insumos y servicios con su stock, costos y precios.</p>
                 </div>
-
 
                 <div className="inventario-header-actions">
 
@@ -535,23 +529,16 @@ function Inventario() {
                         onClick={exportarCSV}
                         type="button"
                     >
-                        <span className="material-symbols-outlined">
-                            file_download
-                        </span>
-
+                        <span className="material-symbols-outlined">file_download</span>
                         Exportar CSV
                     </button>
-
 
                     <button
                         className="btn-nuevo-producto"
                         onClick={abrirNuevo}
                         type="button"
                     >
-                        <span className="material-symbols-outlined">
-                            add
-                        </span>
-
+                        <span className="material-symbols-outlined">add</span>
                         Nuevo Ítem
                     </button>
 
@@ -560,16 +547,7 @@ function Inventario() {
             </div>
 
 
-            <div
-                style={{
-                    display: "flex",
-                    gap: "8px",
-                    borderBottom:
-                        "1px solid #cbd5e1",
-                    paddingBottom: "8px",
-                    marginBottom: "16px"
-                }}
-            >
+            <div className="vm-tabs">
 
                 {[
                     "Ítem de venta",
@@ -580,22 +558,7 @@ function Inventario() {
                     <button
                         key={tab}
                         type="button"
-                        style={{
-                            padding: "8px 16px",
-                            border: "none",
-                            borderRadius: "6px",
-                            background:
-                                submodulo === tab
-                                    ? "#2563eb"
-                                    : "#f1f5f9",
-                            color:
-                                submodulo === tab
-                                    ? "#ffffff"
-                                    : "#475569",
-                            fontWeight: "600",
-                            fontSize: "0.85rem",
-                            cursor: "pointer"
-                        }}
+                        className={`vm-tab ${submodulo === tab ? "active" : ""}`}
                         onClick={() =>
                             setSubmodulo(tab)
                         }
@@ -608,91 +571,31 @@ function Inventario() {
             </div>
 
 
-            <div
-                className="stats-inventario"
-                style={{
-                    display: "grid",
-                    gridTemplateColumns:
-                        "repeat(auto-fit, minmax(200px, 1fr))",
-                    gap: "15px",
-                    marginBottom: "20px"
-                }}
-            >
+            <div className="vm-kpi-grid">
 
-                <div
-                    className="stat-inv-card"
-                    style={{
-                        background: "#ffffff",
-                        padding: "16px",
-                        borderRadius: "8px",
-                        border:
-                            "1px solid #e2e8f0"
-                    }}
-                >
-                    <span>
-                        Total Ítems en Stock
-                    </span>
-
-                    <h3>
-                        {totalProductos}
-                    </h3>
+                <div className="vm-kpi">
+                    <span className="vm-kpi-label">Total Ítems en Stock</span>
+                    <h3 className="vm-kpi-value">{totalProductos}</h3>
                 </div>
 
-
-                <div
-                    className="stat-inv-card"
-                    style={{
-                        background: "#ffffff",
-                        padding: "16px",
-                        borderRadius: "8px",
-                        border:
-                            "1px solid #e2e8f0"
-                    }}
-                >
-                    <span>
-                        Alertas de Stock Bajo
-                    </span>
-
-                    <h3>
-                        {productosStockBajo} ítems
-                    </h3>
+                <div className={`vm-kpi ${productosStockBajo > 0 ? "inv-kpi-alerta" : ""}`}>
+                    <span className="vm-kpi-label">Alertas de Stock Bajo</span>
+                    <h3 className="vm-kpi-value">{productosStockBajo} {productosStockBajo === 1 ? "ítem" : "ítems"}</h3>
                 </div>
 
-
-                <div
-                    className="stat-inv-card"
-                    style={{
-                        background: "#ffffff",
-                        padding: "16px",
-                        borderRadius: "8px",
-                        border:
-                            "1px solid #e2e8f0"
-                    }}
-                >
-                    <span>
-                        Valor Total del Inventario
-                    </span>
-
-                    <h3>
-                        S/ {valorInventario.toFixed(2)}
-                    </h3>
+                <div className="vm-kpi">
+                    <span className="vm-kpi-label">Valor Total del Inventario</span>
+                    <h3 className="vm-kpi-value">S/ {valorInventario.toFixed(2)}</h3>
                 </div>
 
             </div>
 
 
-            <div
-                className="os-filter-bar"
-                style={{
-                    marginBottom: "16px"
-                }}
-            >
+            <div className="os-filter-bar">
 
                 <div className="filter-search">
 
-                    <span className="material-symbols-outlined">
-                        search
-                    </span>
+                    <span className="material-symbols-outlined">search</span>
 
                     <input
                         type="text"
@@ -707,25 +610,17 @@ function Inventario() {
 
                 </div>
 
-
                 <select
+                    className="inv-filtro-categoria"
                     value={categoria}
                     onChange={(event) =>
                         setCategoria(
                             event.target.value
                         )
                     }
-                    style={{
-                        padding: "8px 12px",
-                        borderRadius: "6px",
-                        border:
-                            "1px solid #cbd5e1"
-                    }}
                 >
 
-                    <option value="Todos">
-                        Todas las Categorías
-                    </option>
+                    <option value="Todos">Todas las Categorías</option>
 
                     {categorias.map(
                         (item) => (
@@ -749,7 +644,7 @@ function Inventario() {
 
             <div className="os-table-wrapper">
 
-                <table className="os-table">
+                <table className="os-table inv-tabla">
 
                     <thead>
 
@@ -760,9 +655,9 @@ function Inventario() {
                             <th>Unidad</th>
                             <th>Categoría</th>
                             <th>Marca</th>
-                            <th>Stock</th>
-                            <th>Costo</th>
-                            <th>Precio</th>
+                            <th className="vm-num">Stock</th>
+                            <th className="vm-num">Costo</th>
+                            <th className="vm-num">Precio</th>
                             <th>Acciones</th>
                         </tr>
 
@@ -774,14 +669,10 @@ function Inventario() {
                         {cargando ? (
 
                             <tr>
-                                <td
-                                    colSpan="10"
-                                    style={{
-                                        textAlign: "center",
-                                        padding: "30px"
-                                    }}
-                                >
-                                    Cargando inventario...
+                                <td colSpan="10">
+                                    <div className="vm-loading inv-tabla-carga">
+                                        Cargando inventario...
+                                    </div>
                                 </td>
                             </tr>
 
@@ -794,11 +685,16 @@ function Inventario() {
                                         key={
                                             producto.id
                                         }
+                                        className={
+                                            producto.stock <= producto.minimo
+                                                ? "inv-fila-stock-bajo"
+                                                : undefined
+                                        }
                                     >
 
                                         <td>
                                             <span
-                                                className={`proc-tag ${String(
+                                                className={`vm-badge is-plain inv-tipo-${String(
                                                     producto.tipo
                                                 ).toLowerCase()}`}
                                             >
@@ -809,11 +705,11 @@ function Inventario() {
                                         </td>
 
                                         <td>
-                                            <strong>
+                                            <span className="vm-code">
                                                 {
                                                     producto.codigo
                                                 }
-                                            </strong>
+                                            </span>
                                         </td>
 
                                         <td>
@@ -840,18 +736,15 @@ function Inventario() {
                                             }
                                         </td>
 
-                                        <td>
+                                        <td className="vm-num">
 
                                             <span
-                                                style={{
-                                                    color:
-                                                        producto.stock <=
-                                                        producto.minimo
-                                                            ? "#ef4444"
-                                                            : "#1e293b",
-                                                    fontWeight:
-                                                        "bold"
-                                                }}
+                                                className={
+                                                    producto.stock <= producto.minimo
+                                                        ? "inv-stock inv-stock-bajo"
+                                                        : "inv-stock"
+                                                }
+                                                title={`Stock mínimo: ${producto.minimo}`}
                                             >
                                                 {
                                                     producto.stock
@@ -860,14 +753,14 @@ function Inventario() {
 
                                         </td>
 
-                                        <td>
+                                        <td className="vm-num">
                                             S/{" "}
                                             {producto.costo.toFixed(
                                                 2
                                             )}
                                         </td>
 
-                                        <td>
+                                        <td className="vm-num">
                                             <strong>
                                                 S/{" "}
                                                 {producto.precio.toFixed(
@@ -878,7 +771,7 @@ function Inventario() {
 
                                         <td>
 
-                                            <div className="table-actions">
+                                            <div className="table-actions inv-acciones">
 
                                                 <button
                                                     type="button"
@@ -889,26 +782,22 @@ function Inventario() {
                                                         )
                                                     }
                                                 >
-                                                    ✏️ Editar
+                                                    <span className="material-symbols-outlined">edit</span>
+                                                    Editar
                                                 </button>
-
 
                                                 <button
                                                     type="button"
-                                                    className="btn-act-table btn-reject"
-                                                    style={{
-                                                        background:
-                                                            "#fee2e2",
-                                                        color:
-                                                            "#b91c1c"
-                                                    }}
+                                                    className="btn-act-table inv-btn-desactivar"
+                                                    aria-label="Desactivar ítem"
+                                                    title="Desactivar ítem"
                                                     onClick={() =>
                                                         eliminarProducto(
                                                             producto
                                                         )
                                                     }
                                                 >
-                                                    🗑️
+                                                    <span className="material-symbols-outlined">delete</span>
                                                 </button>
 
                                             </div>
@@ -923,14 +812,11 @@ function Inventario() {
                         ) : (
 
                             <tr>
-                                <td
-                                    colSpan="10"
-                                    style={{
-                                        textAlign: "center",
-                                        padding: "30px"
-                                    }}
-                                >
-                                    No hay ítems para mostrar.
+                                <td colSpan="10">
+                                    <div className="vm-empty">
+                                        <span className="material-symbols-outlined">inventory_2</span>
+                                        <strong>No hay ítems para mostrar.</strong>
+                                    </div>
                                 </td>
                             </tr>
 
@@ -947,12 +833,7 @@ function Inventario() {
 
                 <div className="modal-overlay">
 
-                    <div
-                        className="modal-content inv-modal"
-                        style={{
-                            maxWidth: "650px"
-                        }}
-                    >
+                    <div className="modal-content inv-modal">
 
                         <div className="modal-header">
 
@@ -964,22 +845,20 @@ function Inventario() {
                                         : "Nuevo Ítem de Inventario"}
                                 </h2>
 
-                                <p>
-                                    Los datos se guardan directamente en PostgreSQL.
-                                </p>
+                                <p>Completa los datos del ítem. Los campos con * son obligatorios.</p>
 
                             </div>
-
 
                             <button
                                 className="btn-close"
                                 type="button"
+                                aria-label="Cerrar"
                                 onClick={() => {
                                     setMostrarFormulario(false);
                                     limpiarFormulario();
                                 }}
                             >
-                                ✕
+                                <span className="material-symbols-outlined">close</span>
                             </button>
 
                         </div>
@@ -991,25 +870,16 @@ function Inventario() {
 
                             <div className="modal-body">
 
-                                <div
-                                    className="form-grid"
-                                    style={{
-                                        display: "grid",
-                                        gridTemplateColumns:
-                                            "1fr 1fr",
-                                        gap: "14px",
-                                        marginBottom: "14px"
-                                    }}
-                                >
+                                <div className="vm-form-section-title">
+                                    <span className="material-symbols-outlined">sell</span>
+                                    Identificación
+                                </div>
 
-                                    <div className="inv-field">
+                                <div className="form-grid">
 
-                                        <label className="inv-label">
-                                            Tipo *
-                                        </label>
-
+                                    <div className="form-group">
+                                        <label>Tipo *</label>
                                         <select
-                                            className="inv-select"
                                             name="tipo"
                                             value={
                                                 nuevoProducto.tipo
@@ -1018,32 +888,15 @@ function Inventario() {
                                                 handleInputChange
                                             }
                                         >
-
-                                            <option value="Repuesto">
-                                                Repuesto
-                                            </option>
-
-                                            <option value="Insumo">
-                                                Insumo
-                                            </option>
-
-                                            <option value="Servicio">
-                                                Servicio
-                                            </option>
-
+                                            <option value="Repuesto">Repuesto</option>
+                                            <option value="Insumo">Insumo</option>
+                                            <option value="Servicio">Servicio</option>
                                         </select>
-
                                     </div>
 
-
-                                    <div className="inv-field">
-
-                                        <label className="inv-label">
-                                            Unidad de Medida *
-                                        </label>
-
+                                    <div className="form-group">
+                                        <label>Unidad de Medida *</label>
                                         <input
-                                            className="inv-input"
                                             name="unidad"
                                             value={
                                                 nuevoProducto.unidad
@@ -1053,31 +906,11 @@ function Inventario() {
                                             }
                                             required
                                         />
-
                                     </div>
 
-                                </div>
-
-
-                                <div
-                                    className="form-grid"
-                                    style={{
-                                        display: "grid",
-                                        gridTemplateColumns:
-                                            "1fr 1fr",
-                                        gap: "14px",
-                                        marginBottom: "14px"
-                                    }}
-                                >
-
-                                    <div className="inv-field">
-
-                                        <label className="inv-label">
-                                            Código Referencia *
-                                        </label>
-
+                                    <div className="form-group">
+                                        <label>Código Referencia *</label>
                                         <input
-                                            className="inv-input"
                                             name="codigo"
                                             value={
                                                 nuevoProducto.codigo
@@ -1087,18 +920,11 @@ function Inventario() {
                                             }
                                             required
                                         />
-
                                     </div>
 
-
-                                    <div className="inv-field">
-
-                                        <label className="inv-label">
-                                            Categoría *
-                                        </label>
-
+                                    <div className="form-group">
+                                        <label>Categoría *</label>
                                         <select
-                                            className="inv-select"
                                             name="categoria_id"
                                             value={
                                                 nuevoProducto.categoria_id
@@ -1108,14 +934,9 @@ function Inventario() {
                                             }
                                             required
                                         >
-
-                                            <option value="">
-                                                Selecciona categoría
-                                            </option>
-
+                                            <option value="">Selecciona categoría</option>
                                             {categorias.map(
                                                 (item) => (
-
                                                     <option
                                                         key={
                                                             item.categoria_id
@@ -1128,62 +949,38 @@ function Inventario() {
                                                             item.nombre
                                                         }
                                                     </option>
-
                                                 )
                                             )}
-
                                         </select>
+                                    </div>
 
+                                    <div className="form-group form-group-full">
+                                        <label>Nombre *</label>
+                                        <input
+                                            name="nombre"
+                                            value={
+                                                nuevoProducto.nombre
+                                            }
+                                            onChange={
+                                                handleInputChange
+                                            }
+                                            required
+                                        />
                                     </div>
 
                                 </div>
 
 
-                                <div
-                                    className="inv-field"
-                                    style={{
-                                        marginBottom: "14px"
-                                    }}
-                                >
-
-                                    <label className="inv-label">
-                                        Nombre *
-                                    </label>
-
-                                    <input
-                                        className="inv-input"
-                                        name="nombre"
-                                        value={
-                                            nuevoProducto.nombre
-                                        }
-                                        onChange={
-                                            handleInputChange
-                                        }
-                                        required
-                                    />
-
+                                <div className="vm-form-section-title">
+                                    <span className="material-symbols-outlined">inventory</span>
+                                    Marca y stock
                                 </div>
 
+                                <div className="form-grid inv-grid-3">
 
-                                <div
-                                    className="form-grid"
-                                    style={{
-                                        display: "grid",
-                                        gridTemplateColumns:
-                                            "1fr 1fr 1fr",
-                                        gap: "14px",
-                                        marginBottom: "14px"
-                                    }}
-                                >
-
-                                    <div className="inv-field">
-
-                                        <label className="inv-label">
-                                            Marca
-                                        </label>
-
+                                    <div className="form-group">
+                                        <label>Marca</label>
                                         <input
-                                            className="inv-input"
                                             name="marca"
                                             value={
                                                 nuevoProducto.marca
@@ -1192,18 +989,11 @@ function Inventario() {
                                                 handleInputChange
                                             }
                                         />
-
                                     </div>
 
-
-                                    <div className="inv-field">
-
-                                        <label className="inv-label">
-                                            Stock
-                                        </label>
-
+                                    <div className="form-group">
+                                        <label>Stock</label>
                                         <input
-                                            className="inv-input"
                                             type="number"
                                             min="0"
                                             step="0.01"
@@ -1215,18 +1005,11 @@ function Inventario() {
                                                 handleInputChange
                                             }
                                         />
-
                                     </div>
 
-
-                                    <div className="inv-field">
-
-                                        <label className="inv-label">
-                                            Stock mínimo
-                                        </label>
-
+                                    <div className="form-group">
+                                        <label>Stock mínimo</label>
                                         <input
-                                            className="inv-input"
                                             type="number"
                                             min="0"
                                             step="0.01"
@@ -1238,30 +1021,21 @@ function Inventario() {
                                                 handleInputChange
                                             }
                                         />
-
                                     </div>
 
                                 </div>
 
 
-                                <div
-                                    className="form-grid"
-                                    style={{
-                                        display: "grid",
-                                        gridTemplateColumns:
-                                            "1fr 1fr 1fr",
-                                        gap: "14px"
-                                    }}
-                                >
+                                <div className="vm-form-section-title">
+                                    <span className="material-symbols-outlined">payments</span>
+                                    Costos y precio
+                                </div>
 
-                                    <div className="inv-field">
+                                <div className="form-grid inv-grid-4">
 
-                                        <label className="inv-label">
-                                            Costo
-                                        </label>
-
+                                    <div className="form-group">
+                                        <label>Costo</label>
                                         <input
-                                            className="inv-input"
                                             type="number"
                                             min="0"
                                             step="0.01"
@@ -1273,18 +1047,11 @@ function Inventario() {
                                                 handleInputChange
                                             }
                                         />
-
                                     </div>
 
-
-                                    <div className="inv-field">
-
-                                        <label className="inv-label">
-                                            Margen %
-                                        </label>
-
+                                    <div className="form-group">
+                                        <label>Margen %</label>
                                         <input
-                                            className="inv-input"
                                             type="number"
                                             min="0"
                                             step="0.01"
@@ -1296,18 +1063,11 @@ function Inventario() {
                                                 handleInputChange
                                             }
                                         />
-
                                     </div>
 
-
-                                    <div className="inv-field">
-
-                                        <label className="inv-label">
-                                            Precio venta *
-                                        </label>
-
+                                    <div className="form-group">
+                                        <label>Precio venta *</label>
                                         <input
-                                            className="inv-input"
                                             type="number"
                                             min="0"
                                             step="0.01"
@@ -1320,36 +1080,23 @@ function Inventario() {
                                             }
                                             required
                                         />
-
                                     </div>
 
-                                </div>
-
-
-                                <div
-                                    className="inv-field"
-                                    style={{
-                                        marginTop: "14px"
-                                    }}
-                                >
-
-                                    <label className="inv-label">
-                                        IGV %
-                                    </label>
-
-                                    <input
-                                        className="inv-input"
-                                        type="number"
-                                        min="0"
-                                        step="0.01"
-                                        name="igv"
-                                        value={
-                                            nuevoProducto.igv
-                                        }
-                                        onChange={
-                                            handleInputChange
-                                        }
-                                    />
+                                    <div className="form-group">
+                                        <label>IGV %</label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            name="igv"
+                                            value={
+                                                nuevoProducto.igv
+                                            }
+                                            onChange={
+                                                handleInputChange
+                                            }
+                                        />
+                                    </div>
 
                                 </div>
 
@@ -1368,7 +1115,6 @@ function Inventario() {
                                 >
                                     Cancelar
                                 </button>
-
 
                                 <button
                                     type="submit"
@@ -1397,57 +1143,36 @@ function Inventario() {
 
                 <div className="modal-overlay">
 
-                    <div
-                        className="modal-content inv-modal"
-                        style={{
-                            maxWidth: "550px"
-                        }}
-                    >
+                    <div className="modal-content inv-modal-ayuda">
 
                         <div className="modal-header">
 
-                            <h2>
-                                Reglas de Nomenclatura
-                            </h2>
+                            <h2>Reglas de Nomenclatura</h2>
 
                             <button
                                 className="btn-close"
                                 type="button"
+                                aria-label="Cerrar"
                                 onClick={() =>
                                     setMostrarAyudaNomenclatura(
                                         false
                                     )
                                 }
                             >
-                                ✕
+                                <span className="material-symbols-outlined">close</span>
                             </button>
 
                         </div>
 
 
-                        <div
-                            className="modal-body"
-                            style={{
-                                lineHeight: "1.6"
-                            }}
-                        >
+                        <div className="modal-body inv-ayuda">
 
-                            <p>
-                                Utiliza una descripción clara y consistente del ítem.
-                            </p>
+                            <p>Utiliza una descripción clara y consistente del ítem.</p>
 
                             <ul>
-                                <li>
-                                    Repuestos: componente + posición + marca.
-                                </li>
-
-                                <li>
-                                    Servicios: "Servicio de..." + sistema.
-                                </li>
-
-                                <li>
-                                    Insumos: nombre + presentación.
-                                </li>
+                                <li>Repuestos: componente + posición + marca.</li>
+                                <li>Servicios: "Servicio de..." + sistema.</li>
+                                <li>Insumos: nombre + presentación.</li>
                             </ul>
 
                         </div>

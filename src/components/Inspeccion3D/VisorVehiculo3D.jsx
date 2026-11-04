@@ -616,7 +616,7 @@ function VisorVehiculo3D({
                                 onClick={() => handleSeleccionarTipo(item.id)}
                                 title={item.subtitulo}
                             >
-                                <span className="pill-emoji">{item.emoji}</span>
+                                <span className="material-symbols-outlined pill-icon">{item.icono}</span>
                                 <div className="pill-texts">
                                     <span className="pill-name">{item.label}</span>
                                     <span className="pill-sub">{item.subtitulo}</span>
@@ -662,13 +662,13 @@ function VisorVehiculo3D({
                     {conteoDanios.total > 0 && (
                         <div className="counter-breakdown">
                             <span className="badge-severidad-dot leve" title="Leves">
-                                🟡 {conteoDanios.leves}
+                                Leves {conteoDanios.leves}
                             </span>
                             <span className="badge-severidad-dot medio" title="Medios">
-                                🟠 {conteoDanios.medios}
+                                Medios {conteoDanios.medios}
                             </span>
                             <span className="badge-severidad-dot grave" title="Graves">
-                                🔴 {conteoDanios.graves}
+                                Graves {conteoDanios.graves}
                             </span>
                         </div>
                     )}
@@ -709,7 +709,7 @@ function VisorVehiculo3D({
                         onClick={() => enfocarVista("trasera")}
                         title="Vista Posterior / Maletera"
                     >
-                        <span className="material-symbols-outlined">back_hand</span>
+                        <span className="material-symbols-outlined">flip_camera_android</span>
                         <small>Atrás</small>
                     </button>
                     <button
@@ -774,7 +774,7 @@ function VisorVehiculo3D({
                         <div className="detalle-header">
                             <div>
                                 <span className={`badge-severidad ${danioSeleccionado.severidad}`}>
-                                    {SEVERIDAD_DANOS[danioSeleccionado.severidad]?.emoji}{" "}
+                                    <span className="material-symbols-outlined">{SEVERIDAD_DANOS[danioSeleccionado.severidad]?.icono}</span>{" "}
                                     {SEVERIDAD_DANOS[danioSeleccionado.severidad]?.label}
                                 </span>
                                 <h4>{formatearNombrePieza(danioSeleccionado.pieza)}</h4>
@@ -783,8 +783,9 @@ function VisorVehiculo3D({
                                 type="button"
                                 className="btn-close-card"
                                 onClick={() => setDanioSeleccionado(null)}
+                                aria-label="Cerrar detalle"
                             >
-                                ×
+                                <span className="material-symbols-outlined">close</span>
                             </button>
                         </div>
                         <div className="detalle-body">
@@ -820,19 +821,19 @@ function VisorVehiculo3D({
             ========================================================= */}
             {mostrarModal && (
                 <div className="modal-danio-overlay">
-                    <div className="modal-danio animate-pop">
+                    <div className="modal-danio">
                         <div className="modal-danio-header">
                             <div>
                                 <span className="modal-sub">Inspección de Carrocería 3D</span>
                                 <h3>{formatearNombrePieza(piezaSeleccionada)}</h3>
                             </div>
-                            <button type="button" onClick={cancelarDanio} className="btn-cerrar-modal">
-                                ×
+                            <button type="button" onClick={cancelarDanio} className="btn-close" aria-label="Cerrar">
+                                <span className="material-symbols-outlined">close</span>
                             </button>
                         </div>
 
                         <div className="modal-danio-body">
-                            <div className="campo-danio">
+                            <div className="campo campo-danio">
                                 <label>Tipo de daño registrado</label>
                                 <div className="grid-tipos-danio">
                                     {TIPOS_DANO.map((tipo) => (
@@ -849,7 +850,7 @@ function VisorVehiculo3D({
                                 </div>
                             </div>
 
-                            <div className="campo-danio">
+                            <div className="campo campo-danio">
                                 <label>Nivel de Severidad</label>
                                 <div className="opciones-severidad">
                                     {Object.values(SEVERIDAD_DANOS).map((sev) => (
@@ -864,7 +865,7 @@ function VisorVehiculo3D({
                                                 checked={severidad === sev.id}
                                                 onChange={(e) => setSeveridad(e.target.value)}
                                             />
-                                            <span className="sev-emoji">{sev.emoji}</span>
+                                            <span className="material-symbols-outlined sev-icon">{sev.icono}</span>
                                             <div>
                                                 <strong>{sev.label}</strong>
                                                 <small>{sev.subtitulo}</small>
@@ -874,7 +875,7 @@ function VisorVehiculo3D({
                                 </div>
                             </div>
 
-                            <div className="campo-danio">
+                            <div className="campo campo-danio">
                                 <label>Observaciones o Detalle Técnico</label>
                                 <textarea
                                     value={observacion}
@@ -886,10 +887,10 @@ function VisorVehiculo3D({
                         </div>
 
                         <div className="modal-danio-footer">
-                            <button type="button" className="btn-cancelar-danio" onClick={cancelarDanio}>
+                            <button type="button" className="vm-btn vm-btn-secondary" onClick={cancelarDanio}>
                                 Cancelar
                             </button>
-                            <button type="button" className="btn-guardar-danio" onClick={guardarDanio}>
+                            <button type="button" className="vm-btn vm-btn-accent" onClick={guardarDanio}>
                                 <span className="material-symbols-outlined">add_location_alt</span>
                                 Guardar Marcador 3D
                             </button>

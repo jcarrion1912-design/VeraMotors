@@ -6,13 +6,19 @@ import {
     obtenerTecnicosDesempenio,
     obtenerVentasPorPeriodo,
 } from "../../services/metricsService";
+import { useRole } from "../../context/authContext";
 import "./Metricas.css";
 
 const TABS = ["Principal", "Ventas", "Técnicos"];
 const moneda = (valor) => Number(valor || 0).toLocaleString("es-PE", { style: "currency", currency: "PEN" });
 
 function Metricas() {
-    const [subtab, setSubtab] = useState("Principal");
+    const { rolActivo, ROLES } = useRole();
+    const esTecnico = rolActivo === ROLES.TECNICO;
+    // El servidor solo entrega a un técnico su propio desempeño, no datos de negocio.
+    const pestanas = esTecnico ? ["Técnicos"] : TABS;
+
+    const [subtab, setSubtab] = useState(esTecnico ? "Técnicos" : "Principal");
     const [dashboard, setDashboard] = useState(null);
     const [inventario, setInventario] = useState(null);
     const [asistencia, setAsistencia] = useState(null);
@@ -26,7 +32,11 @@ function Metricas() {
 
     useEffect(() => {
         let activa = true;
-        Promise.all([obtenerDashboardMetricas(), obtenerInventarioResumen(), obtenerTecnicosDesempenio(), obtenerAsistenciaResumen()])
+        const consultas = esTecnico
+            ? [null, null, obtenerTecnicosDesempenio(), null]
+            : [obtenerDashboardMetricas(), obtenerInventarioResumen(), obtenerTecnicosDesempenio(), obtenerAsistenciaResumen()];
+
+        Promise.all(consultas)
             .then(([resumen, inventarioReal, tecnicosReales, asistenciaReal]) => {
                 if (!activa) return;
                 setDashboard(resumen);
@@ -39,7 +49,7 @@ function Metricas() {
             })
             .finally(() => { if (activa) setCargando(false); });
         return () => { activa = false; };
-    }, []);
+    }, [esTecnico]);
 
     const consultarVentas = async (event) => {
         event.preventDefault();
@@ -63,11 +73,16 @@ function Metricas() {
             <header className="metricas-header">
                 <div><h2>Métricas</h2><p>Indicadores consultados desde las tablas reales del sistema.</p></div>
             </header>
-            {error && <div className="metricas-error" role="alert">{error}</div>}
+            {error && (
+                <div className="vm-alert" role="alert">
+                    <span className="material-symbols-outlined" aria-hidden="true">error</span>
+                    {error}
+                </div>
+            )}
             <nav className="metricas-subnav" aria-label="Vistas de métricas">
-                {TABS.map((tab) => <button key={tab} className={`metricas-tab-btn ${subtab === tab ? "active" : ""}`} type="button" onClick={() => setSubtab(tab)}>{tab}</button>)}
+                {pestanas.map((tab) => <button key={tab} className={`metricas-tab-btn ${subtab === tab ? "active" : ""}`} type="button" onClick={() => setSubtab(tab)}>{tab}</button>)}
             </nav>
-            {cargando ? <p>Consultando PostgreSQL…</p> : (
+            {cargando ? <p className="vm-loading">Consultando PostgreSQL…</p> : (
                 <>
                     {subtab === "Principal" && (
                         <div className="metricas-kpis">
@@ -80,25 +95,76 @@ function Metricas() {
                         </div>
                     )}
                     {subtab === "Ventas" && (
-                        <section className="metricas-panel">
-                            <h3>Ventas por periodo</h3>
-                            <form className="metricas-period" onSubmit={consultarVentas}>
-                                <label>Desde<input type="date" value={fechaDesde} onChange={(event) => setFechaDesde(event.target.value)} required /></label>
-                                <label>Hasta<input type="date" value={fechaHasta} onChange={(event) => setFechaHasta(event.target.value)} required /></label>
-                                <button type="submit" disabled={cargandoVentas}>{cargandoVentas ? "Consultando…" : "Consultar"}</button>
+                        <section className="vm-card metricas-panel">
+                            <div className="vm-card-head">
+                                <h3>
+                                    <span className="material-symbols-outlined" aria-hidden="true">point_of_sale</span>
+                                    Ventas por periodo
+                                </h3>
+                            </div>
+                            <form className="vm-filter-bar metricas-period" onSubmit={consultarVentas}>
+                                <label className="filter-date">
+                                    <span className="material-symbols-outlined filter-date-icon" aria-hidden="true">calendar_month</span>
+                                    Desde
+                                    <input type="date" value={fechaDesde} onChange={(event) => setFechaDesde(event.target.value)} required />
+                                </label>
+                                <label className="filter-date">
+                                    <span className="material-symbols-outlined filter-date-icon" aria-hidden="true">event</span>
+                                    Hasta
+                                    <input type="date" value={fechaHasta} onChange={(event) => setFechaHasta(event.target.value)} required />
+                                </label>
+                                <button className="vm-btn vm-btn-accent" type="submit" disabled={cargandoVentas}>
+                                    <span className="material-symbols-outlined" aria-hidden="true">search</span>
+                                    {cargandoVentas ? "Consultando…" : "Consultar"}
+                                </button>
                             </form>
-                            {ventas ? <div className="metricas-kpis">
-                                <article><span>Facturas</span><strong>{ventas.cantidad_facturas}</strong></article>
-                                <article><span>Total</span><strong>{moneda(ventas.total_ventas)}</strong></article>
-                                <article><span>Promedio por factura</span><strong>{moneda(ventas.promedio_venta)}</strong></article>
-                            </div> : <p>Selecciona las fechas del periodo que quieres consultar.</p>}
+                            <div className="vm-card-body">
+                                {ventas ? <div className="metricas-kpis">
+                                    <article><span>Facturas</span><strong>{ventas.cantidad_facturas}</strong></article>
+                                    <article><span>Total</span><strong>{moneda(ventas.total_ventas)}</strong></article>
+                                    <article><span>Promedio por factura</span><strong>{moneda(ventas.promedio_venta)}</strong></article>
+                                </div> : (
+                                    <p className="vm-empty">
+                                        <span className="material-symbols-outlined" aria-hidden="true">date_range</span>
+                                        Selecciona las fechas del periodo que quieres consultar.
+                                    </p>
+                                )}
+                            </div>
                         </section>
                     )}
                     {subtab === "Técnicos" && (
-                        <section className="metricas-panel">
-                            <h3>Actividad de técnicos</h3>
-                            <div className="metricas-table-wrap"><table><thead><tr><th>Técnico</th><th>ODS</th><th>Completadas</th><th>Completación</th></tr></thead>
-                                <tbody>{tecnicos.length ? tecnicos.map((tecnico) => <tr key={tecnico.tecnico_id}><td>{tecnico.nombre}</td><td>{tecnico.ods_totales}</td><td>{tecnico.ods_completadas}</td><td>{Number(tecnico.tasa_completacion || 0).toFixed(1)}%</td></tr>) : <tr><td colSpan="4">No hay actividad técnica registrada.</td></tr>}</tbody>
+                        <section className="vm-card metricas-panel">
+                            <div className="vm-card-head">
+                                <h3>
+                                    <span className="material-symbols-outlined" aria-hidden="true">engineering</span>
+                                    Actividad de técnicos
+                                </h3>
+                            </div>
+                            <div className="metricas-table-wrap"><table className="vm-table"><thead><tr><th>Técnico</th><th className="vm-num">ODS</th><th className="vm-num">Completadas</th><th className="vm-num">Completación</th></tr></thead>
+                                <tbody>{tecnicos.length ? tecnicos.map((tecnico) => (
+                                    <tr key={tecnico.tecnico_id}>
+                                        <td><strong>{tecnico.nombre}</strong></td>
+                                        <td className="vm-num">{tecnico.ods_totales}</td>
+                                        <td className="vm-num">{tecnico.ods_completadas}</td>
+                                        <td className="vm-num">
+                                            <span className="metricas-tasa">
+                                                <span className="metricas-tasa-barra" aria-hidden="true">
+                                                    <span className="metricas-tasa-relleno" style={{ width: `${Math.min(100, Math.max(0, Number(tecnico.tasa_completacion || 0)))}%` }} />
+                                                </span>
+                                                <span className="metricas-tasa-valor">{Number(tecnico.tasa_completacion || 0).toFixed(1)}%</span>
+                                            </span>
+                                        </td>
+                                    </tr>
+                                )) : (
+                                    <tr>
+                                        <td colSpan="4">
+                                            <div className="vm-empty">
+                                                <span className="material-symbols-outlined" aria-hidden="true">engineering</span>
+                                                No hay actividad técnica registrada.
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )}</tbody>
                             </table></div>
                         </section>
                     )}

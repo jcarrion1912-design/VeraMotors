@@ -7,6 +7,7 @@ from sqlalchemy import case, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.security import get_current_user
 from app.database import get_db
 from app.models.cierre_caja import CierreCaja
 from app.models.pago import Pago
@@ -79,7 +80,10 @@ def obtener_caja_actual(db: Session = Depends(get_db)):
 
 
 @router.post("/apertura", response_model=CierreCajaResponse, status_code=201)
-def abrir_caja(datos: CajaAperturaCreate, db: Session = Depends(get_db)):
+def abrir_caja(datos: CajaAperturaCreate, db: Session = Depends(get_db), usuario_actual: Usuario = Depends(get_current_user)):
+    # El autor siempre es quien tiene la sesión, no lo que diga el cuerpo.
+    datos.usuario_id = usuario_actual.user_id
+
     try:
         usuario = db.query(Usuario).filter(Usuario.user_id == datos.usuario_id, Usuario.activo.is_(True)).first()
         if not usuario:
@@ -124,7 +128,10 @@ def abrir_caja(datos: CajaAperturaCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/cierre", response_model=CierreCajaResponse)
-def cerrar_caja(datos: CajaCierreCreate, db: Session = Depends(get_db)):
+def cerrar_caja(datos: CajaCierreCreate, db: Session = Depends(get_db), usuario_actual: Usuario = Depends(get_current_user)):
+    # El autor siempre es quien tiene la sesión, no lo que diga el cuerpo.
+    datos.usuario_id = usuario_actual.user_id
+
     try:
         cierre = (
             db.query(CierreCaja)

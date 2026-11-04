@@ -1,17 +1,33 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useRole } from "../../context/authContext";
+import { obtenerMigas } from "../../config/navegacion";
+import BuscadorModulos from "../BuscadorModulos/BuscadorModulos";
 import "./Header.css";
 
-function Header() {
-    const navigate = useNavigate();
+const FECHA_HOY = new Intl.DateTimeFormat("es-PE", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+});
 
-    const { usuarioActual, rolActivo, notificaciones, cerrarSesion: cerrarSesionContexto } = useRole();
+function Header({ abrirMenuMovil }) {
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    const { usuarioActual, rolActivo, ROLES, notificaciones, cerrarSesion: cerrarSesionContexto } = useRole();
 
     const [mostrarNotif, setMostrarNotif] = useState(false);
     const [mostrarMenuUsuario, setMostrarMenuUsuario] = useState(false);
+    const [mostrarBuscador, setMostrarBuscador] = useState(false);
+
+    const notifRef = useRef(null);
+    const usuarioRef = useRef(null);
 
     const nombreUsuario = usuarioActual?.nombre || "Usuario";
+    const esAdministrador = rolActivo === ROLES.ADMIN;
+    const inicio = rolActivo === ROLES.TECNICO ? "/kanban" : "/dashboard";
+    const migas = obtenerMigas(usuarioActual?.rol || "", location.pathname);
 
 
     // ==========================================
@@ -21,6 +37,35 @@ function Header() {
     const notifFiltradas = notificaciones.filter(
         n => !n.paraRol || n.paraRol === rolActivo
     );
+
+
+    // ==========================================
+    // CERRAR MENÚS AL HACER CLIC FUERA / ESC
+    // ==========================================
+
+    useEffect(() => {
+        const alClicFuera = (e) => {
+            if (notifRef.current && !notifRef.current.contains(e.target)) setMostrarNotif(false);
+            if (usuarioRef.current && !usuarioRef.current.contains(e.target)) setMostrarMenuUsuario(false);
+        };
+        const alTeclear = (e) => {
+            if (e.key === "Escape") {
+                setMostrarNotif(false);
+                setMostrarMenuUsuario(false);
+            }
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+                e.preventDefault();
+                setMostrarBuscador(true);
+            }
+        };
+
+        document.addEventListener("mousedown", alClicFuera);
+        document.addEventListener("keydown", alTeclear);
+        return () => {
+            document.removeEventListener("mousedown", alClicFuera);
+            document.removeEventListener("keydown", alTeclear);
+        };
+    }, []);
 
 
     // ==========================================
@@ -45,148 +90,116 @@ function Header() {
     return (
         <header className="header">
 
-            {/* ==========================================
-                HEADER LEFT
-            ========================================== */}
-
+            {/* MENÚ MÓVIL + MIGAS */}
             <div className="header-left">
 
-                <div>
+                <button
+                    type="button"
+                    className="header-icon-btn header-menu-btn"
+                    onClick={abrirMenuMovil}
+                    aria-label="Abrir menú"
+                >
+                    <span className="material-symbols-outlined">menu</span>
+                </button>
 
-                    <h1>
-                        VERAMOTORS SAC
-                    </h1>
-
-                    <p>
-                        Sistema Integral de Administración de Taller Automotriz
-                    </p>
-
-                </div>
+                <nav className="breadcrumbs" aria-label="Ubicación">
+                    <Link to={inicio} className="breadcrumb-home" title="Inicio">
+                        <span className="material-symbols-outlined">home</span>
+                    </Link>
+                    {migas && (
+                        <>
+                            <span className="breadcrumb-sep breadcrumb-seccion" aria-hidden="true">/</span>
+                            <span className="breadcrumb-seccion">{migas.seccion}</span>
+                            <span className="breadcrumb-sep breadcrumb-sep-actual" aria-hidden="true">/</span>
+                            <span className="breadcrumb-actual" aria-current="page">{migas.modulo}</span>
+                        </>
+                    )}
+                </nav>
 
             </div>
 
 
-            {/* ==========================================
-                HEADER RIGHT
-            ========================================== */}
+            {/* BUSCADOR */}
+            <button
+                type="button"
+                className="header-search"
+                onClick={() => setMostrarBuscador(true)}
+                aria-label="Buscar módulo"
+            >
+                <span className="material-symbols-outlined">search</span>
+                <span className="header-search-text">Ir a un módulo…</span>
+                <kbd>Ctrl K</kbd>
+            </button>
 
+
+            {/* ACCIONES */}
             <div className="header-right">
 
+                <span className="header-date" title="Fecha de hoy">
+                    <span className="material-symbols-outlined">event</span>
+                    {FECHA_HOY.format(new Date())}
+                </span>
 
-                {/* ==========================================
-                    NOTIFICACIONES
-                ========================================== */}
-
-                <div
-                    className="notification-wrapper"
-                    style={{
-                        position: "relative"
-                    }}
+                <button
+                    type="button"
+                    className="header-icon-btn header-search-mobile"
+                    onClick={() => setMostrarBuscador(true)}
+                    aria-label="Buscar módulo"
                 >
+                    <span className="material-symbols-outlined">search</span>
+                </button>
+
+                {esAdministrador && (
+                    <Link to="/configuracion" className="header-icon-btn header-config-btn" title="Configuración" aria-label="Configuración">
+                        <span className="material-symbols-outlined">settings</span>
+                    </Link>
+                )}
+
+                {/* NOTIFICACIONES */}
+                <div className="notification-wrapper" ref={notifRef}>
 
                     <button
-                        className="notification-button"
+                        type="button"
+                        className="header-icon-btn"
                         onClick={() =>
                             setMostrarNotif(!mostrarNotif)
                         }
                         title="Notificaciones del sistema"
+                        aria-label="Notificaciones del sistema"
+                        aria-expanded={mostrarNotif}
                     >
-
-                        🔔
+                        <span className="material-symbols-outlined">notifications</span>
 
                         {notifFiltradas.length > 0 && (
                             <span className="notification-badge">
                                 {notifFiltradas.length}
                             </span>
                         )}
-
                     </button>
 
-
                     {mostrarNotif && (
+                        <div className="header-dropdown notification-dropdown">
 
-                        <div
-                            className="notification-dropdown"
-                            style={{
-                                position: "absolute",
-                                right: 0,
-                                top: "45px",
-                                width: "320px",
-                                background: "#1e293b",
-                                border: "1px solid #334155",
-                                borderRadius: "8px",
-                                boxShadow:
-                                    "0 10px 25px rgba(0,0,0,0.5)",
-                                zIndex: 100,
-                                padding: "12px"
-                            }}
-                        >
-
-                            <h4
-                                style={{
-                                    margin: "0 0 8px 0",
-                                    fontSize: "0.9rem",
-                                    borderBottom:
-                                        "1px solid #334155",
-                                    paddingBottom: "6px",
-                                    color: "#f8fafc"
-                                }}
-                            >
+                            <h4 className="header-dropdown-title">
                                 Notificaciones ({rolActivo})
                             </h4>
 
-
                             {notifFiltradas.length === 0 ? (
 
-                                <p
-                                    style={{
-                                        fontSize: "0.8rem",
-                                        color: "#94a3b8",
-                                        margin: "8px 0"
-                                    }}
-                                >
-                                    Sin nuevas alertas.
-                                </p>
+                                <div className="vm-empty notification-empty">
+                                    <span className="material-symbols-outlined">notifications_off</span>
+                                    <span>Sin nuevas alertas.</span>
+                                </div>
 
                             ) : (
 
-                                <div
-                                    style={{
-                                        maxHeight: "200px",
-                                        overflowY: "auto"
-                                    }}
-                                >
+                                <div className="notification-list">
 
                                     {notifFiltradas.map(n => (
 
-                                        <div
-                                            key={n.id}
-                                            style={{
-                                                padding: "8px",
-                                                borderBottom:
-                                                    "1px solid #334155",
-                                                fontSize: "0.8rem",
-                                                color: "#cbd5e1"
-                                            }}
-                                        >
-
-                                            <p
-                                                style={{
-                                                    margin: 0
-                                                }}
-                                            >
-                                                {n.mensaje}
-                                            </p>
-
-                                            <span
-                                                style={{
-                                                    fontSize: "0.7rem",
-                                                    color: "#64748b"
-                                                }}
-                                            >
-                                                {n.tiempo}
-                                            </span>
-
+                                        <div key={n.id} className="notification-item">
+                                            <p>{n.mensaje}</p>
+                                            <span>{n.tiempo}</span>
                                         </div>
 
                                     ))}
@@ -196,135 +209,76 @@ function Header() {
                             )}
 
                         </div>
-
                     )}
 
                 </div>
 
+                {/* USUARIO */}
+                <div className="header-user-wrapper" ref={usuarioRef}>
 
-                {/* ==========================================
-                    USUARIO
-                ========================================== */}
+                    <button
+                        type="button"
+                        className="header-user"
+                        onClick={() =>
+                            setMostrarMenuUsuario(
+                                !mostrarMenuUsuario
+                            )
+                        }
+                        aria-expanded={mostrarMenuUsuario}
+                        aria-label="Menú de usuario"
+                    >
+                        <div className="header-avatar">
+                            {nombreUsuario
+                                .substring(0, 2)
+                                .toUpperCase()}
+                        </div>
 
-                <div
-                    className="header-user"
-                    onClick={() =>
-                        setMostrarMenuUsuario(
-                            !mostrarMenuUsuario
-                        )
-                    }
-                    style={{
-                        position: "relative",
-                        cursor: "pointer"
-                    }}
-                >
+                        <div className="header-user-info">
+                            <strong>{nombreUsuario}</strong>
+                            <span>{rolActivo}</span>
+                        </div>
 
-                    <div className="header-avatar">
-
-                        {nombreUsuario
-                            .substring(0, 2)
-                            .toUpperCase()}
-
-                    </div>
-
-
-                    <div className="header-user-info">
-
-                        <strong>
-                            {nombreUsuario}
-                        </strong>
-
-                        <span>
-                            {rolActivo}
-                        </span>
-
-                    </div>
-
-
-                    {/* ==========================================
-                        MENU USUARIO
-                    ========================================== */}
+                        <span className="material-symbols-outlined header-user-caret">expand_more</span>
+                    </button>
 
                     {mostrarMenuUsuario && (
+                        <div className="header-dropdown user-dropdown">
 
-                        <div
-                            style={{
-                                position: "absolute",
-                                top: "55px",
-                                right: 0,
-                                width: "220px",
-                                background: "#1e293b",
-                                border:
-                                    "1px solid #334155",
-                                borderRadius: "8px",
-                                boxShadow:
-                                    "0 10px 25px rgba(0,0,0,0.5)",
-                                padding: "8px",
-                                zIndex: 200
-                            }}
-                        >
-
-                            {/* Información */}
-
-                            <div
-                                style={{
-                                    padding: "10px",
-                                    borderBottom:
-                                        "1px solid #334155",
-                                    marginBottom: "6px"
-                                }}
-                            >
-
-                                <strong
-                                    style={{
-                                        display: "block",
-                                        color: "#f8fafc"
-                                    }}
-                                >
-                                    {nombreUsuario}
-                                </strong>
-
-                                <span
-                                    style={{
-                                        fontSize: "0.8rem",
-                                        color: "#94a3b8"
-                                    }}
-                                >
-                                    {usuarioActual?.email}
-                                </span>
-
+                            <div className="user-dropdown-info">
+                                <strong>{nombreUsuario}</strong>
+                                <span>{usuarioActual?.email}</span>
                             </div>
 
-
-                            {/* Cerrar sesión */}
+                            {esAdministrador && (
+                                <Link
+                                    to="/configuracion"
+                                    className="user-dropdown-item"
+                                    onClick={() => setMostrarMenuUsuario(false)}
+                                >
+                                    <span className="material-symbols-outlined">settings</span>
+                                    Configuración
+                                </Link>
+                            )}
 
                             <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    cerrarSesion();
-                                }}
-                                style={{
-                                    width: "100%",
-                                    border: "none",
-                                    background: "transparent",
-                                    color: "#f87171",
-                                    padding: "10px",
-                                    textAlign: "left",
-                                    borderRadius: "6px",
-                                    cursor: "pointer",
-                                    fontSize: "0.9rem"
-                                }}
+                                type="button"
+                                className="user-dropdown-item is-danger"
+                                onClick={cerrarSesion}
                             >
-                                🚪 Cerrar sesión
+                                <span className="material-symbols-outlined">logout</span>
+                                Cerrar sesión
                             </button>
 
                         </div>
-
                     )}
 
                 </div>
 
             </div>
+
+            {mostrarBuscador && (
+                <BuscadorModulos onCerrar={() => setMostrarBuscador(false)} />
+            )}
 
         </header>
     );

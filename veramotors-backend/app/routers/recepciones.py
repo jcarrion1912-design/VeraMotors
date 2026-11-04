@@ -4,6 +4,8 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.core.security import get_current_user
+from app.models.usuario import Usuario
 from app.database import get_db
 from app.models.compra import Compra
 from app.models.detalle_compra import DetalleCompra
@@ -49,7 +51,11 @@ def obtener_recepcion(
 def crear_recepcion(
     datos: RecepcionCreate,
     db: Session = Depends(get_db),
+    usuario_actual: Usuario = Depends(get_current_user),
 ):
+    # El autor siempre es quien tiene la sesión, no lo que diga el cuerpo.
+    datos.usuario_id = usuario_actual.user_id
+
     compra = db.query(Compra).filter(Compra.compra_id == datos.compra_id).first()
     if not compra:
         raise HTTPException(status_code=404, detail="Compra no encontrada.")
@@ -57,6 +63,36 @@ def crear_recepcion(
     proveedor = db.query(Proveedor).filter(Proveedor.proveedor_id == datos.proveedor_id).first()
     if not proveedor:
         raise HTTPException(status_code=404, detail="Proveedor no encontrado.")
+
+    if compra.estado == "Recibida":
+        raise HTTPException(status_code=409, detail="Esta orden de compra ya fue recibida por completo.")
+
+    # Lo ya recibido en recepciones anteriores limita lo que se puede recibir ahora.
+    ordenado_por_item = {}
+    for detalle_compra in compra.detalles:
+        ordenado_por_item[detalle_compra.item_id] = (
+            ordenado_por_item.get(detalle_compra.item_id, Decimal("0")) + Decimal(str(detalle_compra.cantidad))
+        )
+
+    recibido_por_item = {}
+    filas_previas = (
+        db.query(DetalleRecepcion)
+        .join(Recepcion, DetalleRecepcion.recepcion_id == Recepcion.recepcion_id)
+        .filter(Recepcion.compra_id == compra.compra_id, Recepcion.estado == "Confirmada")
+        .all()
+    )
+    for previa in filas_previas:
+        recibido_por_item[previa.item_id] = (
+            recibido_por_item.get(previa.item_id, Decimal("0")) + Decimal(str(previa.cantidad_recibida))
+        )
+
+    if ordenado_por_item:
+        for detalle in datos.detalles:
+            if detalle.item_id not in ordenado_por_item:
+                raise HTTPException(status_code=400, detail=f"El ítem {detalle.item_id} no pertenece a esta orden de compra.")
+            nuevo_total = recibido_por_item.get(detalle.item_id, Decimal("0")) + Decimal(str(detalle.cantidad_recibida))
+            if nuevo_total > ordenado_por_item[detalle.item_id]:
+                raise HTTPException(status_code=400, detail="La cantidad recibida excede lo pendiente de la orden.")
 
     recepcion = Recepcion(
         compra_id=datos.compra_id,
@@ -117,6 +153,16 @@ def crear_recepcion(
                 observaciones=datos.observaciones,
             )
             db.add(movimiento)
+
+            recibido_por_item[detalle.item_id] = (
+                recibido_por_item.get(detalle.item_id, Decimal("0")) + Decimal(str(detalle.cantidad_recibida))
+            )
+
+        if ordenado_por_item and all(
+            recibido_por_item.get(item_id, Decimal("0")) >= cantidad
+            for item_id, cantidad in ordenado_por_item.items()
+        ):
+            compra.estado = "Recibida"
 
     db.commit()
     db.refresh(recepcion)

@@ -1,6 +1,7 @@
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -78,6 +79,10 @@ def crear_factura_proveedor(
         )
 
     db.add(factura)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Ya existe un comprobante con ese tipo, serie y número para este proveedor.")
     db.refresh(factura)
     return factura

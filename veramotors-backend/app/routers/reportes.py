@@ -4,6 +4,13 @@ from sqlalchemy import func
 from decimal import Decimal
 from datetime import date, datetime, timedelta
 
+from app.core.security import (
+    ROL_TECNICO,
+    get_current_user,
+    nombre_rol,
+    personal_administrativo,
+    solo_admin,
+)
 from app.database import get_db
 from app.models.factura import Factura
 from app.models.inventario import Inventario
@@ -17,7 +24,7 @@ from app.models.rol import Rol
 router = APIRouter()
 
 
-@router.get("/dashboard")
+@router.get("/dashboard", dependencies=[Depends(personal_administrativo)])
 def obtener_dashboard_metricas(db: Session = Depends(get_db)):
     """
     Retorna métricas principales para el dashboard
@@ -71,7 +78,7 @@ def obtener_dashboard_metricas(db: Session = Depends(get_db)):
     }
 
 
-@router.get("/ventasPeriodo")
+@router.get("/ventasPeriodo", dependencies=[Depends(personal_administrativo)])
 def obtener_ventas_periodo(
     fecha_inicio: str,
     fecha_fin: str,
@@ -104,7 +111,7 @@ def obtener_ventas_periodo(
     }
 
 
-@router.get("/rentabilidad")
+@router.get("/rentabilidad", dependencies=[Depends(solo_admin)])
 def obtener_rentabilidad(db: Session = Depends(get_db)):
     """
     Retorna análisis de rentabilidad
@@ -129,7 +136,7 @@ def obtener_rentabilidad(db: Session = Depends(get_db)):
     }
 
 
-@router.get("/inventario-resumen")
+@router.get("/inventario-resumen", dependencies=[Depends(personal_administrativo)])
 def obtener_inventario_resumen(db: Session = Depends(get_db)):
     """
     Retorna resumen del inventario
@@ -151,7 +158,7 @@ def obtener_inventario_resumen(db: Session = Depends(get_db)):
     }
 
 
-@router.get("/asistencia-resumen")
+@router.get("/asistencia-resumen", dependencies=[Depends(personal_administrativo)])
 def obtener_asistencia_resumen(db: Session = Depends(get_db)):
     """
     Retorna resumen de asistencia del mes
@@ -176,14 +183,23 @@ def obtener_asistencia_resumen(db: Session = Depends(get_db)):
 
 
 @router.get("/tecnicos-desempenio")
-def obtener_tecnicos_desempenio(db: Session = Depends(get_db)):
+def obtener_tecnicos_desempenio(
+    db: Session = Depends(get_db),
+    usuario_actual: Usuario = Depends(get_current_user),
+):
     """
     Retorna desempeño de técnicos
     """
-    tecnicos = db.query(Usuario).join(Rol, Rol.rol_id == Usuario.rol_id).filter(
+    consulta = db.query(Usuario).join(Rol, Rol.rol_id == Usuario.rol_id).filter(
         Rol.nombre == "Técnico Automotriz",
         Usuario.activo.is_(True),
-    ).all()
+    )
+
+    # Un técnico solo ve su propio desempeño.
+    if nombre_rol(usuario_actual) == ROL_TECNICO:
+        consulta = consulta.filter(Usuario.user_id == usuario_actual.user_id)
+
+    tecnicos = consulta.all()
 
     desempenio = []
     for tecnico in tecnicos:

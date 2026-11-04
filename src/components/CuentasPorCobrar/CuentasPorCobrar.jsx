@@ -39,33 +39,46 @@ function CuentasPorCobrar({ onCobrar, refreshKey = 0 }) {
 
     return (
         <section className="cxc-page">
-            <header className="cxc-header">
+            <header className="vm-page-head">
                 <div><h2>Cuentas por cobrar</h2><p>Saldos y pagos registrados en PostgreSQL.</p></div>
-                <label className="cxc-search">Buscar
-                    <input type="search" value={busqueda} onChange={(event) => setBusqueda(event.target.value)} placeholder="Comprobante o cliente" />
+                <label className="vm-search cxc-search">
+                    <span className="material-symbols-outlined" aria-hidden="true">search</span>
+                    <input type="search" value={busqueda} onChange={(event) => setBusqueda(event.target.value)} placeholder="Comprobante o cliente" aria-label="Buscar" />
                 </label>
             </header>
-            {error && <div className="cxc-alert" role="alert">{error}</div>}
-            <div className="cxc-summary" aria-live="polite">
-                <div><span>Saldo pendiente</span><strong>{moneda(saldoTotal)}</strong></div>
-                <div><span>Cuentas abiertas</span><strong>{cuentasAbiertas}</strong></div>
-                <div><span>Comprobantes</span><strong>{cuentas.length}</strong></div>
+            {error && <div className="vm-alert" role="alert"><span className="material-symbols-outlined" aria-hidden="true">error</span>{error}</div>}
+            <div className="vm-kpi-grid" aria-live="polite">
+                <div className="vm-kpi"><span className="vm-kpi-label">Saldo pendiente</span><strong className="vm-kpi-value">{moneda(saldoTotal)}</strong></div>
+                <div className="vm-kpi"><span className="vm-kpi-label">Cuentas abiertas</span><strong className="vm-kpi-value">{cuentasAbiertas}</strong></div>
+                <div className="vm-kpi"><span className="vm-kpi-label">Comprobantes</span><strong className="vm-kpi-value">{cuentas.length}</strong></div>
             </div>
-            <div className="cxc-table-wrap">
-                <table className="cxc-table">
-                    <thead><tr><th>Factura</th><th>Cliente</th><th>Emisión</th><th>Vencimiento</th><th>Total</th><th>Pagado</th><th>Saldo</th><th>Estado</th><th>Acción</th></tr></thead>
+            <div className="vm-table-wrap">
+                <table className="vm-table cxc-table">
+                    <thead>
+                        <tr>
+                            <th>Factura</th>
+                            <th>Cliente</th>
+                            <th>Emisión</th>
+                            <th>Vencimiento</th>
+                            <th className="vm-num">Total</th>
+                            <th className="vm-num">Pagado</th>
+                            <th className="vm-num">Saldo</th>
+                            <th>Estado</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
                     <tbody>
-                        {cargando ? <tr><td colSpan="9" className="cxc-empty">Consultando cuentas…</td></tr> : cuentasFiltradas.length === 0 ? <tr><td colSpan="9" className="cxc-empty">No hay cuentas para mostrar.</td></tr> : cuentasFiltradas.map((cuenta) => (
+                        {cargando ? <tr><td colSpan="9"><div className="vm-loading cxc-loading">Consultando cuentas…</div></td></tr> : cuentasFiltradas.length === 0 ? <tr><td colSpan="9"><div className="vm-empty"><span className="material-symbols-outlined" aria-hidden="true">account_balance_wallet</span><strong>No hay cuentas para mostrar.</strong></div></td></tr> : cuentasFiltradas.map((cuenta) => (
                             <tr key={cuenta.cuenta_cobrar_id}>
-                                <td><strong>{cuenta.numero_comprobante}</strong><small>{cuenta.tipo_comprobante}</small></td>
+                                <td><span className="vm-code">{cuenta.numero_comprobante}</span><small className="cxc-doc-type">{cuenta.tipo_comprobante}</small></td>
                                 <td>{cuenta.cliente_nombre}</td>
                                 <td>{fecha(cuenta.fecha_emision)}</td>
                                 <td>{fecha(cuenta.fecha_vencimiento)}</td>
-                                <td>{moneda(cuenta.monto_total)}</td>
-                                <td>{moneda(cuenta.monto_pagado)}</td>
-                                <td><strong>{moneda(cuenta.saldo)}</strong></td>
-                                <td><span className={`cxc-state cxc-state-${cuenta.estado.toLowerCase()}`}>{cuenta.estado}</span></td>
-                                <td>{Number(cuenta.saldo) > 0 && cuenta.estado !== "Anulada" ? <button type="button" onClick={() => onCobrar(cuenta)}>Cobrar</button> : <span>-</span>}</td>
+                                <td className="vm-num">{moneda(cuenta.monto_total)}</td>
+                                <td className="vm-num">{moneda(cuenta.monto_pagado)}</td>
+                                <td className="vm-num"><strong>{moneda(cuenta.saldo)}</strong></td>
+                                <td><span className={`vm-badge cxc-state-${cuenta.estado.toLowerCase()}`}>{cuenta.estado}</span></td>
+                                <td>{Number(cuenta.saldo) > 0 && cuenta.estado !== "Anulada" ? <button type="button" className="btn-act-table link" onClick={() => onCobrar(cuenta)}><span className="material-symbols-outlined" aria-hidden="true">payments</span>Cobrar</button> : <span className="cxc-no-action">-</span>}</td>
                             </tr>
                         ))}
                     </tbody>

@@ -1,458 +1,336 @@
 /* =========================================
    DIAGRAMA DEL VEHÍCULO
-   VERAMOTORS
    ========================================= */
 
 .diagrama-vehiculo {
     width: 100%;
-    background: #ffffff;
-    border: 1px solid #c5c6cd;
-    border-radius: 8px;
+    min-width: 0;
     overflow: hidden;
 }
 
-/* =========================================
-   CABECERA
-   ========================================= */
-
-.diagrama-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    padding: 24px;
-    background: #f2f4f6;
-    border-bottom: 1px solid #c5c6cd;
-}
-
-.diagrama-header h3 {
-    margin: 0;
-    color: #191c1e;
-    font-size: 20px;
-    line-height: 28px;
-    font-weight: 600;
-}
-
 .diagrama-header p {
-    margin: 5px 0 0;
-    color: #45474c;
-    font-size: 14px;
-    line-height: 20px;
+    margin-top: 2px;
+    color: var(--text-muted);
+    font-size: var(--fs-xs);
+    font-weight: 400;
+    line-height: 1.4;
 }
 
-/* =========================================
-   CONTADOR
-   ========================================= */
-
+/* Contador */
 .contador-danos {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 8px 12px;
-    border: 1px solid #c5c6cd;
-    border-radius: 6px;
-    background: #ffffff;
-    color: #45474c;
+    flex-shrink: 0;
+    gap: var(--s-1);
+    min-height: 30px;
+    padding: 0 var(--s-2);
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    background: var(--surface-2);
+    color: var(--text-2);
+    font-size: var(--fs-xs);
     white-space: nowrap;
 }
 
-.contador-danos .material-symbols-outlined {
-    color: #0058be;
-    font-size: 20px;
-}
-
 .contador-danos strong {
-    color: #191c1e;
-    font-size: 16px;
-    font-weight: 700;
+    color: var(--text);
+    font-family: var(--font-display);
+    font-size: var(--fs-lg);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
 }
 
-/* =========================================
-   CONTENIDO
-   ========================================= */
-
+/* Contenido */
 .diagrama-contenido {
     display: flex;
-    justify-content: center;
     align-items: center;
-    gap: 40px;
-    padding: 32px;
+    justify-content: center;
+    gap: var(--s-8);
+    padding: var(--s-5);
 }
-
-/* =========================================
-   VEHÍCULO
-   ========================================= */
 
 .vehiculo-wrapper {
     position: relative;
     display: flex;
+    flex: 0 1 400px;
     justify-content: center;
-    align-items: center;
-    padding: 20px 50px;
+    min-width: 0;
+    padding-top: var(--s-8);
 }
 
 .vehiculo-svg {
-    width: 400px;
-    max-width: 100%;
+    width: 100%;
+    max-width: 400px;
     height: auto;
     overflow: visible;
 }
 
-/* Sombra */
-
 .vehiculo-sombra {
-    fill: #d8dadc;
-    opacity: 0.45;
+    fill: var(--surface-3);
 }
-
-/* Cuerpo principal */
 
 .carro-base {
-    fill: #e6e8ea;
-    stroke: #75777d;
-    stroke-width: 3;
+    fill: var(--surface-2);
+    stroke: var(--border-strong);
+    stroke-width: 2;
 }
 
-/* =========================================
-   ZONAS CLICKEABLES
-   ========================================= */
-
-.zona-vehiculo {
-    fill: #d8e3fb;
-    stroke: #0058be;
+.rueda {
+    fill: var(--text);
+    stroke: var(--text-2);
     stroke-width: 2;
+}
+
+/* Zonas seleccionables */
+.zona-vehiculo {
+    fill: var(--surface);
+    stroke: var(--primary-text);
+    stroke-width: 1.5;
     cursor: pointer;
-    transition:
-        fill 0.2s ease,
-        stroke 0.2s ease,
-        opacity 0.2s ease,
-        transform 0.2s ease;
+    transition: fill var(--t-fast) var(--ease), stroke var(--t-fast) var(--ease);
 }
 
 .zona-vehiculo:hover {
-    fill: #adc6ff;
-    stroke: #004395;
-    stroke-width: 3;
-    opacity: 0.9;
+    fill: var(--primary-soft-2);
+    stroke: var(--primary);
+    stroke-width: 2;
 }
 
-/* =========================================
-   DAÑO LEVE
-   ========================================= */
-
-.zona-leve {
-    fill: #ffdad7;
-    stroke: #ba1a1a;
-    stroke-width: 3;
-}
-
+.zona-leve,
 .zona-leve:hover {
-    fill: #ffb3ad;
-    stroke: #93000a;
+    fill: var(--warning-soft);
+    stroke: var(--warning);
+    stroke-width: 2.5;
 }
 
-/* =========================================
-   DAÑO GRAVE
-   ========================================= */
-
-.zona-grave {
-    fill: #ba1a1a;
-    stroke: #5a0008;
-    stroke-width: 3;
-}
-
+.zona-grave,
 .zona-grave:hover {
-    fill: #93000a;
+    fill: var(--danger);
+    stroke: var(--danger-text);
+    stroke-width: 2.5;
 }
 
-/* =========================================
-   RUEDAS
-   ========================================= */
-
-.rueda {
-    fill: #191c1e;
-    stroke: #45474c;
-    stroke-width: 3;
-}
-
-/* =========================================
-   INDICADOR DELANTERO
-   ========================================= */
-
+/* Indicador delantero */
 .indicador-delante {
     position: absolute;
     top: 0;
     left: 50%;
-    transform: translateX(-50%);
-
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2px;
-
-    color: #45474c;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.05em;
+    gap: 1px;
+    color: var(--text-muted);
+    font-family: var(--font-display);
+    font-size: var(--fs-2xs);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    transform: translateX(-50%);
 }
 
 .indicador-delante .material-symbols-outlined {
-    font-size: 18px;
+    order: -1;
+    font-size: 16px;
 }
 
-/* =========================================
-   LEYENDA
-   ========================================= */
-
+/* Leyenda */
 .diagrama-leyenda {
-    width: 190px;
-    min-width: 190px;
-    padding: 18px;
-    border: 1px solid #c5c6cd;
-    border-radius: 6px;
-    background: #f7f9fb;
+    flex: 0 0 200px;
+    padding: var(--s-3) var(--s-4);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    background: var(--surface-2);
 }
 
 .diagrama-leyenda h4 {
-    margin: 0 0 16px;
-    color: #191c1e;
-    font-size: 14px;
-    font-weight: 700;
+    margin-bottom: var(--s-3);
+    font-size: var(--fs-md);
 }
 
 .leyenda-item {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 12px;
-    color: #45474c;
-    font-size: 13px;
+    gap: var(--s-2);
+    margin-bottom: var(--s-2);
+    color: var(--text-2);
+    font-size: var(--fs-sm);
 }
 
 .leyenda-color {
-    width: 16px;
-    height: 16px;
     flex-shrink: 0;
-    border-radius: 3px;
-    border: 1px solid #75777d;
-}
-
-.leyenda-color.normal {
-    background: #d8e3fb;
-    border-color: #0058be;
+    width: 14px;
+    height: 14px;
+    border: 1.5px solid var(--primary-text);
+    border-radius: var(--r-sm);
+    background: var(--surface);
 }
 
 .leyenda-color.leve {
-    background: #ffdad7;
-    border-color: #ba1a1a;
+    border-color: var(--warning);
+    background: var(--warning-soft);
 }
 
 .leyenda-color.grave {
-    background: #ba1a1a;
-    border-color: #5a0008;
+    border-color: var(--danger-text);
+    background: var(--danger);
 }
-
-/* =========================================
-   AYUDA
-   ========================================= */
 
 .diagrama-ayuda {
     display: flex;
     align-items: flex-start;
-    gap: 8px;
-    margin-top: 20px;
-    padding-top: 16px;
-    border-top: 1px solid #c5c6cd;
+    gap: var(--s-2);
+    margin-top: var(--s-3);
+    padding-top: var(--s-3);
+    border-top: 1px solid var(--border);
 }
 
 .diagrama-ayuda .material-symbols-outlined {
     flex-shrink: 0;
-    color: #0058be;
+    color: var(--primary-text);
     font-size: 18px;
 }
 
 .diagrama-ayuda p {
-    margin: 0;
-    color: #45474c;
-    font-size: 12px;
-    line-height: 17px;
+    color: var(--text-muted);
+    font-size: var(--fs-xs);
+    line-height: 1.4;
 }
 
-/* =========================================
-   DAÑOS REGISTRADOS
-   ========================================= */
-
+/* Daños registrados */
 .danos-registrados {
-    padding: 20px 24px 24px;
-    border-top: 1px solid #c5c6cd;
-    background: #f7f9fb;
+    padding: var(--s-4);
+    border-top: 1px solid var(--border);
+    background: var(--surface-2);
 }
 
 .danos-registrados-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 14px;
+    margin-bottom: var(--s-3);
 }
 
 .danos-registrados-header h4 {
-    margin: 0;
-    color: #191c1e;
-    font-size: 16px;
-    font-weight: 600;
+    font-size: var(--fs-md);
 }
 
-.danos-registrados-header>span {
-    display: flex;
+.danos-registrados-header > span {
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-
-    min-width: 26px;
-    height: 26px;
-
-    padding: 0 7px;
-
-    border-radius: 50%;
-    background: #0058be;
-    color: #ffffff;
-
-    font-size: 12px;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: var(--r-pill);
+    background: var(--surface-dark);
+    color: var(--on-dark);
+    font-size: var(--fs-2xs);
     font-weight: 700;
+    font-variant-numeric: tabular-nums;
 }
-
-/* =========================================
-   LISTA DE DAÑOS
-   ========================================= */
 
 .danos-lista {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
+    gap: var(--s-2);
 }
 
 .danio-item {
     display: flex;
     align-items: center;
-    gap: 10px;
-
-    padding: 12px;
-
-    border: 1px solid #c5c6cd;
-    border-radius: 6px;
-    background: #ffffff;
+    gap: var(--s-2);
+    min-width: 0;
+    padding: var(--s-2) var(--s-3);
+    border: 1px solid var(--border);
+    border-left-width: 3px;
+    border-radius: var(--r-sm);
+    background: var(--surface);
 }
 
 .danio-icono {
     display: flex;
+    flex-shrink: 0;
     align-items: center;
     justify-content: center;
-
-    width: 34px;
-    height: 34px;
-    flex-shrink: 0;
-
-    border-radius: 5px;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--r-sm);
 }
 
 .danio-icono .material-symbols-outlined {
-    font-size: 20px;
+    font-size: 19px;
 }
 
 .danio-info {
     display: flex;
     flex-direction: column;
-    gap: 2px;
     min-width: 0;
 }
 
 .danio-info strong {
-    color: #191c1e;
-    font-size: 13px;
-    line-height: 18px;
-}
-
-.danio-info span {
-    font-size: 12px;
+    color: var(--text);
+    font-size: var(--fs-sm);
     font-weight: 600;
 }
 
-/* Daño leve */
+.danio-info span {
+    font-size: var(--fs-xs);
+    font-weight: 500;
+}
 
 .danio-leve {
-    border-left: 4px solid #ba1a1a;
+    border-left-color: var(--warning);
 }
 
 .danio-leve .danio-icono {
-    background: #ffdad7;
-    color: #ba1a1a;
+    background: var(--warning-soft);
+    color: var(--warning-text);
 }
 
 .danio-leve .danio-info span {
-    color: #ba1a1a;
+    color: var(--warning-text);
 }
 
-/* Daño grave */
-
 .danio-grave {
-    border-left: 4px solid #5a0008;
+    border-left-color: var(--danger);
 }
 
 .danio-grave .danio-icono {
-    background: #ffdad7;
-    color: #93000a;
+    background: var(--danger-soft);
+    color: var(--danger-text);
 }
 
 .danio-grave .danio-info span {
-    color: #93000a;
+    color: var(--danger-text);
 }
 
-/* =========================================
-   RESPONSIVE
-   ========================================= */
-
+/* Responsive */
 @media (max-width: 900px) {
-
     .diagrama-contenido {
         flex-direction: column;
-        gap: 24px;
+        align-items: stretch;
+        gap: var(--s-4);
+    }
+
+    .vehiculo-wrapper {
+        flex: 0 0 auto;
     }
 
     .diagrama-leyenda {
-        width: 100%;
-        min-width: 0;
-        box-sizing: border-box;
+        flex: 0 0 auto;
     }
 
     .danos-lista {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
     }
 }
 
 @media (max-width: 600px) {
-
     .diagrama-header {
         flex-direction: column;
         align-items: flex-start;
     }
 
-    .contador-danos {
-        width: 100%;
-        box-sizing: border-box;
-    }
-
     .diagrama-contenido {
-        padding: 20px 12px;
-    }
-
-    .vehiculo-wrapper {
-        padding: 25px 25px;
-    }
-
-    .vehiculo-svg {
-        width: 330px;
-    }
-
-    .danos-registrados {
-        padding: 18px;
+        padding: var(--s-3);
     }
 }

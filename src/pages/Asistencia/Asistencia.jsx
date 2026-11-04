@@ -1179,13 +1179,9 @@ function Asistencia() {
 
                 <div>
 
-                    <h2>
-                        Control de Asistencia
-                    </h2>
+                    <h2>Control de Asistencia</h2>
 
-                    <p>
-                        Registro de entrada, salida y tardanzas del personal de VeraMotors SAC (RRHH).
-                    </p>
+                    <p>Registro de entrada, salida y tardanzas del personal de VeraMotors SAC (RRHH).</p>
 
                 </div>
 
@@ -1202,6 +1198,8 @@ function Asistencia() {
 
                     <button
                         className="btn-nav"
+                        aria-label="Día anterior"
+                        title="Día anterior"
                         onClick={() =>
                             setFecha(
                                 sumarDias(
@@ -1211,12 +1209,13 @@ function Asistencia() {
                             )
                         }
                     >
-                        ‹
+                        <span className="material-symbols-outlined">chevron_left</span>
                     </button>
 
 
                     <input
                         type="date"
+                        aria-label="Fecha de asistencia"
                         value={fecha}
                         onChange={(e) =>
                             setFecha(
@@ -1228,6 +1227,8 @@ function Asistencia() {
 
                     <button
                         className="btn-nav"
+                        aria-label="Día siguiente"
+                        title="Día siguiente"
                         onClick={() =>
                             setFecha(
                                 sumarDias(
@@ -1237,12 +1238,12 @@ function Asistencia() {
                             )
                         }
                     >
-                        ›
+                        <span className="material-symbols-outlined">chevron_right</span>
                     </button>
 
 
                     <button
-                        className="btn-hoy"
+                        className="vm-btn vm-btn-secondary btn-hoy"
                         onClick={() =>
                             setFecha(
                                 hoyISO()
@@ -1259,22 +1260,19 @@ function Asistencia() {
 
                 <div className="regla-tardanza">
 
-                    <span className="material-symbols-outlined">
-                        schedule
-                    </span>
+                    <span className="material-symbols-outlined">schedule</span>
 
 
                     {editandoRegla ? (
 
                         <>
 
-                            <span>
-                                Hora límite:
-                            </span>
+                            <span>Hora límite:</span>
 
 
                             <input
                                 type="time"
+                                aria-label="Hora límite"
                                 value={
                                     horaLimite
                                 }
@@ -1286,17 +1284,14 @@ function Asistencia() {
                             />
 
 
-                            <span>
-                                Tolerancia:
-                            </span>
+                            <span>Tolerancia:</span>
 
 
                             <input
                                 type="number"
                                 min="0"
-                                style={{
-                                    width: "56px"
-                                }}
+                                aria-label="Tolerancia en minutos"
+                                className="regla-minutos"
                                 value={
                                     tolerancia
                                 }
@@ -1308,9 +1303,7 @@ function Asistencia() {
                             />
 
 
-                            <span>
-                                min
-                            </span>
+                            <span>min</span>
 
 
                             <button
@@ -1321,6 +1314,7 @@ function Asistencia() {
                                     )
                                 }
                             >
+                                <span className="material-symbols-outlined">check</span>
                                 Listo
                             </button>
 
@@ -1330,7 +1324,7 @@ function Asistencia() {
 
                         <>
 
-                            <span>
+                            <span className="regla-texto">
 
                                 Regla de tardanza:
                                 ingreso después de{" "}
@@ -1358,7 +1352,8 @@ function Asistencia() {
                                     )
                                 }
                             >
-                                ✏️ Editar
+                                <span className="material-symbols-outlined">edit</span>
+                                Editar
                             </button>
 
                         </>
@@ -1373,23 +1368,25 @@ function Asistencia() {
                 <div className="acciones-masivas">
 
                     <button
-                        className="btn-act-table diag"
+                        className="vm-btn vm-btn-accent"
                         onClick={
                             marcarVisiblesPresente
                         }
                     >
-                        ✓ Marcar visibles como Presente
+                        <span className="material-symbols-outlined">done_all</span>
+                        Marcar visibles como Presente
                     </button>
 
 
                     <button
-                        className="btn-act-table"
+                        className="vm-btn vm-btn-secondary"
                         onClick={deshacer}
                         disabled={
                             !ultimoSnapshot
                         }
                     >
-                        ↩ Deshacer
+                        <span className="material-symbols-outlined">undo</span>
+                        Deshacer
                     </button>
 
                 </div>
@@ -1401,121 +1398,36 @@ function Asistencia() {
                 KPIs
             ================================================== */}
 
-            <div className="stats-grid asistencia-kpis">
+            <div className="asistencia-kpis">
 
-
-                <div className="stat-card">
-
-                    <div className="stat-card-top">
-                        <span>
-                            Total Personal
-                        </span>
-                    </div>
-
-                    <div className="stat-value">
-                        {kpis.total}
-                    </div>
-
+                <div className="vm-kpi">
+                    <span className="vm-kpi-label">Total Personal</span>
+                    <div className="vm-kpi-value">{kpis.total}</div>
                 </div>
 
-
-                <div className="stat-card">
-
-                    <div className="stat-card-top">
-                        <span>
-                            Presentes
-                        </span>
-                    </div>
-
-                    <div
-                        className="stat-value"
-                        style={{
-                            color: "#16a34a"
-                        }}
-                    >
-                        {kpis.presentes}
-                    </div>
-
+                <div className="vm-kpi asist-kpi-presente">
+                    <span className="vm-kpi-label">Presentes</span>
+                    <div className="vm-kpi-value">{kpis.presentes}</div>
                 </div>
 
-
-                <div className="stat-card">
-
-                    <div className="stat-card-top">
-                        <span>
-                            Tardanzas
-                        </span>
-                    </div>
-
-                    <div
-                        className="stat-value"
-                        style={{
-                            color: "#d97706"
-                        }}
-                    >
-                        {kpis.tardanzas}
-                    </div>
-
+                <div className="vm-kpi asist-kpi-tardanza">
+                    <span className="vm-kpi-label">Tardanzas</span>
+                    <div className="vm-kpi-value">{kpis.tardanzas}</div>
                 </div>
 
-
-                <div className="stat-card">
-
-                    <div className="stat-card-top">
-                        <span>
-                            Ausentes
-                        </span>
-                    </div>
-
-                    <div
-                        className="stat-value"
-                        style={{
-                            color: "#dc2626"
-                        }}
-                    >
-                        {kpis.ausentes}
-                    </div>
-
+                <div className="vm-kpi asist-kpi-ausente">
+                    <span className="vm-kpi-label">Ausentes</span>
+                    <div className="vm-kpi-value">{kpis.ausentes}</div>
                 </div>
 
-
-                <div className="stat-card">
-
-                    <div className="stat-card-top">
-                        <span>
-                            Permisos
-                        </span>
-                    </div>
-
-                    <div
-                        className="stat-value"
-                        style={{
-                            color: "#2563eb"
-                        }}
-                    >
-                        {kpis.permisos}
-                    </div>
-
+                <div className="vm-kpi asist-kpi-permiso">
+                    <span className="vm-kpi-label">Permisos</span>
+                    <div className="vm-kpi-value">{kpis.permisos}</div>
                 </div>
 
-
-                <div className="stat-card">
-
-                    <div className="stat-card-top">
-                        <span>
-                            Sin Registrar
-                        </span>
-                    </div>
-
-                    <div
-                        className="stat-value"
-                        style={{
-                            color: "#64748b"
-                        }}
-                    >
-                        {kpis.sinRegistrar}
-                    </div>
-
+                <div className="vm-kpi asist-kpi-sin-registrar">
+                    <span className="vm-kpi-label">Sin Registrar</span>
+                    <div className="vm-kpi-value">{kpis.sinRegistrar}</div>
                 </div>
 
             </div>
@@ -1525,18 +1437,11 @@ function Asistencia() {
                 FILTROS
             ================================================== */}
 
-            <div
-                className="os-filter-bar"
-                style={{
-                    marginBottom: "16px"
-                }}
-            >
+            <div className="os-filter-bar">
 
                 <div className="filter-search">
 
-                    <span className="material-symbols-outlined">
-                        search
-                    </span>
+                    <span className="material-symbols-outlined">search</span>
 
 
                     <input
@@ -1556,6 +1461,7 @@ function Asistencia() {
 
 
                 <select
+                    aria-label="Filtrar por cargo"
                     value={
                         cargoFiltro
                     }
@@ -1564,16 +1470,6 @@ function Asistencia() {
                             e.target.value
                         )
                     }
-                    style={{
-                        padding:
-                            "8px 12px",
-
-                        borderRadius:
-                            "6px",
-
-                        border:
-                            "1px solid #cbd5e1"
-                    }}
                 >
 
                     {cargos.map((c) => (
@@ -1598,15 +1494,8 @@ function Asistencia() {
 
             {errorAPI && (
 
-                <div
-                    style={{
-                        padding: "12px",
-                        marginBottom: "16px",
-                        color: "#dc2626",
-                        background: "#fee2e2",
-                        borderRadius: "6px"
-                    }}
-                >
+                <div className="vm-alert" role="alert">
+                    <span className="material-symbols-outlined">error</span>
                     {errorAPI}
                 </div>
 
@@ -1619,44 +1508,19 @@ function Asistencia() {
 
             <div className="os-table-wrapper">
 
-                <table className="os-table">
+                <table className="os-table asistencia-tabla">
 
                     <thead>
 
                         <tr>
-
-                            <th>
-                                Trabajador
-                            </th>
-
-                            <th>
-                                Cargo
-                            </th>
-
-                            <th>
-                                Hora Entrada
-                            </th>
-
-                            <th>
-                                Hora Salida
-                            </th>
-
-                            <th>
-                                Estado
-                            </th>
-
-                            <th>
-                                Observaciones
-                            </th>
-
-                            <th>
-                                Trazabilidad
-                            </th>
-
-                            <th>
-                                Acciones
-                            </th>
-
+                            <th>Trabajador</th>
+                            <th>Cargo</th>
+                            <th>Hora Entrada</th>
+                            <th>Hora Salida</th>
+                            <th>Estado</th>
+                            <th>Observaciones</th>
+                            <th>Trazabilidad</th>
+                            <th>Acciones</th>
                         </tr>
 
                     </thead>
@@ -1668,20 +1532,10 @@ function Asistencia() {
 
                             <tr>
 
-                                <td
-                                    colSpan="8"
-                                    style={{
-                                        textAlign:
-                                            "center",
-
-                                        padding:
-                                            "30px 0",
-
-                                        color:
-                                            "#64748b"
-                                    }}
-                                >
-                                    Cargando asistencias...
+                                <td colSpan="8">
+                                    <div className="vm-loading asistencia-carga">
+                                        Cargando asistencias...
+                                    </div>
                                 </td>
 
                             </tr>
@@ -1690,20 +1544,11 @@ function Asistencia() {
 
                             <tr>
 
-                                <td
-                                    colSpan="8"
-                                    style={{
-                                        textAlign:
-                                            "center",
-
-                                        padding:
-                                            "30px 0",
-
-                                        color:
-                                            "#64748b"
-                                    }}
-                                >
-                                    No se encontraron trabajadores.
+                                <td colSpan="8">
+                                    <div className="vm-empty">
+                                        <span className="material-symbols-outlined">group_off</span>
+                                        <strong>No se encontraron trabajadores.</strong>
+                                    </div>
                                 </td>
 
                             </tr>
@@ -1927,7 +1772,8 @@ function Asistencia() {
                                                             )
                                                         }
                                                     >
-                                                        🔍 Ver Detalle
+                                                        <span className="material-symbols-outlined">visibility</span>
+                                                        Ver Detalle
                                                     </button>
 
                                                 </div>
@@ -1957,13 +1803,7 @@ function Asistencia() {
 
                 <div className="modal-overlay">
 
-                    <div
-                        className="modal-content"
-                        style={{
-                            maxWidth:
-                                "480px"
-                        }}
-                    >
+                    <div className="modal-content asistencia-modal">
 
                         <div className="modal-header">
 
@@ -1988,38 +1828,37 @@ function Asistencia() {
 
                             <button
                                 className="btn-close"
+                                aria-label="Cerrar"
                                 onClick={() =>
                                     setDetalle(
                                         null
                                     )
                                 }
                             >
-                                ✕
+                                <span className="material-symbols-outlined">close</span>
                             </button>
 
                         </div>
 
 
-                        <div className="modal-body">
+                        <div className="modal-body asistencia-detalle">
 
                             <p>
 
-                                <strong>
-                                    Estado:
-                                </strong>{" "}
+                                <strong>Estado:</strong>{" "}
 
-                                {
-                                    detalle.r.estado
-                                }
+                                <span className={`vm-badge estado${detalle.r.estado.replace(" ", "")}`}>
+                                    {
+                                        detalle.r.estado
+                                    }
+                                </span>
 
                             </p>
 
 
                             <p>
 
-                                <strong>
-                                    Hora de entrada:
-                                </strong>{" "}
+                                <strong>Hora de entrada:</strong>{" "}
 
                                 {
                                     detalle.r.horaEntrada ||
@@ -2031,9 +1870,7 @@ function Asistencia() {
 
                             <p>
 
-                                <strong>
-                                    Hora de salida:
-                                </strong>{" "}
+                                <strong>Hora de salida:</strong>{" "}
 
                                 {
                                     detalle.r.horaSalida ||
@@ -2045,9 +1882,7 @@ function Asistencia() {
 
                             <p>
 
-                                <strong>
-                                    Observaciones:
-                                </strong>{" "}
+                                <strong>Observaciones:</strong>{" "}
 
                                 {
                                     detalle.r.observaciones ||
@@ -2059,9 +1894,7 @@ function Asistencia() {
 
                             <p>
 
-                                <strong>
-                                    Último registro:
-                                </strong>{" "}
+                                <strong>Último registro:</strong>{" "}
 
                                 {
                                     detalle.r.registradoA

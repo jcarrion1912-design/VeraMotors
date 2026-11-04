@@ -1,0 +1,226 @@
+/* =====================================================
+   BASE: reset, tipografía y controles nativos.
+   Se usa :where() para mantener especificidad 0 y que
+   cualquier regla de módulo pueda ajustarlos sin !important.
+===================================================== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    background: var(--bg-app);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: var(--fs-md);
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: "cv11", "ss03";
+}
+
+:where(h1, h2, h3, h4) {
+    font-family: var(--font-display);
+    font-weight: 600;
+    line-height: 1.2;
+    color: var(--text);
+}
+
+:where(button, input, select, textarea) {
+    font: inherit;
+    color: inherit;
+}
+
+:where(button) {
+    cursor: pointer;
+}
+
+:where(button:disabled, input:disabled, select:disabled, textarea:disabled) {
+    cursor: not-allowed;
+}
+
+:where(a) {
+    color: var(--primary-text);
+}
+
+::selection {
+    background: var(--amber-200);
+    color: var(--on-accent);
+}
+
+/* -----------------------------------------------------
+   Foco visible unificado
+----------------------------------------------------- */
+:where(a, button, [tabindex]):focus-visible {
+    outline: 2px solid var(--petrol-500);
+    outline-offset: 2px;
+}
+
+/* -----------------------------------------------------
+   Controles de formulario
+----------------------------------------------------- */
+:where(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]), select, textarea) {
+    width: auto;
+    min-height: var(--control-h);
+    padding: 0 var(--s-3);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--r);
+    background: var(--surface);
+    color: var(--text);
+    font-size: var(--fs-sm);
+    outline: none;
+    transition: border-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease);
+}
+
+:where(textarea) {
+    padding: var(--s-2) var(--s-3);
+    line-height: 1.5;
+    resize: vertical;
+}
+
+:where(input, select, textarea)::placeholder {
+    color: var(--text-subtle);
+}
+
+:where(input:not([type="checkbox"], [type="radio"]), select, textarea):hover:not(:disabled, :focus) {
+    border-color: var(--graphite-400);
+}
+
+:where(input:not([type="checkbox"], [type="radio"]), select, textarea):focus {
+    border-color: var(--petrol-500);
+    box-shadow: var(--focus-ring);
+}
+
+:where(input, select, textarea):disabled,
+:where(input, textarea):read-only:not([type="checkbox"], [type="radio"], [type="date"], [type="file"]) {
+    background: var(--surface-2);
+    color: var(--text-muted);
+}
+
+:where(input:user-invalid, select:user-invalid, textarea:user-invalid) {
+    border-color: var(--danger);
+}
+
+:where(input:user-invalid, select:user-invalid, textarea:user-invalid):focus {
+    box-shadow: var(--focus-ring-danger);
+}
+
+:where(input[type="checkbox"], input[type="radio"]) {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--petrol-600);
+    cursor: pointer;
+    vertical-align: middle;
+}
+
+:where(input[type="number"], input[type="date"], input[type="time"]) {
+    font-variant-numeric: tabular-nums;
+}
+
+:where(label) {
+    color: var(--text-2);
+    font-size: var(--fs-sm);
+}
+
+/* -----------------------------------------------------
+   Tablas sin clase: mismo lenguaje que .vm-table
+----------------------------------------------------- */
+:where(table) {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: var(--fs-sm);
+    font-variant-numeric: tabular-nums;
+}
+
+:where(th) {
+    padding: 10px 14px;
+    background: var(--surface-2);
+    border-bottom: 2px solid var(--border);
+    color: var(--text-muted);
+    font-family: var(--font-display);
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+:where(td) {
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--border-soft);
+    color: var(--text-2);
+    vertical-align: middle;
+}
+
+:where(tbody tr:last-child td) {
+    border-bottom: 0;
+}
+
+:where(tbody tr) {
+    transition: background var(--t-fast) var(--ease);
+}
+
+:where(tbody tr:hover) {
+    background: var(--primary-soft);
+}
+
+/* -----------------------------------------------------
+   Iconos: Material Symbols Outlined
+----------------------------------------------------- */
+.material-symbols-outlined {
+    font-size: 20px;
+    line-height: 1;
+    vertical-align: middle;
+    user-select: none;
+    font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+}
+
+/* -----------------------------------------------------
+   Scroll fino
+----------------------------------------------------- */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--graphite-300) transparent;
+}
+
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--graphite-300);
+    border-radius: var(--r-pill);
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--graphite-400);
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+
+/* -----------------------------------------------------
+   Movimiento reducido
+----------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 1ms !important;
+        scroll-behavior: auto !important;
+    }
+}

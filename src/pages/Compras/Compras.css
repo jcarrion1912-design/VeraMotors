@@ -1,65 +1,155 @@
-.compras-page {
-    padding: 24px;
-    background-color: #f8fafc;
-    min-height: 100vh;
-    color: #0f172a;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
-}
+/* =====================================================
+   COMPRAS Y ABASTECIMIENTO
+   Solo lo específico del módulo; cabecera, pestañas, tabla
+   y modal vienen de components.css.
+===================================================== */
 
-.compras-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
+/* Filtro */
+.compras-page .reportes-filter-item {
     flex-wrap: wrap;
-    gap: 16px;
+    min-width: 0;
 }
 
-.compras-header h2 {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #0f172a;
-    margin: 0;
+.compras-page .reportes-filter-item select {
+    min-width: 0;
+    max-width: 100%;
 }
 
-.compras-header p {
-    color: #64748b;
-    font-size: 0.875rem;
-    margin: 4px 0 0 0;
+.compras-page .os-table .vm-num {
+    white-space: nowrap;
 }
 
-.btn-nueva-compra {
+/* Estado vacío: aparece solo si la tabla no tiene filas y ya terminó la carga */
+.compras-tabla-vacia {
+    display: none;
+}
+
+.os-table-wrapper:has(tbody:empty) .compras-tabla-vacia {
     display: flex;
-    align-items: center;
-    gap: 8px;
-    background: #2563eb;
-    color: #ffffff;
-    border: none;
-    padding: 10px 18px;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: background 0.2s ease;
 }
 
-.btn-nueva-compra:hover {
-    background: #1d4ed8;
+.compras-page > p[role="status"] ~ * .compras-tabla-vacia {
+    display: none;
 }
 
+/* Modal */
 .compras-modal {
-    background: #ffffff !important;
-    color: #0f172a !important;
+    max-width: 700px;
 }
 
-.compras-modal input,
-.compras-modal select {
-    width: 100%;
-    padding: 8px 12px;
-    border-radius: 6px;
-    border: 1px solid #cbd5e1;
-    background: #ffffff;
-    color: #0f172a;
-    font-size: 0.9rem;
-    box-sizing: border-box;
+.compras-modal .vm-form-section-title:not(:first-child) {
+    margin-top: var(--s-5);
+}
+
+/* Ítems de la orden */
+.compras-items {
+    box-shadow: none;
+}
+
+.compras-items .os-table {
+    min-width: 460px;
+}
+
+.compras-items-vacio {
+    display: none;
+    padding: var(--s-4);
+}
+
+.compras-items:has(tbody:empty) .compras-items-vacio {
+    display: flex;
+}
+
+.compras-item-form {
+    display: grid;
+    grid-template-columns: minmax(0, 2.4fr) minmax(0, 0.8fr) minmax(0, 1fr) auto;
+    gap: var(--s-2);
+    margin-top: var(--s-2);
+    padding: var(--s-2);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+}
+
+.compras-cantidad {
+    width: 96px;
+    text-align: right;
+}
+
+/* Facturas de proveedor */
+.compras-facturas-barra {
+    justify-content: space-between;
+}
+
+.compras-facturas-saldo {
+    margin-left: auto;
+    color: var(--text-muted);
+    font-size: var(--fs-sm);
+}
+
+.compras-facturas-saldo strong {
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+}
+
+.compras-tabla-facturas {
+    min-width: 920px;
+}
+
+.compras-celda-secundaria {
+    margin-top: 2px;
+    color: var(--text-muted);
+    font-size: var(--fs-2xs);
+}
+
+.compras-serie-numero {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+    gap: var(--s-2);
+}
+
+.compras-modal-pago {
+    max-width: 520px;
+}
+
+/* Resumen financiero */
+.compras-resumen {
+    margin-top: var(--s-4);
+    padding: var(--s-3) var(--s-4);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+}
+
+.compras-resumen-fila {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--s-3);
+    padding: 2px 0;
+    color: var(--text-2);
+    font-size: var(--fs-sm);
+}
+
+.compras-resumen-total {
+    margin-top: var(--s-2);
+    padding-top: var(--s-2);
+    border-top: 1px solid var(--border-strong);
+    color: var(--text);
+    font-family: var(--font-display);
+    font-size: var(--fs-xl);
+    font-weight: 600;
+}
+
+@media (max-width: 720px) {
+    .compras-item-form {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .compras-item-form > select,
+    .compras-item-form > button {
+        grid-column: 1 / -1;
+    }
+
+    .compras-resumen-total {
+        font-size: var(--fs-lg);
+    }
 }

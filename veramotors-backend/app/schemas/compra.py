@@ -1,5 +1,5 @@
 from decimal import Decimal
-from typing import Optional
+from typing import List, Optional
 from datetime import datetime
 from pydantic import BaseModel, Field
 
@@ -18,8 +18,27 @@ class CompraBase(BaseModel):
     observaciones: Optional[str] = None
 
 
+class DetalleCompraCreate(BaseModel):
+    item_id: int
+    cantidad: Decimal = Field(..., gt=0)
+    precio_unitario: Decimal = Field(default=Decimal("0"), ge=0)
+    descuento: Decimal = Field(default=Decimal("0"), ge=0)
+    impuesto: Decimal = Field(default=Decimal("0"), ge=0)
+    total: Decimal = Field(default=Decimal("0"), ge=0)
+
+
+class DetalleCompraResponse(DetalleCompraCreate):
+    detalle_compra_id: int
+    compra_id: int
+    descripcion: Optional[str] = None
+    codigo_referencia: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
 class CompraCreate(CompraBase):
-    pass
+    detalles: List[DetalleCompraCreate] = Field(default_factory=list)
 
 
 class CompraResponse(CompraBase):

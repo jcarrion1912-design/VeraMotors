@@ -1,30 +1,184 @@
-.caja-page { display: grid; gap: 16px; color: #25343a; }
-.caja-header h2 { margin: 0; color: #17232d; }
-.caja-header p, .caja-open-form p { margin: 5px 0 0; color: #66777d; }
-.caja-session, .caja-form, .caja-history-wrap { display: grid; gap: 14px; padding: 16px; border: 1px solid #d7dfdf; border-radius: 5px; background: #fff; }
-.caja-session-heading { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
-.caja-session-heading h3, .caja-form h3, .caja-history-wrap h3 { margin: 7px 0 0; color: #1d3036; }
-.caja-session-heading > div:last-child { display: grid; gap: 4px; text-align: right; }
-.caja-session-heading small { color: #6b7a80; }
-.caja-state { display: inline-block; padding: 4px 8px; border-radius: 3px; background: #e0f3eb; color: #17604d; font-size: .84rem; }
-.caja-session-meta { display: flex; flex-wrap: wrap; gap: 10px 24px; color: #566970; }
-.caja-totals { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid #e5ebeb; border-left: 1px solid #e5ebeb; }
-.caja-totals > div { display: grid; gap: 6px; padding: 11px; border-right: 1px solid #e5ebeb; border-bottom: 1px solid #e5ebeb; }
-.caja-totals span { color: #687a7e; font-size: .83rem; }
-.caja-totals strong { color: #243c40; }
-.caja-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.caja-fields label { display: grid; gap: 6px; color: #43545c; font-size: .88rem; font-weight: 600; }
-.caja-fields input, .caja-fields select { width: 100%; min-height: 38px; box-sizing: border-box; padding: 8px 10px; border: 1px solid #cbd5d7; border-radius: 4px; background: #fff; font: inherit; }
-.caja-primary { justify-self: start; min-height: 36px; padding: 7px 13px; border: 0; border-radius: 4px; background: #087f72; color: white; font: inherit; font-weight: 600; cursor: pointer; }
-.caja-primary:hover:not(:disabled) { background: #06695f; }
-.caja-primary:disabled { opacity: .55; cursor: not-allowed; }
-.caja-alert { padding: 10px 12px; border-left: 4px solid; }
-.caja-alert-error { border-color: #bd3e3e; color: #812b2b; background: #fff6f5; }
-.caja-alert-success { border-color: #19836f; color: #145a4d; background: #f1faf6; }
-.caja-table-scroll { overflow-x: auto; }
-.caja-table { width: 100%; min-width: 1100px; border-collapse: collapse; text-align: left; }
-.caja-table th, .caja-table td { padding: 10px; border-bottom: 1px solid #e8eded; white-space: nowrap; }
-.caja-table th { background: #f3f7f6; color: #465b60; font-size: .82rem; }
-.caja-table td { color: #34434a; font-size: .88rem; }
-.caja-empty { padding: 24px !important; text-align: center; color: #68777d !important; }
-@media (max-width: 760px) { .caja-fields { grid-template-columns: 1fr; } .caja-totals { grid-template-columns: repeat(2, minmax(0, 1fr)); } .caja-session-heading { align-items: flex-start; flex-direction: column; } .caja-session-heading > div:last-child { text-align: left; } }
+/* Caja: pestaña dentro de Facturación. Las piezas base vienen de components.css. */
+
+.caja-page {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--s-4);
+}
+
+.caja-page > .vm-page-head,
+.caja-page > .vm-alert,
+.caja-page > .vm-loading {
+    margin-bottom: 0;
+}
+
+/* Subtítulo de pestaña: un nivel por debajo del título de la página */
+.caja-page .vm-page-head h2 {
+    font-size: var(--fs-xl);
+}
+
+/* Sesión abierta */
+.caja-session-head {
+    flex-wrap: wrap;
+}
+
+.caja-session-title {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+}
+
+.caja-session-title h3 {
+    margin: 0;
+    font-size: var(--fs-lg);
+}
+
+.caja-session-user {
+    display: grid;
+    gap: 2px;
+    text-align: right;
+}
+
+.caja-session-user small {
+    color: var(--text-muted);
+    font-size: var(--fs-xs);
+}
+
+.caja-session-user strong {
+    color: var(--text);
+    font-size: var(--fs-sm);
+    font-weight: 600;
+}
+
+.caja-session-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--s-4);
+}
+
+.caja-session-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-1) var(--s-5);
+    color: var(--text-2);
+    font-size: var(--fs-sm);
+}
+
+/* Totales por método: nueve instrumentos, la última fila es el resumen */
+.caja-totals {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--s-3);
+}
+
+.caja-totals .vm-kpi-value {
+    font-size: var(--fs-2xl);
+}
+
+.caja-kpi-total {
+    background: var(--surface-2);
+    border-color: var(--border-strong);
+}
+
+/* Formularios de apertura y cierre */
+.caja-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--s-4);
+}
+
+.caja-session-body .caja-form {
+    padding-top: var(--s-4);
+    border-top: 1px solid var(--border-soft);
+}
+
+.caja-form .vm-form-section-title {
+    margin-bottom: 0;
+}
+
+.caja-form-note {
+    margin-top: var(--s-1);
+    color: var(--text-muted);
+    font-size: var(--fs-sm);
+}
+
+.caja-fields {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.caja-fields label.form-group {
+    color: var(--text-2);
+    font-size: var(--fs-xs);
+    font-weight: 600;
+}
+
+.caja-fields input,
+.caja-fields select {
+    font-weight: 400;
+}
+
+.caja-submit {
+    justify-self: start;
+}
+
+/* Historial */
+.caja-history {
+    overflow: hidden;
+}
+
+.caja-history .vm-table-wrap {
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.caja-table {
+    min-width: 1100px;
+}
+
+.caja-table th,
+.caja-table td {
+    padding-inline: 10px;
+}
+
+.caja-table td.vm-num {
+    white-space: nowrap;
+}
+
+/* El estado vacío sigue a la vista aunque la tabla se desplace en horizontal */
+.caja-table .vm-empty {
+    position: sticky;
+    left: 0;
+    width: min(100%, calc(100vw - 2 * var(--gutter) - 30px));
+}
+
+.caja-diferencia-negativa {
+    color: var(--danger-text);
+    font-weight: 600;
+}
+
+@media (max-width: 760px) {
+    .caja-fields {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .caja-totals {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .caja-totals .vm-kpi {
+        padding-inline: var(--s-3);
+    }
+
+    .caja-totals .vm-kpi-value {
+        font-size: var(--fs-xl);
+    }
+
+    .caja-session-user {
+        text-align: left;
+    }
+
+    .caja-submit {
+        justify-self: stretch;
+    }
+}

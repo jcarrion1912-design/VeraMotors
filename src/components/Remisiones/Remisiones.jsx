@@ -225,96 +225,104 @@ function Remisiones() {
 
     return (
         <section className="remisiones-page">
-            <header className="remisiones-header">
+            <header className="vm-page-head">
                 <div>
                     <h2>Guías de remisión</h2>
                     <p>Despacho vinculado a ventas confirmadas y existencias de PostgreSQL.</p>
                 </div>
                 <div className="remisiones-header-actions">
-                    <button type="button" className="remisiones-secondary" onClick={cargarDatos} disabled={cargando || guardando}>
+                    <button type="button" className="vm-btn vm-btn-secondary" onClick={cargarDatos} disabled={cargando || guardando}>
+                        <span className="material-symbols-outlined" aria-hidden="true">refresh</span>
                         Actualizar
                     </button>
-                    <button type="button" className="remisiones-primary" onClick={abrirFormulario} disabled={!ventas.length}>
+                    <button type="button" className="vm-btn vm-btn-primary" onClick={abrirFormulario} disabled={!ventas.length}>
+                        <span className="material-symbols-outlined" aria-hidden="true">add</span>
                         Nueva guía
                     </button>
                 </div>
             </header>
 
             {!ventas.length && !cargando && !mostrarFormulario && (
-                <div className="remisiones-alert remisiones-alert-info" role="note">
+                <div className="vm-alert vm-alert-info" role="note">
+                    <span className="material-symbols-outlined" aria-hidden="true">info</span>
                     No hay ventas pagadas y aceptadas sin guía. Regístralas primero en Facturación.
                 </div>
             )}
-            {error && <div className="remisiones-alert remisiones-alert-error" role="alert">{error}</div>}
-            {mensaje && <div className="remisiones-alert remisiones-alert-success" role="status">{mensaje}</div>}
+            {error && <div className="vm-alert" role="alert"><span className="material-symbols-outlined" aria-hidden="true">error</span>{error}</div>}
+            {mensaje && <div className="vm-alert vm-alert-success" role="status"><span className="material-symbols-outlined" aria-hidden="true">check_circle</span>{mensaje}</div>}
 
             {mostrarFormulario && (
-                <form className="remisiones-form" onSubmit={guardarGuia}>
-                    <div className="remisiones-form-heading">
-                        <h3>Nueva guía desde venta confirmada</h3>
-                        <button type="button" className="remisiones-text-button" onClick={() => setMostrarFormulario(false)}>Cerrar</button>
+                <form className="vm-card" onSubmit={guardarGuia}>
+                    <div className="vm-card-head">
+                        <h3><span className="material-symbols-outlined" aria-hidden="true">local_shipping</span>Nueva guía desde venta confirmada</h3>
+                        <button type="button" className="vm-btn vm-btn-ghost vm-btn-sm" onClick={() => setMostrarFormulario(false)}>Cerrar</button>
                     </div>
-                    <label>
-                        Venta / comprobante
-                        <select value={facturaId} onChange={(event) => seleccionarVenta(event.target.value)} required>
-                            <option value="">Selecciona una venta pagada</option>
-                            {ventas.map((venta) => (
-                                <option key={venta.factura_id} value={venta.factura_id}>
-                                    {venta.numero_comprobante} · {venta.cliente_nombre} · {moneda(venta.total)}
-                                </option>
-                            ))}
-                        </select>
-                    </label>
-                    {ventaSeleccionada && (
-                        <div className="remisiones-sale-summary">
-                            <strong>{ventaSeleccionada.cliente_nombre}</strong>
-                            <span>{ventaSeleccionada.cliente_documento} · {ventaSeleccionada.estado_pago} · SUNAT {ventaSeleccionada.estado_sunat}</span>
-                        </div>
-                    )}
-                    <div className="remisiones-fields">
-                        <label>
-                            Motivo de traslado
-                            <input value={motivo} onChange={(event) => setMotivo(event.target.value)} maxLength={100} required />
+                    <div className="vm-card-body remisiones-form-body">
+                        <label className="form-group">
+                            Venta / comprobante
+                            <select value={facturaId} onChange={(event) => seleccionarVenta(event.target.value)} required>
+                                <option value="">Selecciona una venta pagada</option>
+                                {ventas.map((venta) => (
+                                    <option key={venta.factura_id} value={venta.factura_id}>
+                                        {venta.numero_comprobante} · {venta.cliente_nombre} · {moneda(venta.total)}
+                                    </option>
+                                ))}
+                            </select>
                         </label>
-                        <label>
-                            Punto de partida
-                            <input value={puntoPartida} onChange={(event) => setPuntoPartida(event.target.value)} maxLength={255} placeholder="Dirección de origen (opcional)" />
-                        </label>
-                        <label>
-                            Punto de llegada
-                            <input value={puntoLlegada} onChange={(event) => setPuntoLlegada(event.target.value)} maxLength={255} required placeholder="Dirección de destino" />
-                        </label>
-                    </div>
-                    {detalles.length > 0 && (
-                        <div className="remisiones-lines">
-                            <h4>Productos y cantidades a trasladar</h4>
-                            {detalles.map((detalle, index) => (
-                                <label className="remisiones-line" key={detalle.factura_detalle_id}>
-                                    <span>{detalle.descripcion}<small>Vendido: {detalle.cantidad_vendida}</small></span>
-                                    <input
-                                        type="number"
-                                        min="0.01"
-                                        max={detalle.cantidad_vendida}
-                                        step="0.01"
-                                        value={detalle.cantidad}
-                                        onChange={(event) => setDetalles((current) => current.map((line, lineIndex) => lineIndex === index ? { ...line, cantidad: event.target.value } : line))}
-                                        required
-                                    />
+                        {ventaSeleccionada && (
+                            <div className="remisiones-sale-summary">
+                                <strong>{ventaSeleccionada.cliente_nombre}</strong>
+                                <span>{ventaSeleccionada.cliente_documento} · {ventaSeleccionada.estado_pago} · SUNAT {ventaSeleccionada.estado_sunat}</span>
+                            </div>
+                        )}
+                        <div>
+                            <div className="vm-form-section-title"><span className="material-symbols-outlined" aria-hidden="true">route</span>Datos del traslado</div>
+                            <div className="form-grid remisiones-fields">
+                                <label className="form-group">
+                                    Motivo de traslado
+                                    <input value={motivo} onChange={(event) => setMotivo(event.target.value)} maxLength={100} required />
                                 </label>
-                            ))}
+                                <label className="form-group">
+                                    Punto de partida
+                                    <input value={puntoPartida} onChange={(event) => setPuntoPartida(event.target.value)} maxLength={255} placeholder="Dirección de origen (opcional)" />
+                                </label>
+                                <label className="form-group">
+                                    Punto de llegada
+                                    <input value={puntoLlegada} onChange={(event) => setPuntoLlegada(event.target.value)} maxLength={255} required placeholder="Dirección de destino" />
+                                </label>
+                            </div>
                         </div>
-                    )}
+                        {detalles.length > 0 && (
+                            <div>
+                                <div className="vm-form-section-title"><span className="material-symbols-outlined" aria-hidden="true">inventory_2</span>Productos y cantidades a trasladar</div>
+                                {detalles.map((detalle, index) => (
+                                    <label className="remisiones-line" key={detalle.factura_detalle_id}>
+                                        <span>{detalle.descripcion}<small>Vendido: {detalle.cantidad_vendida}</small></span>
+                                        <input
+                                            type="number"
+                                            min="0.01"
+                                            max={detalle.cantidad_vendida}
+                                            step="0.01"
+                                            value={detalle.cantidad}
+                                            onChange={(event) => setDetalles((current) => current.map((line, lineIndex) => lineIndex === index ? { ...line, cantidad: event.target.value } : line))}
+                                            required
+                                        />
+                                    </label>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                     <div className="remisiones-form-actions">
-                        <button type="button" className="remisiones-secondary" onClick={() => setMostrarFormulario(false)}>Cancelar</button>
-                        <button type="submit" className="remisiones-primary" disabled={guardando || !facturaId || !detalles.length}>
+                        <button type="button" className="vm-btn vm-btn-secondary" onClick={() => setMostrarFormulario(false)}>Cancelar</button>
+                        <button type="submit" className="vm-btn vm-btn-primary" disabled={guardando || !facturaId || !detalles.length}>
                             {guardando ? "Guardando..." : "Generar guía"}
                         </button>
                     </div>
                 </form>
             )}
 
-            <div className="remisiones-table-wrap">
-                <table className="remisiones-table">
+            <div className="vm-table-wrap">
+                <table className="vm-table remisiones-table">
                     <thead>
                         <tr>
                             <th>Guía</th>
@@ -329,31 +337,35 @@ function Remisiones() {
                     </thead>
                     <tbody>
                         {cargando ? (
-                            <tr><td colSpan="8" className="remisiones-empty">Consultando PostgreSQL...</td></tr>
+                            <tr><td colSpan="8"><div className="vm-loading remisiones-loading">Consultando PostgreSQL...</div></td></tr>
                         ) : remisiones.length === 0 ? (
-                            <tr><td colSpan="8" className="remisiones-empty">No hay guías registradas.</td></tr>
+                            <tr><td colSpan="8"><div className="vm-empty"><span className="material-symbols-outlined" aria-hidden="true">local_shipping</span><strong>No hay guías registradas.</strong></div></td></tr>
                         ) : remisiones.map((guia) => (
                             <tr key={guia.remision_id}>
-                                <td><strong>{guia.numero_remision}</strong></td>
-                                <td>{guia.numero_comprobante || "Sin venta vinculada"}</td>
+                                <td><span className="vm-code">{guia.numero_remision}</span></td>
+                                <td><span className={guia.numero_comprobante ? "vm-code" : "remisiones-muted"}>{guia.numero_comprobante || "Sin venta vinculada"}</span></td>
                                 <td>{guia.cliente_nombre || `Cliente #${guia.cliente_id}`}</td>
                                 <td>{fechaHora(guia.fecha_emision)}</td>
                                 <td>{guia.punto_llegada || "-"}</td>
-                                <td><span className={`remisiones-state remisiones-state-${slugEstado(guia.estado)}`}>{guia.estado}</span></td>
-                                <td><span className={`remisiones-state remisiones-state-sunat-${slugEstado(guia.estado_sunat)}`}>{guia.estado_sunat || "Pendiente"}</span></td>
-                                <td className="remisiones-row-actions">
-                                    <button type="button" onClick={() => verDetalle(guia.remision_id)}>Detalle</button>
-                                    <button
-                                        type="button"
-                                        onClick={() => verPdf(guia)}
-                                        disabled={descargandoPdf === guia.remision_id}
-                                        title={guia.estado_sunat === "Aceptado" ? "Descargar PDF oficial SUNAT" : "PDF no disponible (guía no aceptada por SUNAT)"}
-                                    >
-                                        {descargandoPdf === guia.remision_id ? "..." : "Ver PDF"}
-                                    </button>
-                                    {guia.estado === "Pendiente" && <button type="button" onClick={() => cargarUsuariosDespacho(guia)}>Despachar</button>}
-                                    {guia.estado === "Pendiente" && <button type="button" onClick={() => cambiarEstado(guia, "Anulada")} disabled={guardando}>Anular</button>}
-                                    {guia.estado === "En tránsito" && <button type="button" onClick={() => cambiarEstado(guia, "Entregada")} disabled={guardando}>Marcar entregada</button>}
+                                <td><span className={`vm-badge remisiones-state-${slugEstado(guia.estado)}`}>{guia.estado}</span></td>
+                                <td><span className={`vm-badge remisiones-state-sunat-${slugEstado(guia.estado_sunat)}`}>{guia.estado_sunat || "Pendiente"}</span></td>
+                                <td>
+                                    <div className="table-actions">
+                                        <button type="button" className="btn-act-table" onClick={() => verDetalle(guia.remision_id)}><span className="material-symbols-outlined" aria-hidden="true">visibility</span>Detalle</button>
+                                        <button
+                                            type="button"
+                                            className="btn-act-table"
+                                            onClick={() => verPdf(guia)}
+                                            disabled={descargandoPdf === guia.remision_id}
+                                            title={guia.estado_sunat === "Aceptado" ? "Descargar PDF oficial SUNAT" : "PDF no disponible (guía no aceptada por SUNAT)"}
+                                        >
+                                            <span className="material-symbols-outlined" aria-hidden="true">picture_as_pdf</span>
+                                            {descargandoPdf === guia.remision_id ? "..." : "Ver PDF"}
+                                        </button>
+                                        {guia.estado === "Pendiente" && <button type="button" className="btn-act-table link" onClick={() => cargarUsuariosDespacho(guia)}><span className="material-symbols-outlined" aria-hidden="true">local_shipping</span>Despachar</button>}
+                                        {guia.estado === "Pendiente" && <button type="button" className="btn-act-table remisiones-act-danger" onClick={() => cambiarEstado(guia, "Anulada")} disabled={guardando}><span className="material-symbols-outlined" aria-hidden="true">block</span>Anular</button>}
+                                        {guia.estado === "En tránsito" && <button type="button" className="btn-act-table nps" onClick={() => cambiarEstado(guia, "Entregada")} disabled={guardando}><span className="material-symbols-outlined" aria-hidden="true">task_alt</span>Marcar entregada</button>}
+                                    </div>
                                 </td>
                             </tr>
                         ))}
@@ -362,71 +374,84 @@ function Remisiones() {
             </div>
 
             {detalleAbierto && (
-                <div className="remisiones-overlay" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setDetalleAbierto(null)}>
-                    <section className="remisiones-dialog" role="dialog" aria-modal="true" aria-labelledby="remisiones-detail-title">
-                        <div className="remisiones-form-heading">
+                <div className="modal-overlay" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setDetalleAbierto(null)}>
+                    <section className="modal-content" role="dialog" aria-modal="true" aria-labelledby="remisiones-detail-title">
+                        <div className="modal-header">
                             <div>
                                 <h3 id="remisiones-detail-title">{detalleAbierto.guia?.numero_remision}</h3>
                                 <p>{detalleAbierto.venta?.numero_comprobante || "Guía histórica"}</p>
                             </div>
-                            <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                            <div className="remisiones-dialog-actions">
                                 <button
                                     type="button"
-                                    className="remisiones-secondary"
+                                    className="vm-btn vm-btn-sm remisiones-header-btn"
                                     onClick={() => verPdf(detalleAbierto.guia)}
                                     disabled={descargandoPdf === detalleAbierto.guia?.remision_id}
                                     title={detalleAbierto.guia?.estado_sunat === "Aceptado" ? "PDF oficial SUNAT" : "Guía pendiente de aceptación SUNAT"}
                                 >
+                                    <span className="material-symbols-outlined" aria-hidden="true">picture_as_pdf</span>
                                     {descargandoPdf === detalleAbierto.guia?.remision_id ? "Obteniendo..." : "Ver PDF"}
                                 </button>
-                                <button type="button" className="remisiones-text-button" onClick={() => setDetalleAbierto(null)}>Cerrar</button>
+                                <button type="button" className="btn-close" onClick={() => setDetalleAbierto(null)} aria-label="Cerrar"><span className="material-symbols-outlined" aria-hidden="true">close</span></button>
                             </div>
                         </div>
-                        <dl className="remisiones-detail-grid">
-                            <div><dt>Cliente</dt><dd>{detalleAbierto.cliente?.nombre_razon_social || "-"}</dd></div>
-                            <div><dt>Documento</dt><dd>{detalleAbierto.cliente?.documento_identidad || "-"}</dd></div>
-                            <div><dt>Motivo</dt><dd>{detalleAbierto.guia?.motivo_traslado || "-"}</dd></div>
-                            <div><dt>Origen</dt><dd>{detalleAbierto.guia?.punto_partida || "-"}</dd></div>
-                            <div><dt>Destino</dt><dd>{detalleAbierto.guia?.punto_llegada || "-"}</dd></div>
-                            <div><dt>Estado guía</dt><dd><span className={`remisiones-state remisiones-state-${slugEstado(detalleAbierto.guia?.estado)}`}>{detalleAbierto.guia?.estado}</span></dd></div>
-                            <div><dt>Estado SUNAT</dt><dd><span className={`remisiones-state remisiones-state-sunat-${slugEstado(detalleAbierto.guia?.estado_sunat)}`}>{detalleAbierto.guia?.estado_sunat || "Pendiente"}</span></dd></div>
-                            <div><dt>Fecha emisión</dt><dd>{fechaHora(detalleAbierto.guia?.fecha_emision)}</dd></div>
-                            <div><dt>Fecha despacho</dt><dd>{fechaHora(detalleAbierto.guia?.fecha_despacho)}</dd></div>
-                            <div><dt>Vehículo</dt><dd>{detalleAbierto.vehiculo ? `${detalleAbierto.vehiculo.placa} · ${detalleAbierto.vehiculo.marca} ${detalleAbierto.vehiculo.modelo}` : "-"}</dd></div>
-                        </dl>
-                        {detalleAbierto.guia?.estado_sunat !== "Aceptado" && (
-                            <p className="remisiones-pdf-notice">
-                                ⚠ Esta guía aún no ha sido aceptada por SUNAT. El PDF electrónico oficial no está disponible.
-                            </p>
-                        )}
-                        <h4>Detalle de bienes a trasladar</h4>
-                        <div className="remisiones-detail-lines">
-                            {(detalleAbierto.guia?.detalles || []).map((detalle) => (
-                                <div key={detalle.detalle_remision_id}>
-                                    <span>{detalle.descripcion}</span>
-                                    <strong>{Number(detalle.cantidad).toLocaleString("es-PE")}</strong>
+                        <div className="modal-body remisiones-detail-body">
+                            <dl className="remisiones-detail-grid">
+                                <div><dt>Cliente</dt><dd>{detalleAbierto.cliente?.nombre_razon_social || "-"}</dd></div>
+                                <div><dt>Documento</dt><dd>{detalleAbierto.cliente?.documento_identidad || "-"}</dd></div>
+                                <div><dt>Motivo</dt><dd>{detalleAbierto.guia?.motivo_traslado || "-"}</dd></div>
+                                <div><dt>Origen</dt><dd>{detalleAbierto.guia?.punto_partida || "-"}</dd></div>
+                                <div><dt>Destino</dt><dd>{detalleAbierto.guia?.punto_llegada || "-"}</dd></div>
+                                <div><dt>Estado guía</dt><dd><span className={`vm-badge remisiones-state-${slugEstado(detalleAbierto.guia?.estado)}`}>{detalleAbierto.guia?.estado}</span></dd></div>
+                                <div><dt>Estado SUNAT</dt><dd><span className={`vm-badge remisiones-state-sunat-${slugEstado(detalleAbierto.guia?.estado_sunat)}`}>{detalleAbierto.guia?.estado_sunat || "Pendiente"}</span></dd></div>
+                                <div><dt>Fecha emisión</dt><dd>{fechaHora(detalleAbierto.guia?.fecha_emision)}</dd></div>
+                                <div><dt>Fecha despacho</dt><dd>{fechaHora(detalleAbierto.guia?.fecha_despacho)}</dd></div>
+                                <div><dt>Vehículo</dt><dd>{detalleAbierto.vehiculo ? `${detalleAbierto.vehiculo.placa} · ${detalleAbierto.vehiculo.marca} ${detalleAbierto.vehiculo.modelo}` : "-"}</dd></div>
+                            </dl>
+                            {detalleAbierto.guia?.estado_sunat !== "Aceptado" && (
+                                <p className="vm-alert vm-alert-warning">
+                                    <span className="material-symbols-outlined" aria-hidden="true">warning</span>
+                                    Esta guía aún no ha sido aceptada por SUNAT. El PDF electrónico oficial no está disponible.
+                                </p>
+                            )}
+                            <div>
+                                <h4 className="vm-form-section-title"><span className="material-symbols-outlined" aria-hidden="true">inventory_2</span>Detalle de bienes a trasladar</h4>
+                                <div className="remisiones-detail-lines">
+                                    {(detalleAbierto.guia?.detalles || []).map((detalle) => (
+                                        <div key={detalle.detalle_remision_id}>
+                                            <span>{detalle.descripcion}</span>
+                                            <strong>{Number(detalle.cantidad).toLocaleString("es-PE")}</strong>
+                                        </div>
+                                    ))}
                                 </div>
-                            ))}
+                            </div>
                         </div>
                     </section>
                 </div>
             )}
 
             {confirmarDespacho && (
-                <div className="remisiones-overlay" role="presentation">
-                    <section className="remisiones-dialog remisiones-dispatch-dialog" role="dialog" aria-modal="true" aria-labelledby="remisiones-dispatch-title">
-                        <h3 id="remisiones-dispatch-title">Confirmar despacho</h3>
-                        <p>El despacho descontará existencias y registrará movimientos en PostgreSQL.</p>
-                        <label>
-                            Usuario responsable
-                            <select value={usuarioDespachoId} onChange={(event) => setUsuarioDespachoId(event.target.value)} required>
-                                <option value="">Selecciona un usuario activo</option>
-                                {usuarios.map((usuario) => <option key={usuario.user_id} value={usuario.user_id}>{usuario.nombre}</option>)}
-                            </select>
-                        </label>
-                        <div className="remisiones-form-actions">
-                            <button type="button" className="remisiones-secondary" onClick={() => setConfirmarDespacho(null)}>Cancelar</button>
-                            <button type="button" className="remisiones-primary" onClick={iniciarDespacho} disabled={guardando || !usuarioDespachoId}>{guardando ? "Despachando..." : "Confirmar despacho"}</button>
+                <div className="modal-overlay" role="presentation">
+                    <section className="modal-content remisiones-dispatch-dialog" role="dialog" aria-modal="true" aria-labelledby="remisiones-dispatch-title">
+                        <div className="modal-header">
+                            <h3 id="remisiones-dispatch-title">Confirmar despacho</h3>
+                        </div>
+                        <div className="modal-body remisiones-detail-body">
+                            <p className="vm-alert vm-alert-warning">
+                                <span className="material-symbols-outlined" aria-hidden="true">warning</span>
+                                El despacho descontará existencias y registrará movimientos en PostgreSQL.
+                            </p>
+                            <label className="form-group">
+                                Usuario responsable
+                                <select value={usuarioDespachoId} onChange={(event) => setUsuarioDespachoId(event.target.value)} required>
+                                    <option value="">Selecciona un usuario activo</option>
+                                    {usuarios.map((usuario) => <option key={usuario.user_id} value={usuario.user_id}>{usuario.nombre}</option>)}
+                                </select>
+                            </label>
+                        </div>
+                        <div className="modal-footer">
+                            <button type="button" className="btn-cancelar" onClick={() => setConfirmarDespacho(null)}>Cancelar</button>
+                            <button type="button" className="btn-guardar" onClick={iniciarDespacho} disabled={guardando || !usuarioDespachoId}><span className="material-symbols-outlined" aria-hidden="true">local_shipping</span>{guardando ? "Despachando..." : "Confirmar despacho"}</button>
                         </div>
                     </section>
                 </div>

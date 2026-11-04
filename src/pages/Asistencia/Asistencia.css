@@ -1,159 +1,338 @@
-.asistencia-page {
-    padding: 24px;
-    background-color: #f8fafc;
-    min-height: 100vh;
-    color: #0f172a;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
-}
+/* =====================================================
+   ASISTENCIA
+   Pantalla de uso diario: barra de fecha, KPI compactos y
+   tabla editable densa. Cabecera, filtros y modal vienen
+   de components.css.
+===================================================== */
 
-.asistencia-header h2 {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #0f172a;
-    margin: 0;
-}
-
-.asistencia-header p {
-    color: #64748b;
-    font-size: 0.875rem;
-    margin: 4px 0 0 0;
-}
-
+/* Barra de fecha, regla y acciones masivas */
 .asistencia-toolbar {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 16px;
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    padding: 14px 16px;
-    margin: 20px 0;
+    gap: var(--s-3);
+    margin-bottom: var(--s-4);
+    padding: var(--s-3);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    box-shadow: var(--shadow-xs);
 }
 
 .fecha-nav {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--s-1);
 }
 
 .fecha-nav input[type="date"] {
-    padding: 6px 10px;
-    border-radius: 6px;
-    border: 1px solid #cbd5e1;
+    min-width: 0;
+    font-weight: 600;
 }
 
 .btn-nav {
-    width: 30px;
-    height: 30px;
-    border-radius: 6px;
-    border: 1px solid #cbd5e1;
-    background: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: var(--control-h);
+    height: var(--control-h);
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--r);
+    color: var(--text-2);
     cursor: pointer;
-    font-size: 1rem;
+    transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
 }
 
 .btn-nav:hover {
-    background: #f1f5f9;
+    background: var(--surface-2);
+    border-color: var(--graphite-400);
 }
 
 .btn-hoy {
-    padding: 6px 12px;
-    border-radius: 6px;
-    border: 1px solid #2563eb;
-    background: #eff6ff;
-    color: #2563eb;
-    font-weight: 600;
-    cursor: pointer;
-    font-size: 0.85rem;
+    margin-left: var(--s-1);
 }
 
 .regla-tardanza {
     display: flex;
+    flex: 1 1 300px;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 8px;
-    flex: 1;
-    min-width: 260px;
-    background: #fffbeb;
-    border: 1px solid #fde68a;
-    border-radius: 8px;
-    padding: 8px 12px;
-    font-size: 0.85rem;
-    color: #92400e;
+    gap: var(--s-1) var(--s-2);
+    min-width: 0;
+    min-height: var(--control-h);
+    padding: var(--s-1) var(--s-3);
+    background: var(--surface-2);
+    border: 1px solid var(--border-soft);
+    border-radius: var(--r);
+    color: var(--text-2);
+    font-size: var(--fs-xs);
+}
+
+.regla-tardanza > .material-symbols-outlined {
+    color: var(--primary-text);
+    font-size: 18px;
+}
+
+.regla-texto {
+    flex: 1 1 180px;
+    min-width: 0;
+}
+
+.regla-tardanza strong {
+    color: var(--text);
+    font-weight: 600;
 }
 
 .regla-tardanza input {
-    padding: 4px 6px;
-    border-radius: 6px;
-    border: 1px solid #fde68a;
+    min-height: 28px;
+    padding: 0 var(--s-2);
+    font-size: var(--fs-xs);
+}
+
+.regla-minutos {
+    width: 64px;
 }
 
 .acciones-masivas {
     display: flex;
-    gap: 8px;
+    flex-wrap: wrap;
+    gap: var(--s-2);
+    margin-left: auto;
 }
 
+/* KPI compactos: las seis cifras caben en una línea */
 .asistencia-kpis {
-    margin-bottom: 20px;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    margin-bottom: var(--s-4);
+}
+
+.asistencia-kpis .vm-kpi {
+    padding: var(--s-3) var(--s-3) calc(var(--s-3) + 6px);
+}
+
+.asistencia-kpis .vm-kpi-value {
+    font-size: var(--fs-3xl);
+}
+
+.asist-kpi-presente .vm-kpi-value {
+    color: var(--success-text);
+}
+
+.asist-kpi-tardanza .vm-kpi-value {
+    color: var(--warning-text);
+}
+
+.asist-kpi-ausente .vm-kpi-value {
+    color: var(--danger-text);
+}
+
+.asist-kpi-permiso .vm-kpi-value {
+    color: var(--info-text);
+}
+
+.asist-kpi-sin-registrar .vm-kpi-value {
+    color: var(--text-muted);
+}
+
+/* Filtro de cargo */
+.asistencia-page .os-filter-bar select {
+    min-width: 0;
+    max-width: 100%;
+}
+
+/* Tabla editable: densa y con el trabajador siempre visible al desplazar */
+.os-table.asistencia-tabla {
+    min-width: 1020px;
+}
+
+.asistencia-tabla th,
+.asistencia-tabla td {
+    padding: var(--s-2) var(--s-3);
+}
+
+.asistencia-tabla th:first-child,
+.asistencia-tabla td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background: var(--surface);
+    box-shadow: 1px 0 0 var(--border-soft);
+}
+
+.asistencia-tabla th:first-child {
+    background: var(--surface-2);
+}
+
+.asistencia-tabla tbody tr:hover td:first-child {
+    background: var(--primary-soft);
+}
+
+.asistencia-tabla td[colspan] {
+    position: static;
+    box-shadow: none;
+}
+
+.input-hora,
+.input-observaciones,
+.select-estado {
+    min-height: 30px;
+    padding: 0 var(--s-2);
+    font-size: var(--fs-xs);
 }
 
 .input-hora {
-    padding: 6px 8px;
-    border-radius: 6px;
-    border: 1px solid #cbd5e1;
-    font-size: 0.85rem;
-    width: 110px;
+    width: 108px;
 }
 
 .input-observaciones {
-    padding: 6px 8px;
-    border-radius: 6px;
-    border: 1px solid #cbd5e1;
-    font-size: 0.85rem;
-    width: 170px;
+    width: 100%;
+    min-width: 160px;
 }
 
 .select-estado {
-    padding: 6px 10px;
-    border-radius: 20px;
-    border: 1px solid #cbd5e1;
-    font-size: 0.8rem;
+    border-radius: var(--r-sm);
     font-weight: 600;
     cursor: pointer;
 }
 
-.select-estado.estadoPresente {
-    background: #dcfce7;
-    color: #16a34a;
-    border-color: #86efac;
+.select-estado option {
+    background: var(--surface);
+    color: var(--text);
 }
 
-.select-estado.estadoTardanza {
-    background: #fef3c7;
-    color: #d97706;
-    border-color: #fcd34d;
+/* Colores de estado, compartidos por el select y la etiqueta del detalle */
+.select-estado.estadoPresente,
+.vm-badge.estadoPresente {
+    background: var(--success-soft);
+    border-color: var(--success-border);
+    color: var(--success-text);
 }
 
-.select-estado.estadoAusente {
-    background: #fee2e2;
-    color: #dc2626;
-    border-color: #fca5a5;
+.select-estado.estadoTardanza,
+.vm-badge.estadoTardanza {
+    background: var(--warning-soft);
+    border-color: var(--warning-border);
+    color: var(--warning-text);
 }
 
-.select-estado.estadoPermiso {
-    background: #dbeafe;
-    color: #2563eb;
-    border-color: #93c5fd;
+.select-estado.estadoAusente,
+.vm-badge.estadoAusente {
+    background: var(--danger-soft);
+    border-color: var(--danger-border);
+    color: var(--danger-text);
 }
 
-.select-estado.estadoSinRegistrar {
-    background: #f1f5f9;
-    color: #64748b;
-    border-color: #cbd5e1;
+.select-estado.estadoPermiso,
+.vm-badge.estadoPermiso {
+    background: var(--info-soft);
+    border-color: var(--info-border);
+    color: var(--info-text);
 }
 
-.trazabilidad {
-    font-size: 0.8rem;
-    color: #64748b;
-    font-style: italic;
+.select-estado.estadoSinRegistrar,
+.vm-badge.estadoSinRegistrar {
+    background: var(--surface-2);
+    border-color: var(--border-strong);
+    color: var(--text-muted);
+}
+
+.asistencia-tabla .trazabilidad {
+    color: var(--text-muted);
+    font-size: var(--fs-xs);
+    white-space: nowrap;
+}
+
+.asistencia-carga {
+    justify-content: center;
+    margin: 0;
+    padding: var(--s-8) var(--s-4);
+}
+
+/* Modal de detalle */
+.asistencia-modal {
+    max-width: 480px;
+}
+
+.asistencia-detalle p {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-4);
+    padding: var(--s-2) 0;
+    border-bottom: 1px solid var(--border-soft);
+    color: var(--text);
+    font-size: var(--fs-sm);
+    text-align: right;
+}
+
+.asistencia-detalle p:last-child {
+    border-bottom: 0;
+}
+
+.asistencia-detalle strong {
+    flex-shrink: 0;
+    color: var(--text-muted);
+    font-weight: 600;
+    text-align: left;
+}
+
+@media (max-width: 1200px) {
+    .asistencia-kpis {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 720px) {
+    .fecha-nav {
+        width: 100%;
+    }
+
+    .fecha-nav input[type="date"] {
+        flex: 1 1 auto;
+    }
+
+    .regla-tardanza {
+        flex-basis: 100%;
+    }
+
+    .asistencia-page .os-filter-bar select {
+        width: 100%;
+    }
+
+    .acciones-masivas {
+        width: 100%;
+        margin-left: 0;
+    }
+
+    .acciones-masivas > * {
+        flex: 1 1 auto;
+    }
+
+    .asistencia-kpis {
+        gap: var(--s-2);
+    }
+
+    .asistencia-kpis .vm-kpi {
+        padding: var(--s-2) var(--s-2) calc(var(--s-2) + 6px);
+    }
+
+    .asistencia-kpis .vm-kpi::after {
+        left: var(--s-2);
+        right: var(--s-2);
+    }
+
+    .asistencia-kpis .vm-kpi-label {
+        font-size: var(--fs-2xs);
+    }
+
+    .asistencia-kpis .vm-kpi-value {
+        font-size: var(--fs-2xl);
+    }
+
+    .asistencia-tabla td:first-child {
+        min-width: 120px;
+        max-width: 130px;
+    }
 }

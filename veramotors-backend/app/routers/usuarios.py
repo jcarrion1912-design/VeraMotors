@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from passlib.context import CryptContext
 from typing import List
 
+from app.core.security import hashear_password, solo_admin
 from app.database import get_db
 from app.models.usuario import Usuario
 from app.models.rol import Rol
@@ -10,12 +10,6 @@ from app.schemas.usuario import UsuarioResponse, UsuarioCreate
 
 
 router = APIRouter()
-
-
-pwd_context = CryptContext(
-    schemes=["bcrypt"],
-    deprecated="auto"
-)
 
 
 # ============================================================
@@ -63,7 +57,8 @@ def listar_usuarios(
 @router.post(
     "",
     response_model=UsuarioResponse,
-    status_code=status.HTTP_201_CREATED
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(solo_admin)]
 )
 def crear_usuario(
     datos: UsuarioCreate,
@@ -113,7 +108,7 @@ def crear_usuario(
     # ENCRIPTAR CONTRASEÑA
     # ========================================================
 
-    password_hash = pwd_context.hash(
+    password_hash = hashear_password(
         datos.password
     )
 
@@ -171,7 +166,8 @@ def crear_usuario(
 
 @router.patch(
     "/{user_id}/estado",
-    response_model=UsuarioResponse
+    response_model=UsuarioResponse,
+    dependencies=[Depends(solo_admin)]
 )
 def cambiar_estado_usuario(
     user_id: int,

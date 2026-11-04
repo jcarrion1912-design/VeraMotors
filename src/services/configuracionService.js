@@ -25,6 +25,20 @@ export const actualizarCorrelativo = async (tipoDocumento, nuevoCorrelativo) => 
     return procesarRespuesta(res);
 };
 
+export const obtenerParametrosEmpresa = async () => {
+    const res = await fetch(`${API_URL}/empresa`);
+    return procesarRespuesta(res);
+};
+
+export const guardarParametrosEmpresa = async (datos) => {
+    const res = await fetch(`${API_URL}/empresa`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(datos)
+    });
+    return procesarRespuesta(res);
+};
+
 export const obtenerConfiguracionSUNAT = async () => {
     const res = await fetch(`${API_URL}/sunat`);
     return procesarRespuesta(res);

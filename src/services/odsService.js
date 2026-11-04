@@ -40,6 +40,13 @@ export const cambiarEstadoODS = async (odsId, nuevoEstado) => {
     return actualizarODS(odsId, { estado_actual: nuevoEstado });
 };
 
+export const generarEnlaceAprobacion = async (odsId) => {
+    const res = await fetch(`http://127.0.0.1:8000/api/aprobacion-cliente/enlace/${odsId}`, {
+        method: "POST"
+    });
+    return procesarRespuesta(res);
+};
+
 export const eliminarODS = async (odsId) => {
     const res = await fetch(`${API_URL}/${odsId}`, {
         method: "DELETE"

@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy.exc import IntegrityError
 
+from app.core.security import get_current_user
 from app.database import get_db
 from app.models.cliente import Cliente
 from app.models.configuracion_correlativo import ConfiguracionCorrelativo
@@ -429,7 +430,11 @@ def registrar_despacho(
     remision_id: int,
     datos: DespachoRequest,
     db: Session = Depends(get_db),
+    usuario_actual: Usuario = Depends(get_current_user),
 ):
+    # El autor siempre es quien tiene la sesión, no lo que diga el cuerpo.
+    datos.usuario_id = usuario_actual.user_id
+
     try:
         remision = (
             db.query(Remision)

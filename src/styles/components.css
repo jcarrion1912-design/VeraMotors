@@ -1,0 +1,1352 @@
+/* =====================================================
+   COMPONENTES COMPARTIDOS
+
+   Cada bloque define la primitiva .vm-* y agrupa las clases
+   históricas de los módulos que cumplen la misma función, así
+   no se tocan los className del JSX ni la lógica.
+
+   Orden de carga: tokens → base → components → CSS de módulo.
+   Un módulo puede ajustar estas reglas sin usar !important.
+===================================================== */
+
+
+/* =====================================================
+   CONTENEDOR DE PÁGINA
+===================================================== */
+.bancos-page,
+.compras-page,
+.proveedores-page,
+.config-page,
+.reportes-page,
+.metricas-page,
+.kanban-page,
+.facturacion-page,
+.clientes-page,
+.inventario-page,
+.cotizaciones-page,
+.asistencia-page,
+.citas-page,
+.os-page {
+    width: 100%;
+    min-width: 0;
+    padding: 0;
+    background: transparent;
+    color: var(--text);
+    font-family: var(--font-body);
+}
+
+
+/* =====================================================
+   CABECERA DE PÁGINA
+===================================================== */
+.vm-page-head,
+.bancos-header,
+.compras-header,
+.proveedores-header,
+.config-header,
+.reportes-header,
+.metricas-header,
+.kanban-header,
+.facturacion-header,
+.clientes-header,
+.inventario-header,
+.cotizaciones-header,
+.asistencia-header,
+.citas-header,
+.os-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--s-3) var(--s-4);
+    margin-bottom: var(--s-5);
+}
+
+.vm-page-head h1,
+.vm-page-head h2,
+.bancos-header h2,
+.compras-header h2,
+.proveedores-header h2,
+.config-header h2,
+.reportes-header h2,
+.metricas-header h2,
+.kanban-header h2,
+.facturacion-header h2,
+.clientes-header h2,
+.inventario-header h2,
+.cotizaciones-header h1,
+.cotizaciones-title h1,
+.asistencia-header h2,
+.citas-header-title h2,
+.os-header h1 {
+    margin: 0;
+    color: var(--text);
+    font-family: var(--font-display);
+    font-size: var(--fs-3xl);
+    line-height: 1.15;
+    font-weight: 600;
+    letter-spacing: 0.002em;
+}
+
+.vm-page-head p,
+.bancos-header p,
+.compras-header p,
+.proveedores-header p,
+.config-header p,
+.reportes-header p,
+.metricas-header p,
+.kanban-header p,
+.facturacion-header p,
+.clientes-header p,
+.inventario-header p,
+.cotizaciones-title p,
+.asistencia-header p,
+.citas-header-title p,
+.os-header p {
+    margin: 3px 0 0;
+    max-width: 72ch;
+    color: var(--text-muted);
+    font-size: var(--fs-sm);
+    line-height: 1.45;
+}
+
+
+/* =====================================================
+   BOTONES
+===================================================== */
+.vm-btn,
+.btn-nuevo-movimiento,
+.btn-nueva-compra,
+.btn-nuevo-proveedor,
+.btn-nueva-factura,
+.btn-nueva-ods,
+.btn-nuevo-cliente,
+.btn-nuevo-producto,
+.btn-nueva-cotizacion,
+.citas-new-button,
+.btn-guardar,
+.btn-guardar-cliente,
+.save-button,
+.btn-cancelar,
+.cancel-button,
+.btn-filtrar,
+.btn-approve,
+.btn-reject {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--s-2);
+    min-height: var(--control-h);
+    padding: 0 var(--s-4);
+    border: 1px solid transparent;
+    border-radius: var(--r);
+    font-family: var(--font-body);
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease),
+        color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
+}
+
+.vm-btn:active:not(:disabled),
+.btn-nuevo-movimiento:active,
+.btn-nueva-compra:active,
+.btn-nuevo-proveedor:active,
+.btn-nueva-factura:active,
+.btn-nueva-ods:active,
+.btn-nuevo-cliente:active,
+.btn-nuevo-producto:active,
+.btn-nueva-cotizacion:active,
+.citas-new-button:active,
+.btn-guardar:active:not(:disabled),
+.btn-guardar-cliente:active:not(:disabled),
+.save-button:active:not(:disabled) {
+    transform: translateY(1px);
+}
+
+.vm-btn .material-symbols-outlined,
+.btn-nuevo-movimiento .material-symbols-outlined,
+.btn-nueva-compra .material-symbols-outlined,
+.btn-nuevo-proveedor .material-symbols-outlined,
+.btn-nueva-factura .material-symbols-outlined,
+.btn-nueva-ods .material-symbols-outlined,
+.btn-nuevo-cliente .material-symbols-outlined,
+.btn-nuevo-producto .material-symbols-outlined,
+.btn-nueva-cotizacion .material-symbols-outlined,
+.citas-new-button .material-symbols-outlined,
+.btn-guardar .material-symbols-outlined,
+.btn-guardar-cliente .material-symbols-outlined,
+.save-button .material-symbols-outlined {
+    font-size: 18px;
+}
+
+/* Acción principal de la pantalla */
+.vm-btn-accent,
+.btn-nuevo-movimiento,
+.btn-nueva-compra,
+.btn-nuevo-proveedor,
+.btn-nueva-factura,
+.btn-nueva-ods,
+.btn-nuevo-cliente,
+.btn-nuevo-producto,
+.btn-nueva-cotizacion,
+.citas-new-button,
+.btn-guardar,
+.btn-guardar-cliente,
+.save-button {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--on-accent);
+    box-shadow: var(--shadow-xs);
+}
+
+.vm-btn-accent:hover:not(:disabled),
+.btn-nuevo-movimiento:hover,
+.btn-nueva-compra:hover,
+.btn-nuevo-proveedor:hover,
+.btn-nueva-factura:hover,
+.btn-nueva-ods:hover,
+.btn-nuevo-cliente:hover,
+.btn-nuevo-producto:hover,
+.btn-nueva-cotizacion:hover,
+.citas-new-button:hover,
+.btn-guardar:hover:not(:disabled),
+.btn-guardar-cliente:hover:not(:disabled),
+.save-button:hover:not(:disabled) {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+    color: var(--on-accent);
+}
+
+/* Acción de marca secundaria en importancia */
+.vm-btn-primary {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: var(--on-dark);
+}
+
+.vm-btn-primary:hover:not(:disabled) {
+    background: var(--primary-hover);
+    border-color: var(--primary-hover);
+}
+
+/* Secundario */
+.vm-btn-secondary,
+.btn-cancelar,
+.cancel-button,
+.btn-filtrar,
+.btn-nueva-ods.cancel {
+    background: var(--surface);
+    border-color: var(--border-strong);
+    color: var(--text-2);
+    box-shadow: none;
+}
+
+.vm-btn-secondary:hover:not(:disabled),
+.btn-cancelar:hover:not(:disabled),
+.cancel-button:hover:not(:disabled),
+.btn-filtrar:hover:not(:disabled),
+.btn-nueva-ods.cancel:hover {
+    background: var(--surface-2);
+    border-color: var(--graphite-400);
+    color: var(--text);
+}
+
+/* Fantasma */
+.vm-btn-ghost {
+    background: transparent;
+    color: var(--primary-text);
+}
+
+.vm-btn-ghost:hover:not(:disabled) {
+    background: var(--primary-soft);
+}
+
+/* Estado */
+.btn-approve {
+    background: var(--success);
+    border-color: var(--success);
+    color: var(--on-dark);
+}
+
+.btn-approve:hover:not(:disabled) {
+    background: var(--success-text);
+    border-color: var(--success-text);
+}
+
+.vm-btn-danger,
+.btn-reject {
+    background: var(--surface);
+    border-color: var(--danger-border);
+    color: var(--danger-text);
+}
+
+.vm-btn-danger:hover:not(:disabled),
+.btn-reject:hover:not(:disabled) {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: var(--on-dark);
+}
+
+.vm-btn:disabled,
+.btn-guardar:disabled,
+.btn-guardar-cliente:disabled,
+.save-button:disabled,
+.btn-cancelar:disabled,
+.cancel-button:disabled,
+.btn-approve:disabled,
+.btn-reject:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.vm-btn-sm {
+    min-height: 30px;
+    padding: 0 var(--s-3);
+    font-size: var(--fs-xs);
+}
+
+.vm-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--control-h);
+    height: var(--control-h);
+    border: 1px solid transparent;
+    border-radius: var(--r);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+}
+
+.vm-icon-btn:hover {
+    background: var(--surface-3);
+    color: var(--text);
+}
+
+/* Acciones compactas dentro de tablas */
+.btn-act-table {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    min-height: 28px;
+    padding: 0 var(--s-2);
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    background: var(--surface);
+    color: var(--text-2);
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    line-height: 1.1;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+}
+
+.btn-act-table .material-symbols-outlined {
+    font-size: 16px;
+}
+
+.btn-act-table:hover:not(:disabled) {
+    background: var(--surface-3);
+    border-color: var(--border-strong);
+    color: var(--text);
+}
+
+.btn-act-table:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-act-table.link {
+    border-color: var(--primary-border);
+    background: var(--primary-soft);
+    color: var(--primary-text);
+}
+
+.btn-act-table.link:hover:not(:disabled) {
+    background: var(--primary-soft-2);
+    border-color: var(--petrol-300);
+    color: var(--primary-hover);
+}
+
+.btn-act-table.diag {
+    border-color: var(--accent-border);
+    background: var(--accent-soft);
+    color: var(--accent-text);
+}
+
+.btn-act-table.diag:hover:not(:disabled) {
+    background: var(--accent-soft-2);
+    color: var(--accent-text);
+}
+
+.btn-act-table.nps {
+    border-color: var(--success-border);
+    background: var(--success-soft);
+    color: var(--success-text);
+}
+
+.btn-act-table.nps:hover:not(:disabled) {
+    background: var(--success-border);
+    color: var(--success-text);
+}
+
+.btn-act-table.trace {
+    background: var(--surface-2);
+    color: var(--text-muted);
+}
+
+.btn-act-table.danger {
+    border-color: var(--danger-border);
+    background: var(--danger-soft);
+    color: var(--danger-text);
+}
+
+.btn-act-table.danger:hover:not(:disabled) {
+    border-color: var(--danger);
+    background: var(--danger);
+    color: var(--on-dark);
+}
+
+.table-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-1);
+}
+
+
+/* =====================================================
+   TARJETAS
+===================================================== */
+.vm-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    box-shadow: var(--shadow-xs);
+}
+
+.vm-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-3);
+    padding: var(--s-3) var(--s-4);
+    border-bottom: 1px solid var(--border-soft);
+}
+
+.vm-card-head h2,
+.vm-card-head h3 {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: var(--fs-lg);
+    font-weight: 600;
+    color: var(--text);
+}
+
+.vm-card-head .material-symbols-outlined {
+    color: var(--primary-text);
+    font-size: 19px;
+}
+
+.vm-card-body {
+    padding: var(--s-4);
+}
+
+
+/* =====================================================
+   KPI: "instrumento" con escala graduada inferior
+===================================================== */
+.vm-kpi,
+.banco-card,
+.reporte-stat-box,
+.metricas-kpis article {
+    position: relative;
+    min-width: 0;
+    padding: var(--s-4) var(--s-4) calc(var(--s-4) + 6px);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    box-shadow: var(--shadow-xs);
+    overflow: hidden;
+}
+
+.vm-kpi::after,
+.banco-card::after,
+.reporte-stat-box::after,
+.metricas-kpis article::after {
+    content: "";
+    position: absolute;
+    left: var(--s-4);
+    right: var(--s-4);
+    bottom: 0;
+    height: 5px;
+    background: repeating-linear-gradient(90deg,
+            var(--border-strong) 0 1px,
+            transparent 1px 8px);
+    pointer-events: none;
+}
+
+.vm-kpi-label,
+.banco-card > span,
+.reporte-stat-box > span,
+.metricas-kpis article > span {
+    display: block;
+    margin-bottom: var(--s-1);
+    color: var(--text-muted);
+    font-family: var(--font-display);
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.vm-kpi-value,
+.banco-card h3,
+.reporte-stat-box h3,
+.metricas-kpis article strong {
+    display: block;
+    margin: 0;
+    color: var(--text);
+    font-family: var(--font-display);
+    font-size: var(--fs-kpi);
+    font-weight: 600;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+}
+
+.vm-kpi-grid,
+.bancos-kpi-grid,
+.reportes-card-grid,
+.metricas-kpis,
+.asistencia-kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: var(--s-3);
+    margin-bottom: var(--s-5);
+}
+
+
+/* =====================================================
+   PESTAÑAS: subrayado con indicador naranja
+===================================================== */
+.vm-tabs,
+.reportes-tabs-nav,
+.fact-tabs-nav,
+.config-tabs,
+.metricas-subnav,
+.os-subnav-tabs {
+    display: flex;
+    gap: 2px;
+    margin-bottom: var(--s-4);
+    padding: 0;
+    overflow-x: auto;
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+    box-shadow: none;
+    scrollbar-width: none;
+}
+
+.vm-tabs::-webkit-scrollbar,
+.reportes-tabs-nav::-webkit-scrollbar,
+.fact-tabs-nav::-webkit-scrollbar,
+.config-tabs::-webkit-scrollbar,
+.metricas-subnav::-webkit-scrollbar,
+.os-subnav-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.vm-tab,
+.reportes-tab-btn,
+.fact-tab-btn,
+.config-tab-btn,
+.metricas-tab-btn,
+.os-subnav-tab {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 40px;
+    margin-bottom: -1px;
+    padding: 0 var(--s-3);
+    border: 0;
+    border-bottom: 2px solid transparent;
+    border-radius: var(--r-sm) var(--r-sm) 0 0;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: var(--font-body);
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: color var(--t-fast) var(--ease), background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+}
+
+.vm-tab:hover,
+.reportes-tab-btn:hover,
+.fact-tab-btn:hover,
+.config-tab-btn:hover,
+.metricas-tab-btn:hover,
+.os-subnav-tab:hover {
+    background: var(--surface-3);
+    color: var(--text);
+}
+
+.vm-tab.active,
+.reportes-tab-btn.active,
+.fact-tab-btn.active,
+.config-tab-btn.active,
+.metricas-tab-btn.active,
+.os-subnav-tab.active {
+    background: transparent;
+    border-bottom-color: var(--accent);
+    color: var(--primary-strong);
+}
+
+.tab-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: var(--r-pill);
+    background: var(--surface-3);
+    color: var(--text-muted);
+    font-size: var(--fs-2xs);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.os-subnav-tab.active .tab-badge {
+    background: var(--primary-soft-2);
+    color: var(--primary-strong);
+}
+
+.os-subnav-container {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--s-3);
+    margin-bottom: var(--s-4);
+    border-bottom: 1px solid var(--border);
+}
+
+.os-subnav-container .os-subnav-tabs {
+    margin-bottom: 0;
+    border-bottom: 0;
+}
+
+.os-subnav-container .btn-nueva-ods {
+    margin-bottom: var(--s-2);
+}
+
+
+/* =====================================================
+   BARRA DE FILTROS Y BUSCADOR
+===================================================== */
+.vm-filter-bar,
+.os-filter-bar,
+.reportes-filter-bar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--s-2) var(--s-3);
+    margin-bottom: var(--s-3);
+    padding: var(--s-2) var(--s-3);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    box-shadow: var(--shadow-xs);
+}
+
+.vm-search,
+.filter-search,
+.kanban-search {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    flex: 1 1 240px;
+    min-width: 0;
+    min-height: var(--control-h);
+    padding: 0 var(--s-3);
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--r);
+    transition: border-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease);
+}
+
+.vm-search:focus-within,
+.filter-search:focus-within,
+.kanban-search:focus-within {
+    border-color: var(--petrol-500);
+    box-shadow: var(--focus-ring);
+}
+
+.vm-search .material-symbols-outlined,
+.filter-search .material-symbols-outlined,
+.kanban-search .material-symbols-outlined {
+    color: var(--text-subtle);
+    font-size: 19px;
+}
+
+.vm-search input,
+.filter-search input,
+.kanban-search input {
+    flex: 1;
+    width: 100%;
+    min-width: 0;
+    min-height: 36px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    outline: none;
+    font-size: var(--fs-sm);
+}
+
+.filter-date {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s-2);
+    min-height: var(--control-h);
+    padding: 0 var(--s-3);
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--r);
+    transition: border-color var(--t-fast) var(--ease);
+}
+
+.filter-date:hover {
+    border-color: var(--graphite-400);
+}
+
+.filter-date:focus-within {
+    border-color: var(--petrol-500);
+    box-shadow: var(--focus-ring);
+}
+
+.filter-date-icon {
+    color: var(--primary-text);
+    font-size: 19px;
+}
+
+.filter-date label {
+    color: var(--text-2);
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.filter-date input[type="date"] {
+    min-height: 34px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    color: var(--text);
+    font-size: var(--fs-sm);
+    outline: none;
+    cursor: pointer;
+}
+
+.btn-clear-date {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--surface-3);
+    color: var(--text-muted);
+    font-size: 10px;
+    cursor: pointer;
+    transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+}
+
+.btn-clear-date:hover {
+    background: var(--danger);
+    color: var(--on-dark);
+}
+
+.reportes-filter-item {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s-2);
+    color: var(--text-2);
+    font-size: var(--fs-sm);
+    font-weight: 600;
+}
+
+
+/* =====================================================
+   TABLAS
+===================================================== */
+.vm-table-wrap,
+.os-table-wrapper,
+.metricas-table-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    box-shadow: var(--shadow-xs);
+    overflow-x: auto;
+}
+
+.vm-table,
+.os-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: var(--fs-sm);
+    font-variant-numeric: tabular-nums;
+}
+
+.vm-table th,
+.os-table th {
+    padding: 10px 14px;
+    background: var(--surface-2);
+    border-bottom: 2px solid var(--border);
+    color: var(--text-muted);
+    font-family: var(--font-display);
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.vm-table td,
+.os-table td {
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--border-soft);
+    color: var(--text-2);
+    vertical-align: middle;
+}
+
+.vm-table td strong,
+.os-table td strong {
+    color: var(--text);
+    font-weight: 600;
+}
+
+.vm-table tbody tr,
+.os-table tbody tr {
+    transition: background var(--t-fast) var(--ease);
+}
+
+.vm-table tbody tr:hover,
+.os-table tbody tr:hover {
+    background: var(--primary-soft);
+}
+
+.vm-table tbody tr:last-child td,
+.os-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.vm-num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+
+/* =====================================================
+   ETIQUETAS DE ESTADO
+===================================================== */
+.vm-badge,
+.proc-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-height: 22px;
+    padding: 0 var(--s-2);
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    background: var(--surface-2);
+    color: var(--text-2);
+    font-size: var(--fs-2xs);
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.vm-badge .material-symbols-outlined,
+.proc-tag .material-symbols-outlined {
+    font-size: 14px;
+}
+
+.vm-badge::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+}
+
+.vm-badge.is-plain::before {
+    display: none;
+}
+
+.vm-badge-success,
+.proc-tag.preventivo {
+    border-color: var(--success-border);
+    background: var(--success-soft);
+    color: var(--success-text);
+}
+
+.vm-badge-danger,
+.proc-tag.correctivo {
+    border-color: var(--danger-border);
+    background: var(--danger-soft);
+    color: var(--danger-text);
+}
+
+.vm-badge-warning {
+    border-color: var(--warning-border);
+    background: var(--warning-soft);
+    color: var(--warning-text);
+}
+
+.vm-badge-info,
+.proc-tag.link {
+    border-color: var(--info-border);
+    background: var(--info-soft);
+    color: var(--info-text);
+}
+
+.vm-badge-accent {
+    border-color: var(--accent-border);
+    background: var(--accent-soft);
+    color: var(--accent-text);
+}
+
+/* Código de orden: lectura técnica */
+.vm-code,
+.ods-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 6px;
+    border-radius: var(--r-sm);
+    background: var(--primary-soft);
+    color: var(--primary-text);
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* Placa vehicular */
+.vm-plate {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 72px;
+    padding: 4px 6px 2px;
+    background: var(--surface);
+    border: 1.5px solid var(--graphite-700);
+    border-top-width: 4px;
+    border-top-color: var(--petrol-700);
+    border-radius: 3px;
+    color: var(--graphite-900);
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    line-height: 1.1;
+    white-space: nowrap;
+}
+
+
+/* =====================================================
+   FORMULARIOS
+===================================================== */
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--s-4);
+}
+
+.form-group,
+.campo,
+.config-field,
+.vm-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+}
+
+.form-group-full {
+    grid-column: 1 / -1;
+}
+
+.form-group label,
+.campo label,
+.config-field label,
+.vm-field label,
+.modal-body label {
+    color: var(--text-2);
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    line-height: 1.35;
+}
+
+.form-group input:not([type="checkbox"], [type="radio"]),
+.form-group select,
+.form-group textarea,
+.campo input:not([type="checkbox"], [type="radio"]),
+.campo select,
+.campo textarea,
+.config-field input:not([type="checkbox"], [type="radio"]),
+.config-field select,
+.config-field textarea,
+.vm-field input:not([type="checkbox"], [type="radio"]),
+.vm-field select,
+.vm-field textarea,
+.modal-body input:not([type="checkbox"], [type="radio"], [type="file"]),
+.modal-body select,
+.modal-body textarea {
+    width: 100%;
+}
+
+.vm-form-section-title {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    margin-bottom: var(--s-3);
+    color: var(--text);
+    font-family: var(--font-display);
+    font-size: var(--fs-md);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+.vm-form-section-title .material-symbols-outlined {
+    color: var(--primary-text);
+    font-size: 18px;
+}
+
+
+/* =====================================================
+   MODAL
+===================================================== */
+.modal-overlay,
+.vm-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-modal);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--s-4);
+    background: rgba(6, 24, 32, 0.58);
+    backdrop-filter: blur(3px);
+    animation: vm-fade-in var(--t) var(--ease);
+}
+
+.modal-content {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 650px;
+    max-height: calc(100dvh - var(--s-8));
+    background: var(--surface);
+    color: var(--text);
+    border: 0;
+    border-radius: var(--r-lg);
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+    animation: vm-pop-in var(--t) var(--ease);
+}
+
+.modal-content > form {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.modal-header {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    gap: var(--s-3);
+    padding: var(--s-3) var(--s-5);
+    background: var(--surface-dark);
+    border: 0;
+    border-bottom: 2px solid var(--accent);
+    color: var(--on-dark);
+}
+
+.modal-header h2,
+.modal-header h3 {
+    margin: 0;
+    color: var(--on-dark);
+    font-family: var(--font-display);
+    font-size: var(--fs-xl);
+    font-weight: 600;
+}
+
+.modal-header p {
+    margin: 2px 0 0;
+    color: var(--on-dark-2);
+    font-size: var(--fs-xs);
+}
+
+.modal-header.yellow {
+    background: var(--surface-dark);
+    border-bottom-color: var(--warning);
+}
+
+.modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: var(--s-5);
+    overflow-y: auto;
+    color: var(--text-2);
+}
+
+.modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+    gap: var(--s-2);
+    padding: var(--s-3) var(--s-5);
+    background: var(--surface-2);
+    border: 0;
+    border-top: 1px solid var(--border);
+}
+
+.btn-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 30px;
+    height: 30px;
+    border: 0;
+    border-radius: var(--r);
+    background: transparent;
+    color: var(--on-dark-2);
+    font-size: 16px;
+    cursor: pointer;
+    transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+}
+
+.btn-close:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: var(--on-dark);
+}
+
+
+/* =====================================================
+   ESTADOS: vacío, carga, alerta
+===================================================== */
+.vm-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--s-2);
+    padding: var(--s-8) var(--s-4);
+    color: var(--text-muted);
+    font-size: var(--fs-sm);
+    text-align: center;
+}
+
+.vm-empty .material-symbols-outlined {
+    color: var(--graphite-300);
+    font-size: 36px;
+}
+
+.vm-empty strong {
+    color: var(--text-2);
+    font-weight: 600;
+}
+
+.vm-loading,
+.bancos-page > p[role="status"],
+.compras-page > p[role="status"],
+.proveedores-page > p[role="status"] {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    margin-bottom: var(--s-3);
+    color: var(--text-muted);
+    font-size: var(--fs-sm);
+}
+
+.vm-loading::before,
+.bancos-page > p[role="status"]::before,
+.compras-page > p[role="status"]::before,
+.proveedores-page > p[role="status"]::before {
+    content: "";
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--border-strong);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: vm-spin 700ms linear infinite;
+}
+
+.vm-skeleton {
+    display: block;
+    background: linear-gradient(90deg, var(--surface-3) 0%, var(--surface-2) 50%, var(--surface-3) 100%);
+    background-size: 200% 100%;
+    border-radius: var(--r-sm);
+    animation: vm-shimmer 1.3s linear infinite;
+}
+
+.vm-alert,
+.metricas-error,
+.reportes-error {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--s-2);
+    margin-bottom: var(--s-4);
+    padding: var(--s-3) var(--s-4);
+    background: var(--danger-soft);
+    border: 1px solid var(--danger-border);
+    border-left: 3px solid var(--danger);
+    border-radius: var(--r);
+    color: var(--danger-text);
+    font-size: var(--fs-sm);
+    line-height: 1.4;
+}
+
+.vm-alert .material-symbols-outlined {
+    font-size: 18px;
+}
+
+.vm-alert-warning {
+    background: var(--warning-soft);
+    border-color: var(--warning-border);
+    border-left-color: var(--warning);
+    color: var(--warning-text);
+}
+
+.vm-alert-info {
+    background: var(--info-soft);
+    border-color: var(--info-border);
+    border-left-color: var(--info);
+    color: var(--info-text);
+}
+
+.vm-alert-success {
+    background: var(--success-soft);
+    border-color: var(--success-border);
+    border-left-color: var(--success);
+    color: var(--success-text);
+}
+
+
+/* =====================================================
+   ANIMACIONES
+===================================================== */
+@keyframes vm-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes vm-pop-in {
+    from { opacity: 0; transform: translateY(8px) scale(0.99); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes vm-spin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes vm-shimmer {
+    from { background-position: 200% 0; }
+    to { background-position: -200% 0; }
+}
+
+
+/* =====================================================
+   RESPONSIVE
+===================================================== */
+@media (max-width: 720px) {
+    .vm-page-head,
+    .bancos-header,
+    .compras-header,
+    .proveedores-header,
+    .reportes-header,
+    .metricas-header,
+    .kanban-header,
+    .facturacion-header,
+    .clientes-header,
+    .inventario-header,
+    .cotizaciones-header,
+    .asistencia-header,
+    .citas-header,
+    .os-header {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .vm-page-head h1,
+    .vm-page-head h2,
+    .bancos-header h2,
+    .compras-header h2,
+    .proveedores-header h2,
+    .config-header h2,
+    .reportes-header h2,
+    .metricas-header h2,
+    .kanban-header h2,
+    .facturacion-header h2,
+    .clientes-header h2,
+    .inventario-header h2,
+    .cotizaciones-title h1,
+    .asistencia-header h2,
+    .citas-header-title h2,
+    .os-header h1 {
+        font-size: var(--fs-2xl);
+    }
+
+    .form-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .form-group-full {
+        grid-column: auto;
+    }
+
+    .modal-overlay {
+        align-items: flex-end;
+        padding: 0;
+    }
+
+    .modal-content {
+        max-width: none !important;
+        width: 100% !important;
+        max-height: 92dvh;
+        border-radius: var(--r-lg) var(--r-lg) 0 0;
+    }
+
+    .modal-footer {
+        justify-content: stretch;
+    }
+
+    .modal-footer > * {
+        flex: 1 1 auto;
+    }
+}

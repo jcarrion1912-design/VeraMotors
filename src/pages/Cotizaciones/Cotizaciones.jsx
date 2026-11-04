@@ -280,13 +280,16 @@ function Cotizaciones() {
                 </div>
 
                 <div className="cotizaciones-actions">
-                    <input
-                        type="text"
-                        className="cotizaciones-search-input"
-                        placeholder="Buscar por código, cliente o placa..."
-                        value={busqueda}
-                        onChange={(e) => setBusqueda(e.target.value)}
-                    />
+                    <div className="vm-search cotizaciones-search">
+                        <span className="material-symbols-outlined">search</span>
+                        <input
+                            type="text"
+                            placeholder="Buscar por código, cliente o placa..."
+                            value={busqueda}
+                            onChange={(e) => setBusqueda(e.target.value)}
+                            aria-label="Buscar por código, cliente o placa"
+                        />
+                    </div>
                     <button
                         type="button"
                         className="btn-nueva-cotizacion"
@@ -300,206 +303,210 @@ function Cotizaciones() {
 
             {/* FORMULARIO REGISTRAR COTIZACIÓN */}
             {mostrarModal && (
-                <div className="modal-cotizacion-card">
-                    <div className="modal-cotizacion-header">
-                        <h3>Registrar nueva cotización</h3>
-                        <button
-                            type="button"
-                            className="btn-accion-cot btn-accion-rechazar"
-                            onClick={cerrarModal}
-                            disabled={guardandoCotizacion}
-                        >
-                            Cerrar
-                        </button>
-                    </div>
-
-                    <div className="form-grid-cotizacion">
-                        <div>
-                            <label style={{ display: "block", marginBottom: "6px", fontWeight: 600 }}>
-                                Cliente *
-                            </label>
-                            <select
-                                value={cotizacionCliente}
-                                onChange={(e) => setCotizacionCliente(e.target.value)}
-                                style={{
-                                    width: "100%",
-                                    padding: "10px 12px",
-                                    borderRadius: "8px",
-                                    border: "1px solid #cbd5e1"
-                                }}
-                            >
-                                <option value="">Seleccione un cliente</option>
-                                {clientes.map((c) => (
-                                    <option key={c.cliente_id} value={c.cliente_id}>
-                                        {c.nombre_razon_social} - {c.documento_identidad}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div>
-                            <label style={{ display: "block", marginBottom: "6px", fontWeight: 600 }}>
-                                Vehículo *
-                            </label>
-                            <select
-                                value={cotizacionVehiculo}
-                                onChange={(e) => setCotizacionVehiculo(e.target.value)}
-                                disabled={!cotizacionCliente}
-                                style={{
-                                    width: "100%",
-                                    padding: "10px 12px",
-                                    borderRadius: "8px",
-                                    border: "1px solid #cbd5e1"
-                                }}
-                            >
-                                <option value="">Seleccione un vehículo</option>
-                                {vehiculosCliente.map((v) => (
-                                    <option key={v.vehiculo_id} value={v.vehiculo_id}>
-                                        {v.placa} · {v.marca} {v.modelo}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
-
-                    <div className="items-box-cotizacion">
-                        <h4>Items y servicios presupuestados</h4>
-                        <div className="items-input-row">
-                            <div>
-                                <label style={{ display: "block", marginBottom: "6px", fontSize: "12px", fontWeight: 600 }}>
-                                    Descripción
-                                </label>
-                                <input
-                                    type="text"
-                                    placeholder="Ej. Cambio de pastillas de freno"
-                                    value={nuevoItemDesc}
-                                    onChange={(e) => setNuevoItemDesc(e.target.value)}
-                                    style={{ width: "100%", padding: "9px 12px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
-                                />
-                            </div>
-
-                            <div>
-                                <label style={{ display: "block", marginBottom: "6px", fontSize: "12px", fontWeight: 600 }}>
-                                    Precio Unitario (S/)
-                                </label>
-                                <input
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    placeholder="0.00"
-                                    value={nuevoItemPrecio}
-                                    onChange={(e) => setNuevoItemPrecio(e.target.value)}
-                                    style={{ width: "100%", padding: "9px 12px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
-                                />
-                            </div>
-
-                            <div>
-                                <label style={{ display: "block", marginBottom: "6px", fontSize: "12px", fontWeight: 600 }}>
-                                    Cantidad
-                                </label>
-                                <input
-                                    type="number"
-                                    min="1"
-                                    value={nuevoItemCantidad}
-                                    onChange={(e) => setNuevoItemCantidad(e.target.value)}
-                                    style={{ width: "100%", padding: "9px 12px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
-                                />
-                            </div>
-
-                            <div>
-                                <label style={{ display: "block", marginBottom: "6px", fontSize: "12px", fontWeight: 600 }}>
-                                    Desc. (S/)
-                                </label>
-                                <input
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    value={nuevoItemDescuento}
-                                    onChange={(e) => setNuevoItemDescuento(e.target.value)}
-                                    style={{ width: "100%", padding: "9px 12px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
-                                />
-                            </div>
-
+                <div className="modal-overlay">
+                    <div className="modal-content modal-cotizacion-card">
+                        <div className="modal-header">
+                            <h3>Registrar nueva cotización</h3>
                             <button
                                 type="button"
-                                className="btn-agregar-item"
-                                onClick={agregarItem}
+                                className="btn-close"
+                                onClick={cerrarModal}
+                                disabled={guardandoCotizacion}
+                                aria-label="Cerrar"
                             >
-                                Agregar
+                                <span className="material-symbols-outlined">close</span>
                             </button>
                         </div>
 
-                        {itemsCotizacion.length === 0 ? (
-                            <p style={{ color: "#64748b", margin: "8px 0" }}>No hay ítems agregados todavía.</p>
-                        ) : (
-                            <table className="items-table">
-                                <thead>
-                                    <tr>
-                                        <th style={{ textAlign: "left", padding: "8px 6px" }}>Descripción</th>
-                                        <th style={{ textAlign: "right", padding: "8px 6px" }}>Cant.</th>
-                                        <th style={{ textAlign: "right", padding: "8px 6px" }}>P. Unit</th>
-                                        <th style={{ textAlign: "right", padding: "8px 6px" }}>Desc.</th>
-                                        <th style={{ textAlign: "right", padding: "8px 6px" }}>Total</th>
-                                        <th style={{ textAlign: "center", padding: "8px 6px" }}>Acción</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {itemsCotizacion.map((item) => {
-                                        const subtotal = Number(item.cantidad) * Number(item.precio_unitario);
-                                        const totalItem = subtotal - Number(item.descuento || 0);
-                                        return (
-                                            <tr key={item.id}>
-                                                <td style={{ padding: "8px 6px" }}>{item.descripcion}</td>
-                                                <td style={{ textAlign: "right", padding: "8px 6px" }}>{item.cantidad}</td>
-                                                <td style={{ textAlign: "right", padding: "8px 6px" }}>{moneda(item.precio_unitario)}</td>
-                                                <td style={{ textAlign: "right", padding: "8px 6px" }}>{moneda(item.descuento || 0)}</td>
-                                                <td style={{ textAlign: "right", padding: "8px 6px" }}>{moneda(totalItem)}</td>
-                                                <td style={{ textAlign: "center", padding: "8px 6px" }}>
-                                                    <button
-                                                        type="button"
-                                                        className="btn-accion-cot btn-accion-rechazar"
-                                                        onClick={() => eliminarItem(item.id)}
-                                                    >
-                                                        Quitar
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        )}
-                    </div>
+                        <div className="modal-body">
+                            <h4 className="vm-form-section-title">
+                                <span className="material-symbols-outlined">person</span>
+                                Cliente y vehículo
+                            </h4>
+                            <div className="form-grid">
+                                <div className="form-group">
+                                    <label>
+                                        Cliente *
+                                    </label>
+                                    <select
+                                        value={cotizacionCliente}
+                                        onChange={(e) => setCotizacionCliente(e.target.value)}
+                                    >
+                                        <option value="">Seleccione un cliente</option>
+                                        {clientes.map((c) => (
+                                            <option key={c.cliente_id} value={c.cliente_id}>
+                                                {c.nombre_razon_social} - {c.documento_identidad}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
 
-                    <div className="modal-cotizacion-footer">
-                        <div className="total-cotizacion-badge">
-                            Total cotización: {moneda(totalCotizacion)}
+                                <div className="form-group">
+                                    <label>
+                                        Vehículo *
+                                    </label>
+                                    <select
+                                        value={cotizacionVehiculo}
+                                        onChange={(e) => setCotizacionVehiculo(e.target.value)}
+                                        disabled={!cotizacionCliente}
+                                    >
+                                        <option value="">Seleccione un vehículo</option>
+                                        {vehiculosCliente.map((v) => (
+                                            <option key={v.vehiculo_id} value={v.vehiculo_id}>
+                                                {v.placa} · {v.marca} {v.modelo}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="items-box-cotizacion">
+                                <h4 className="vm-form-section-title">
+                                    <span className="material-symbols-outlined">format_list_bulleted</span>
+                                    Items y servicios presupuestados
+                                </h4>
+                                <div className="items-input-row">
+                                    <div className="form-group">
+                                        <label>
+                                            Descripción
+                                        </label>
+                                        <input
+                                            type="text"
+                                            placeholder="Ej. Cambio de pastillas de freno"
+                                            value={nuevoItemDesc}
+                                            onChange={(e) => setNuevoItemDesc(e.target.value)}
+                                        />
+                                    </div>
+
+                                    <div className="form-group">
+                                        <label>
+                                            Precio Unitario (S/)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            placeholder="0.00"
+                                            value={nuevoItemPrecio}
+                                            onChange={(e) => setNuevoItemPrecio(e.target.value)}
+                                        />
+                                    </div>
+
+                                    <div className="form-group">
+                                        <label>
+                                            Cantidad
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            value={nuevoItemCantidad}
+                                            onChange={(e) => setNuevoItemCantidad(e.target.value)}
+                                        />
+                                    </div>
+
+                                    <div className="form-group">
+                                        <label>
+                                            Desc. (S/)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            value={nuevoItemDescuento}
+                                            onChange={(e) => setNuevoItemDescuento(e.target.value)}
+                                        />
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        className="vm-btn vm-btn-primary"
+                                        onClick={agregarItem}
+                                    >
+                                        <span className="material-symbols-outlined">add</span>
+                                        Agregar
+                                    </button>
+                                </div>
+
+                                {itemsCotizacion.length === 0 ? (
+                                    <div className="vm-empty cot-items-vacio">
+                                        <span className="material-symbols-outlined">playlist_add</span>
+                                        No hay ítems agregados todavía.
+                                    </div>
+                                ) : (
+                                    <div className="vm-table-wrap">
+                                        <table className="vm-table cot-items-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Descripción</th>
+                                                    <th className="vm-num">Cant.</th>
+                                                    <th className="vm-num">P. Unit</th>
+                                                    <th className="vm-num">Desc.</th>
+                                                    <th className="vm-num">Total</th>
+                                                    <th>Acción</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {itemsCotizacion.map((item) => {
+                                                    const subtotal = Number(item.cantidad) * Number(item.precio_unitario);
+                                                    const totalItem = subtotal - Number(item.descuento || 0);
+                                                    return (
+                                                        <tr key={item.id}>
+                                                            <td>{item.descripcion}</td>
+                                                            <td className="vm-num">{item.cantidad}</td>
+                                                            <td className="vm-num">{moneda(item.precio_unitario)}</td>
+                                                            <td className="vm-num">{moneda(item.descuento || 0)}</td>
+                                                            <td className="vm-num"><strong>{moneda(totalItem)}</strong></td>
+                                                            <td>
+                                                                <button
+                                                                    type="button"
+                                                                    className="btn-act-table danger"
+                                                                    onClick={() => eliminarItem(item.id)}
+                                                                >
+                                                                    <span className="material-symbols-outlined">delete</span>
+                                                                    Quitar
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                        <button
-                            type="button"
-                            className="btn-nueva-cotizacion"
-                            onClick={handleGuardar}
-                            disabled={guardandoCotizacion}
-                            style={{ opacity: guardandoCotizacion ? 0.7 : 1 }}
-                        >
-                            {guardandoCotizacion ? "Guardando..." : "Guardar Cotización"}
-                        </button>
+
+                        <div className="modal-footer">
+                            <div className="total-cotizacion-badge">
+                                <span>Total cotización</span>
+                                <strong>{moneda(totalCotizacion)}</strong>
+                            </div>
+                            <button
+                                type="button"
+                                className="btn-guardar"
+                                onClick={handleGuardar}
+                                disabled={guardandoCotizacion}
+                            >
+                                <span className="material-symbols-outlined">save</span>
+                                {guardandoCotizacion ? "Guardando..." : "Guardar Cotización"}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
 
             {/* TABLA DE COTIZACIONES */}
-            <div className="cotizaciones-table-wrapper">
-                <table className="cotizaciones-table">
+            <div className="vm-table-wrap">
+                <table className="vm-table cotizaciones-table">
                     <thead>
                         <tr>
                             <th>Código</th>
                             <th>Fecha</th>
                             <th>Cliente</th>
                             <th>Vehículo</th>
-                            <th>Subtotal</th>
-                            <th>Impuestos</th>
-                            <th>Total</th>
+                            <th className="vm-num">Subtotal</th>
+                            <th className="vm-num">Impuestos</th>
+                            <th className="vm-num">Total</th>
                             <th>Estado</th>
                             <th>Acciones</th>
                         </tr>
@@ -507,59 +514,71 @@ function Cotizaciones() {
                     <tbody>
                         {cargandoCotizaciones ? (
                             <tr>
-                                <td colSpan="9" style={{ textAlign: "center", padding: "30px", color: "#64748b" }}>
-                                    Cargando cotizaciones desde PostgreSQL...
+                                <td colSpan="9">
+                                    <div className="vm-loading cot-tabla-cargando" role="status">
+                                        Cargando cotizaciones...
+                                    </div>
                                 </td>
                             </tr>
                         ) : cotizacionesFiltradas.length === 0 ? (
                             <tr>
-                                <td colSpan="9" style={{ textAlign: "center", padding: "30px", color: "#64748b" }}>
-                                    No se encontraron cotizaciones registradas.
+                                <td colSpan="9">
+                                    <div className="vm-empty">
+                                        <span className="material-symbols-outlined">request_quote</span>
+                                        <strong>No se encontraron cotizaciones registradas.</strong>
+                                    </div>
                                 </td>
                             </tr>
                         ) : (
                             cotizacionesFiltradas.map((cot) => (
                                 <tr key={cot.cotizacion_id}>
-                                    <td><strong>{cot.codigo_cotizacion}</strong></td>
-                                    <td>{fecha(cot.fecha)}</td>
-                                    <td>{cot.cliente_nombre || "Cliente"}</td>
+                                    <td><span className="vm-code">{cot.codigo_cotizacion}</span></td>
+                                    <td className="cot-fecha">{fecha(cot.fecha)}</td>
+                                    <td className="cot-cliente">{cot.cliente_nombre || "Cliente"}</td>
                                     <td>
-                                        {cot.vehiculo_placa
-                                            ? `${cot.vehiculo_placa}${cot.vehiculo_modelo ? ` (${cot.vehiculo_modelo})` : ""}`
-                                            : "-"}
+                                        {cot.vehiculo_placa ? (
+                                            <div className="cot-vehiculo">
+                                                <span className="vm-plate">{cot.vehiculo_placa}</span>
+                                                {cot.vehiculo_modelo && <span>{cot.vehiculo_modelo}</span>}
+                                            </div>
+                                        ) : (
+                                            <span className="cot-sin-vehiculo">-</span>
+                                        )}
                                     </td>
-                                    <td>{moneda(cot.subtotal || 0)}</td>
-                                    <td>{moneda(cot.impuestos || 0)}</td>
-                                    <td><strong>{moneda(cot.total)}</strong></td>
+                                    <td className="vm-num">{moneda(cot.subtotal || 0)}</td>
+                                    <td className="vm-num">{moneda(cot.impuestos || 0)}</td>
+                                    <td className="vm-num"><strong>{moneda(cot.total)}</strong></td>
                                     <td>
                                         <span
-                                            className={`badge-estado ${
+                                            className={`vm-badge ${
                                                 cot.estado === "Aprobada"
-                                                    ? "badge-aprobada"
+                                                    ? "vm-badge-success"
                                                     : cot.estado === "Rechazada"
-                                                    ? "badge-rechazada"
-                                                    : "badge-pendiente"
+                                                    ? "vm-badge-danger"
+                                                    : "vm-badge-warning"
                                             }`}
                                         >
                                             {cot.estado}
                                         </span>
                                     </td>
                                     <td>
-                                        <div className="actions-cell">
+                                        <div className="table-actions">
                                             {cot.estado === "Pendiente" && (
                                                 <>
                                                     <button
                                                         type="button"
-                                                        className="btn-accion-cot btn-accion-aprobar"
+                                                        className="btn-act-table nps"
                                                         onClick={() => handleActualizarEstado(cot.cotizacion_id, "aprobar")}
                                                     >
+                                                        <span className="material-symbols-outlined">check</span>
                                                         Aprobar
                                                     </button>
                                                     <button
                                                         type="button"
-                                                        className="btn-accion-cot btn-accion-rechazar"
+                                                        className="btn-act-table danger"
                                                         onClick={() => handleActualizarEstado(cot.cotizacion_id, "rechazar")}
                                                     >
+                                                        <span className="material-symbols-outlined">close</span>
                                                         Rechazar
                                                     </button>
                                                 </>
@@ -567,11 +586,12 @@ function Cotizaciones() {
 
                                             <button
                                                 type="button"
-                                                className="btn-accion-cot btn-accion-facturar"
+                                                className="btn-act-table link"
                                                 disabled={cot.estado !== "Aprobada"}
                                                 onClick={() => handleFacturar(cot)}
                                                 title={cot.estado === "Aprobada" ? "Generar factura desde esta cotización" : "Debe estar aprobada para facturar"}
                                             >
+                                                <span className="material-symbols-outlined">receipt_long</span>
                                                 Facturar
                                             </button>
                                         </div>

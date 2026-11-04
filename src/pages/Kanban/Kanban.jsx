@@ -2,27 +2,8 @@ import { useEffect, useState } from "react";
 import { useRole } from "../../context/authContext";
 import { obtenerODS, cambiarEstadoODS } from "../../services/odsService";
 import { obtenerUsuarios } from "../../services/usuariosService";
+import { ETAPAS_TALLER as COLUMNAS, normalizarEstado } from "../../config/flujoTaller";
 import "./Kanban.css";
-
-const COLUMNAS = [
-    { id: "Recepción", titulo: "Recepción", color: "#3b82f6" },
-    { id: "Diagnóstico", titulo: "Diagnóstico", color: "#eab308" },
-    { id: "Repuestos", titulo: "Repuestos", color: "#a855f7" },
-    { id: "Aprobación", titulo: "Aprobación", color: "#06b6d4" },
-    { id: "Reparación", titulo: "Reparación", color: "#f97316" },
-    { id: "Control de Calidad", titulo: "Control Calidad", color: "#8b5cf6" },
-    { id: "Entrega", titulo: "Entrega", color: "#22c55e" }
-];
-
-const normalizarEstado = (estado) => {
-    if (!estado) return "Recepción";
-    if (estado === "Pendiente") return "Recepción";
-    if (estado === "En Espera") return "Repuestos";
-    if (estado === "En Reparación") return "Reparación";
-    if (estado === "Aprobado") return "Aprobación";
-    if (estado === "Completado") return "Entrega";
-    return estado;
-};
 
 function Kanban() {
     const { rolActivo, usuarioActual, ROLES } = useRole();
@@ -130,13 +111,15 @@ function Kanban() {
             </div>
 
             <div className="kanban-board">
-                {COLUMNAS.map((col) => {
+                {COLUMNAS.map((col, indice) => {
                     const tarjetasEnCol = tarjetasFiltradas.filter((t) => t.estado === col.id);
                     return (
-                        <div key={col.id} className="kanban-column">
-                            <div className="column-header" style={{ borderTopColor: col.color }}>
+                        <div key={col.id} className={`kanban-column ${col.id === "Entrega" ? "is-final" : ""}`}>
+                            <div className="column-header">
+                                <span className="column-step" aria-hidden="true">{indice + 1}</span>
+                                <span className="material-symbols-outlined column-icon">{col.icono}</span>
                                 <h3>{col.titulo}</h3>
-                                <span className="col-count" style={{ background: col.color }}>{tarjetasEnCol.length}</span>
+                                <span className={`col-count ${tarjetasEnCol.length > 0 ? "has-items" : ""}`}>{tarjetasEnCol.length}</span>
                             </div>
 
                             <div className="column-cards">
@@ -144,18 +127,24 @@ function Kanban() {
                                     <div className="empty-col">Sin órdenes</div>
                                 ) : (
                                     tarjetasEnCol.map((card) => (
-                                        <div key={card.id} className="kanban-card">
+                                        <div key={card.id} className={`kanban-card prio-${card.prioridad.toLowerCase()}`}>
                                             <div className="card-top">
                                                 <strong className="card-id">{card.codigo}</strong>
                                                 <span className={`prio-tag ${card.prioridad.toLowerCase()}`}>{card.prioridad}</span>
                                             </div>
 
                                             <h4 className="card-client">{card.cliente}</h4>
-                                            <p className="card-vehicle">🚗 {card.vehiculo}</p>
-                                            <p className="card-reason">🔧 {card.motivo}</p>
+                                            <p className="card-vehicle"><span className="vm-plate">{card.vehiculo}</span></p>
+                                            <p className="card-reason">
+                                                <span className="material-symbols-outlined">build</span>
+                                                {card.motivo}
+                                            </p>
 
                                             <div className="card-footer">
-                                                <span className="card-tech">👤 {card.personal}</span>
+                                                <span className="card-tech">
+                                                    <span className="material-symbols-outlined">person</span>
+                                                    {card.personal}
+                                                </span>
                                                 {/*<div className="card-actions">
                                                     {COLUMNAS.findIndex((c) => c.id === col.id) > 0 && (
                                                         <button className="btn-kanban-step" title="Mover al estado anterior" onClick={() => moverEstado(card.id, "atras")}>◀</button>

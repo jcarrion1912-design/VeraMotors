@@ -1,24 +1,90 @@
-.metricas-page { display: grid; gap: 16px; width: 100%; box-sizing: border-box; color: #25343a; }
-.metricas-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; }
-.metricas-header h2 { margin: 0; color: #17232d; }
-.metricas-header p { margin: 5px 0 0; color: #66777d; }
-.metricas-subnav { display: flex; gap: 8px; overflow-x: auto; padding: 8px 0; border-bottom: 1px solid #dce4e4; }
-.metricas-tab-btn { min-height: 36px; padding: 7px 12px; border: 1px solid #d1dada; border-radius: 4px; background: #fff; color: #465a60; font: inherit; font-weight: 600; cursor: pointer; }
-.metricas-tab-btn.active { border-color: #087f72; background: #087f72; color: #fff; }
-.metricas-error { padding: 10px 12px; border-left: 4px solid #bd3e3e; background: #fff6f5; color: #812b2b; }
-.metricas-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(205px, 1fr)); gap: 12px; }
-.metricas-kpis article { display: grid; gap: 9px; min-width: 0; padding: 15px; border: 1px solid #d9e1e1; border-left: 3px solid #188779; border-radius: 4px; background: #fff; }
-.metricas-kpis article span { color: #5e7075; font-size: .87rem; }
-.metricas-kpis article strong { color: #1b3439; font-size: 1.2rem; overflow-wrap: anywhere; }
-.metricas-panel { display: grid; gap: 14px; padding: 16px; border: 1px solid #d9e1e1; border-radius: 4px; background: #fff; }
-.metricas-panel h3 { margin: 0; color: #263c41; }
-.metricas-period { display: flex; align-items: end; flex-wrap: wrap; gap: 12px; }
-.metricas-period label, .metricas-panel > .metricas-filter label { display: grid; gap: 5px; color: #52666b; font-size: .86rem; font-weight: 600; }
-.metricas-period input, .metricas-panel select { min-height: 36px; padding: 7px 9px; border: 1px solid #cad5d6; border-radius: 4px; font: inherit; }
-.metricas-period button { min-height: 36px; padding: 7px 12px; border: 0; border-radius: 4px; background: #087f72; color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
-.metricas-period button:disabled { cursor: not-allowed; opacity: .6; }
-.metricas-table-wrap { overflow-x: auto; }
-.metricas-table-wrap table { width: 100%; min-width: 620px; border-collapse: collapse; text-align: left; }
-.metricas-table-wrap th, .metricas-table-wrap td { padding: 10px 12px; border-bottom: 1px solid #e7eded; }
-.metricas-table-wrap th { background: #f3f7f6; color: #465b60; font-size: .83rem; }
-@media (max-width: 640px) { .metricas-kpis { grid-template-columns: 1fr; } .metricas-period { align-items: stretch; flex-direction: column; } .metricas-period label, .metricas-period input, .metricas-period button { width: 100%; box-sizing: border-box; } }
+/* =====================================================
+   MÉTRICAS
+   Cabecera, pestañas, KPI, tablas y filtros vienen de
+   components.css. Aquí solo va lo propio del módulo.
+===================================================== */
+
+.metricas-panel {
+    margin-bottom: var(--s-5);
+    overflow: hidden;
+}
+
+/* El periodo es una franja de la tarjeta, no otra tarjeta anidada */
+.metricas-panel .metricas-period {
+    margin-bottom: 0;
+    padding: var(--s-3) var(--s-4);
+    background: var(--surface-2);
+    border: 0;
+    border-bottom: 1px solid var(--border-soft);
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.metricas-period .filter-date {
+    color: var(--text-2);
+    font-size: var(--fs-xs);
+    font-weight: 600;
+}
+
+.metricas-panel .metricas-kpis {
+    margin-bottom: 0;
+}
+
+/* La tabla llega hasta los bordes de la tarjeta */
+.metricas-panel .metricas-table-wrap {
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.metricas-panel .vm-table {
+    min-width: 520px;
+}
+
+/* Tasa de completación: barra decorativa con la misma cifra */
+.metricas-tasa {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--s-2);
+}
+
+.metricas-tasa-barra {
+    flex-shrink: 0;
+    width: 72px;
+    height: 6px;
+    background: var(--surface-3);
+    border-radius: var(--r-pill);
+    overflow: hidden;
+}
+
+.metricas-tasa-relleno {
+    display: block;
+    height: 100%;
+    background: var(--primary);
+    border-radius: inherit;
+}
+
+.metricas-tasa-valor {
+    min-width: 6ch;
+    color: var(--text);
+    font-weight: 600;
+    text-align: right;
+}
+
+@media (max-width: 720px) {
+    .metricas-panel .metricas-period {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .metricas-period .filter-date {
+        display: flex;
+    }
+
+    .metricas-period .filter-date input[type="date"] {
+        flex: 1 1 auto;
+        min-width: 0;
+        text-align: right;
+    }
+}

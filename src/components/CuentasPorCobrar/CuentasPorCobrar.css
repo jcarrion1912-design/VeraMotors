@@ -1,25 +1,78 @@
-.cxc-page { display: grid; gap: 16px; color: #25343a; }
-.cxc-header { display: flex; justify-content: space-between; align-items: end; flex-wrap: wrap; gap: 14px; }
-.cxc-header h2 { margin: 0; color: #17232d; }
-.cxc-header p { margin: 4px 0 0; color: #66777d; }
-.cxc-search { display: grid; gap: 5px; color: #4a5d63; font-size: .84rem; font-weight: 600; }
-.cxc-search input { width: min(300px, 80vw); min-height: 36px; padding: 7px 10px; border: 1px solid #cbd5d7; border-radius: 4px; font: inherit; }
-.cxc-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.cxc-summary > div { display: grid; gap: 8px; padding: 14px 16px; border-left: 3px solid #188779; background: #f2f8f7; }
-.cxc-summary span { color: #5d7075; font-size: .84rem; }
-.cxc-summary strong { color: #1b3439; font-size: 1.2rem; }
-.cxc-alert { padding: 10px 12px; border-left: 4px solid #bd3e3e; color: #812b2b; background: #fff6f5; }
-.cxc-table-wrap { width: 100%; overflow-x: auto; border: 1px solid #dce3e4; border-radius: 5px; background: #fff; }
-.cxc-table { width: 100%; min-width: 920px; border-collapse: collapse; text-align: left; }
-.cxc-table th, .cxc-table td { padding: 11px 12px; border-bottom: 1px solid #e8eded; vertical-align: middle; }
-.cxc-table th { background: #f3f7f6; color: #465b60; font-size: .82rem; }
-.cxc-table td { color: #34434a; font-size: .9rem; }
-.cxc-table td small { display: block; margin-top: 3px; color: #748187; }
-.cxc-table button { min-height: 32px; padding: 5px 11px; border: 0; border-radius: 4px; background: #087f72; color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
-.cxc-table button:hover { background: #06695f; }
-.cxc-empty { padding: 28px !important; text-align: center; color: #68777d !important; }
-.cxc-state { display: inline-block; padding: 4px 8px; border-radius: 3px; background: #edf1f2; white-space: nowrap; }
-.cxc-state-parcial { color: #80530c; background: #fff4d7; }
-.cxc-state-pagada { color: #17604d; background: #e0f3eb; }
-.cxc-state-anulada { color: #8a3530; background: #fbe9e7; }
-@media (max-width: 700px) { .cxc-summary { grid-template-columns: 1fr; } .cxc-header { align-items: stretch; flex-direction: column; } }
+/* Cuentas por cobrar: pestaña dentro de Facturación. Las piezas base vienen de components.css. */
+
+.cxc-page {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--s-4);
+}
+
+.cxc-page > .vm-page-head,
+.cxc-page > .vm-kpi-grid,
+.cxc-page > .vm-alert {
+    margin-bottom: 0;
+}
+
+/* Subtítulo de pestaña: un nivel por debajo del título de la página */
+.cxc-page .vm-page-head h2 {
+    font-size: var(--fs-xl);
+}
+
+.cxc-search {
+    flex: 0 1 300px;
+}
+
+.cxc-table {
+    min-width: 920px;
+}
+
+.cxc-table td small.cxc-doc-type {
+    display: block;
+    margin-top: 3px;
+    color: var(--text-muted);
+    font-size: var(--fs-xs);
+}
+
+/* Vacío y carga siguen a la vista aunque la tabla se desplace en horizontal */
+.cxc-table .vm-empty,
+.cxc-table .vm-loading {
+    position: sticky;
+    left: 0;
+    width: min(100%, calc(100vw - 2 * var(--gutter) - 30px));
+}
+
+.cxc-loading {
+    justify-content: center;
+    margin: 0;
+    padding: var(--s-6) 0;
+}
+
+.cxc-no-action {
+    color: var(--text-subtle);
+}
+
+/* Variantes de .vm-badge según el estado de la cuenta */
+.cxc-state-pagada {
+    border-color: var(--success-border);
+    background: var(--success-soft);
+    color: var(--success-text);
+}
+
+.cxc-state-pendiente,
+.cxc-state-parcial {
+    border-color: var(--warning-border);
+    background: var(--warning-soft);
+    color: var(--warning-text);
+}
+
+.cxc-state-vencida,
+.cxc-state-anulada {
+    border-color: var(--danger-border);
+    background: var(--danger-soft);
+    color: var(--danger-text);
+}
+
+@media (max-width: 720px) {
+    .cxc-search {
+        flex-basis: auto;
+    }
+}

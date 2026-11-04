@@ -4,6 +4,8 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.core.security import get_current_user
+from app.models.usuario import Usuario
 from app.database import get_db
 from app.models.factura_proveedor import FacturaProveedor
 from app.models.pago_proveedor import PagoProveedor
@@ -40,7 +42,11 @@ def obtener_pago_proveedor(
 def crear_pago_proveedor(
     datos: PagoProveedorCreate,
     db: Session = Depends(get_db),
+    usuario_actual: Usuario = Depends(get_current_user),
 ):
+    # El autor siempre es quien tiene la sesión, no lo que diga el cuerpo.
+    datos.usuario_id = usuario_actual.user_id
+
     factura = db.query(FacturaProveedor).filter(FacturaProveedor.factura_proveedor_id == datos.factura_proveedor_id).first()
     if not factura:
         raise HTTPException(status_code=404, detail="Factura de proveedor no encontrada.")

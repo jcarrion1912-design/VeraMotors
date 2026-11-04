@@ -1,0 +1,140 @@
+.aprobacion-page {
+    display: flex;
+    justify-content: center;
+    min-height: 100dvh;
+    padding: var(--s-6) var(--s-4);
+    background: var(--bg-app);
+}
+
+.aprobacion-card {
+    width: 100%;
+    max-width: 620px;
+    align-self: flex-start;
+    padding: var(--s-6);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--accent);
+    border-radius: var(--r-lg);
+    box-shadow: var(--shadow-sm);
+}
+
+.aprobacion-marca {
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+    margin-bottom: var(--s-5);
+    padding-bottom: var(--s-4);
+    border-bottom: 1px solid var(--border-soft);
+}
+
+.aprobacion-marca strong {
+    display: block;
+    font-family: var(--font-display);
+    font-size: var(--fs-xl);
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    line-height: 1.1;
+}
+
+.aprobacion-marca span {
+    color: var(--text-muted);
+    font-size: var(--fs-xs);
+}
+
+.aprobacion-encabezado {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--s-3);
+    margin-bottom: var(--s-4);
+}
+
+.aprobacion-encabezado h1 {
+    margin: 0 0 var(--s-1);
+    font-size: var(--fs-2xl);
+}
+
+.aprobacion-encabezado p {
+    color: var(--text-muted);
+    font-size: var(--fs-sm);
+}
+
+.aprobacion-datos {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--s-3);
+    margin-bottom: var(--s-4);
+    padding: var(--s-3) var(--s-4);
+    background: var(--surface-2);
+    border-radius: var(--r);
+}
+
+.aprobacion-dato-completo {
+    grid-column: 1 / -1;
+}
+
+.aprobacion-datos dt {
+    margin-bottom: 2px;
+    color: var(--text-muted);
+    font-family: var(--font-display);
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.aprobacion-datos dd {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--s-2);
+    color: var(--text);
+    font-size: var(--fs-sm);
+    overflow-wrap: anywhere;
+}
+
+.aprobacion-tabla {
+    margin-bottom: var(--s-3);
+    box-shadow: none;
+}
+
+.aprobacion-total {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: var(--s-5);
+    padding: var(--s-2) 0;
+    border-top: 2px solid var(--border-strong);
+}
+
+.aprobacion-total strong {
+    font-family: var(--font-display);
+    font-size: var(--fs-2xl);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.aprobacion-acciones {
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: var(--s-2);
+}
+
+.aprobacion-card .vm-alert:last-child {
+    margin-bottom: 0;
+}
+
+@media (max-width: 520px) {
+    .aprobacion-card {
+        padding: var(--s-4);
+    }
+
+    .aprobacion-datos {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .aprobacion-acciones .vm-btn {
+        flex: 1 1 100%;
+    }
+}
