@@ -12,6 +12,34 @@ CSS plano con custom properties. Sin dependencias nuevas.
 
 Después se carga el CSS de cada módulo, que puede ajustar lo anterior sin `!important`.
 
+## Identidad
+
+Debe leerse como software especializado en talleres, no como un panel administrativo genérico ni como la web de un concesionario. Las referencias automotrices acompañan a la interfaz sin competir con los datos:
+
+- Tacómetro en la marca y en el dashboard.
+- Silueta de vehículo en el dashboard y el login.
+- Escala graduada en las tarjetas KPI.
+- Placa vehicular (`.vm-plate`) y etapas numeradas del flujo de servicio.
+
+## Paleta
+
+| Uso | Token | Valor |
+|---|---|---|
+| Principal, petróleo | `--primary` | `#134455` |
+| Superficie oscura | `--surface-dark` | `#0a2430` |
+| Acento, naranja mecánico | `--accent` | `#f2851b` |
+| Texto sobre acento | `--on-accent` | `#1d1103` |
+| Fondo de la aplicación | `--bg-app` | `#f1f3f4` |
+| Superficie | `--surface` | `#ffffff` |
+| Borde | `--border` | `#dfe2e6` |
+| Texto, grafito | `--text` | `#1b2025` |
+| Texto secundario | `--text-muted` | `#636c77` |
+| Éxito | `--success` | `#1a8a52` |
+| Advertencia | `--warning` | `#d9a400` |
+| Error | `--danger` | `#cf2f2f` |
+
+Los valores de referencia viven en `tokens.css`. En los módulos se usa siempre el token, nunca el hex.
+
 ## Reglas
 
 - **Color:** usar solo tokens semánticos (`--surface`, `--text`, `--primary`, `--danger-soft`…). No escribir hex en módulos.
