@@ -9,6 +9,7 @@ env/
 veramotors-backend/venv/
 
 # Variables de entorno
+/env
 .env
 .env.*
 

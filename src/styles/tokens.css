@@ -1,0 +1,171 @@
+/* =====================================================
+   VERAMOTORS · AUTOMOTIVE TECH – INDUSTRIAL PREMIUM
+   Tokens del sistema de diseño.
+
+   Regla: los módulos solo consumen los tokens SEMÁNTICOS
+   (--surface, --text, --primary…). Las escalas crudas
+   (--petrol-*, --graphite-*, --amber-*) se usan únicamente
+   aquí y en el chasis (sidebar, login, gráficos).
+===================================================== */
+
+:root {
+    /* ---------- Escalas ---------- */
+    --petrol-950: #061820;
+    --petrol-900: #0a2430;
+    --petrol-800: #0e3241;
+    --petrol-700: #134455;
+    --petrol-600: #18586e;
+    --petrol-500: #1f7089;
+    --petrol-400: #4a93a9;
+    --petrol-300: #86b8c7;
+    --petrol-200: #bcd8e1;
+    --petrol-100: #dcebf0;
+    --petrol-50: #eff6f8;
+
+    --graphite-950: #13171b;
+    --graphite-900: #1b2025;
+    --graphite-800: #272d34;
+    --graphite-700: #3a424b;
+    --graphite-600: #525b65;
+    --graphite-500: #6c7580;
+    --graphite-400: #8e97a1;
+    --graphite-300: #b5bbc3;
+    --graphite-200: #d5d9de;
+    --graphite-150: #e3e6e9;
+    --graphite-100: #eceef0;
+    --graphite-50: #f4f5f6;
+
+    --amber-700: #a84c08;
+    --amber-600: #d9690c;
+    --amber-500: #f2851b;
+    --amber-400: #f9a13f;
+    --amber-200: #fdd9ab;
+    --amber-100: #feecd6;
+    --amber-50: #fff6eb;
+
+    /* ---------- Superficies ---------- */
+    --bg-app: #f1f3f4;
+    --surface: #ffffff;
+    --surface-2: #f7f8f9;
+    --surface-3: #eceef0;
+    --surface-dark: var(--petrol-900);
+    --surface-dark-2: var(--petrol-800);
+
+    /* ---------- Bordes ---------- */
+    --border-soft: #eceef0;
+    --border: #dfe2e6;
+    --border-strong: #c3c8cf;
+
+    /* ---------- Texto ---------- */
+    --text: #1b2025;
+    --text-2: #3a424b;
+    --text-muted: #636c77;
+    --text-subtle: #8e97a1;
+    --on-dark: #ffffff;
+    --on-dark-2: #bcd8e1;
+    --on-dark-3: #86b8c7;
+
+    /* ---------- Marca ---------- */
+    --primary: var(--petrol-700);
+    --primary-hover: var(--petrol-800);
+    --primary-strong: var(--petrol-900);
+    --primary-text: var(--petrol-600);
+    --primary-soft: var(--petrol-50);
+    --primary-soft-2: var(--petrol-100);
+    --primary-border: var(--petrol-200);
+
+    /* Acento: se reserva para LA acción principal de cada pantalla
+       y para los indicadores activos. Texto oscuro sobre naranja
+       para cumplir contraste AA. */
+    --accent: var(--amber-500);
+    --accent-hover: #e5760f;
+    --accent-active: var(--amber-600);
+    --on-accent: #1d1103;
+    --accent-text: var(--amber-700);
+    --accent-soft: var(--amber-50);
+    --accent-soft-2: var(--amber-100);
+    --accent-border: var(--amber-200);
+
+    /* ---------- Estados ---------- */
+    --success: #1a8a52;
+    --success-text: #136c3f;
+    --success-soft: #e6f5ed;
+    --success-border: #b4e0c8;
+
+    --warning: #d9a400;
+    --warning-text: #7a5c00;
+    --warning-soft: #fdf6d8;
+    --warning-border: #f0dd8f;
+
+    --danger: #cf2f2f;
+    --danger-text: #a82020;
+    --danger-soft: #fdecec;
+    --danger-border: #f5c4c4;
+
+    --info: var(--petrol-500);
+    --info-text: var(--petrol-600);
+    --info-soft: var(--petrol-50);
+    --info-border: var(--petrol-200);
+
+    /* ---------- Tipografía ---------- */
+    --font-display: "Barlow Semi Condensed", "Arial Narrow", "Segoe UI", sans-serif;
+    --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-mono: "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+
+    --fs-2xs: 11px;
+    --fs-xs: 12px;
+    --fs-sm: 13px;
+    --fs-md: 14px;
+    --fs-lg: 16px;
+    --fs-xl: 18px;
+    --fs-2xl: 22px;
+    --fs-3xl: 26px;
+    --fs-kpi: 32px;
+
+    /* ---------- Espaciado (base 4px) ---------- */
+    --s-1: 4px;
+    --s-2: 8px;
+    --s-3: 12px;
+    --s-4: 16px;
+    --s-5: 20px;
+    --s-6: 24px;
+    --s-8: 32px;
+
+    /* ---------- Radios ---------- */
+    --r-sm: 4px;
+    --r: 6px;
+    --r-lg: 10px;
+    --r-pill: 999px;
+
+    /* ---------- Sombras ---------- */
+    --shadow-xs: 0 1px 2px rgba(10, 36, 48, 0.05);
+    --shadow-sm: 0 1px 3px rgba(10, 36, 48, 0.07), 0 1px 2px rgba(10, 36, 48, 0.04);
+    --shadow-md: 0 6px 16px rgba(10, 36, 48, 0.09);
+    --shadow-lg: 0 18px 44px rgba(6, 24, 32, 0.24);
+    --focus-ring: 0 0 0 3px rgba(31, 112, 137, 0.24);
+    --focus-ring-danger: 0 0 0 3px rgba(207, 47, 47, 0.18);
+
+    /* ---------- Movimiento ---------- */
+    --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
+    --t-fast: 120ms;
+    --t: 180ms;
+
+    /* ---------- Controles y chasis ---------- */
+    --control-h: 38px;
+    --sidebar-w: 256px;
+    --sidebar-w-collapsed: 68px;
+    --header-h: 60px;
+    --gutter: 24px;
+
+    /* ---------- Capas ---------- */
+    --z-header: 900;
+    --z-sidebar: 1000;
+    --z-modal: 1100;
+    --z-palette: 1200;
+}
+
+@media (max-width: 720px) {
+    :root {
+        --gutter: 16px;
+    }
+}

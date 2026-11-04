@@ -267,31 +267,36 @@ function ModalNuevoCliente({ isOpen, onClose, onClienteRegistrado }) {
 
     return (
         <div
-            className="modal-nuevo-cliente-overlay"
+            className="modal-overlay"
             onMouseDown={(e) => {
                 if (e.target === e.currentTarget) handleClose();
             }}
         >
-            <div className="modal-nuevo-cliente-card">
-                <div className="modal-nuevo-cliente-header">
+            <div className="modal-content modal-nuevo-cliente-card">
+                <div className="modal-header">
                     <div>
                         <h2>Nuevo Cliente</h2>
                         <p>Registra la información del cliente y su vehículo inicial.</p>
                     </div>
                     <button
                         type="button"
-                        className="btn-cerrar-modal-nc"
+                        className="btn-close"
                         onClick={handleClose}
                         disabled={guardando}
+                        aria-label="Cerrar"
                     >
                         <span className="material-symbols-outlined">close</span>
                     </button>
                 </div>
 
                 <form className="form-nuevo-cliente" onSubmit={handleSubmit}>
+                    <div className="modal-body">
                     {/* INFORMACIÓN DEL CLIENTE */}
                     <div className="form-section">
-                        <h3>Información del cliente</h3>
+                        <h3 className="vm-form-section-title">
+                            <span className="material-symbols-outlined">person</span>
+                            Información del cliente
+                        </h3>
                         <div className="form-grid">
                             <div className="form-group">
                                 <label>Tipo de cliente</label>
@@ -356,7 +361,7 @@ function ModalNuevoCliente({ isOpen, onClose, onClienteRegistrado }) {
                                 <label>
                                     Dirección Ubigeo (Departamento, Provincia, Distrito)
                                 </label>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+                                <div className="modal-nc-ubigeo">
                                     <input
                                         type="text"
                                         value={ubigeoDept}
@@ -385,7 +390,10 @@ function ModalNuevoCliente({ isOpen, onClose, onClienteRegistrado }) {
 
                     {/* INFORMACIÓN DEL VEHÍCULO */}
                     <div className="form-section">
-                        <h3>Información del vehículo</h3>
+                        <h3 className="vm-form-section-title">
+                            <span className="material-symbols-outlined">directions_car</span>
+                            Información del vehículo
+                        </h3>
                         <div className="form-grid">
                             <div className="form-group">
                                 <label>Tipo de vehículo</label>
@@ -480,6 +488,7 @@ function ModalNuevoCliente({ isOpen, onClose, onClienteRegistrado }) {
                             <div className="form-group">
                                 <label>Placa</label>
                                 <input
+                                    className="modal-nc-mono"
                                     type="text"
                                     placeholder="Ej. ABC-123"
                                     value={nuevaPlaca}
@@ -512,6 +521,7 @@ function ModalNuevoCliente({ isOpen, onClose, onClienteRegistrado }) {
                             <div className="form-group">
                                 <label>VIN (N° de Chasis)</label>
                                 <input
+                                    className="modal-nc-mono"
                                     type="text"
                                     placeholder="Ej. 1HGCR2F83HA000000"
                                     value={nuevoVin}
@@ -521,8 +531,9 @@ function ModalNuevoCliente({ isOpen, onClose, onClienteRegistrado }) {
                             </div>
                         </div>
                     </div>
+                    </div>
 
-                    <div className="modal-nuevo-cliente-footer">
+                    <div className="modal-footer">
                         <button
                             type="button"
                             className="btn-cancelar"

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ROLES, useRole } from "../../context/authContext";
 import VisorVehiculo3D from "../../components/Inspeccion3D/VisorVehiculo3D";
-import { obtenerODS, actualizarODS, cambiarEstadoODS } from "../../services/odsService";
+import { obtenerODS, actualizarODS, cambiarEstadoODS, generarEnlaceAprobacion } from "../../services/odsService";
 import { obtenerUsuarios } from "../../services/usuariosService";
 import { obtenerInventario } from "../../services/inventarioService";
 import { crearDiagnosticoODS, obtenerDiagnosticosODS } from "../../services/diagnosticosService";
@@ -50,6 +50,8 @@ function OrdenesServicio() {
     const [daniosODSSeleccionada, setDaniosODSSeleccionada] = useState([]);
     const [guardandoDanosODS, setGuardandoDanosODS] = useState(false);
     const [mostrarModalCliente, setMostrarModalCliente] = useState(false);
+    const [enlaceAprobacion, setEnlaceAprobacion] = useState("");
+    const [errorEnlace, setErrorEnlace] = useState("");
     const [estadoAprobacionCliente, setEstadoAprobacionCliente] = useState("Pendiente");
     const [mostrarModalAdvertenciaDiagnostico, setMostrarModalAdvertenciaDiagnostico] = useState(false);
     const [mostrarModalDiagnostico, setMostrarModalDiagnostico] = useState(false);
@@ -84,10 +86,11 @@ function OrdenesServicio() {
 
     const cargarDatosODS = async () => {
         try {
-            const [odsData, usuariosData, clientesData] = await Promise.all([
+            const [odsData, usuariosData, clientesData, vehiculosData] = await Promise.all([
                 obtenerODS(),
                 obtenerUsuarios(),
-                fetch("http://127.0.0.1:8000/api/clientes").then((res) => res.ok ? res.json() : [])
+                fetch("http://127.0.0.1:8000/api/clientes").then((res) => res.ok ? res.json() : []),
+                fetch("http://127.0.0.1:8000/api/vehiculos").then((res) => res.ok ? res.json() : []).catch(() => [])
             ]);
 
             const listaNormalizada = Array.isArray(odsData)
@@ -100,6 +103,9 @@ function OrdenesServicio() {
                         : null;
 
                     const fechaIngreso = item.fecha_ingreso ? new Date(item.fecha_ingreso) : new Date();
+                    const vehiculo = Array.isArray(vehiculosData)
+                        ? vehiculosData.find((v) => Number(v.vehiculo_id) === Number(item.vehiculo_id))
+                        : null;
 
                     return {
                         ods_id: item.ods_id,
@@ -109,7 +115,7 @@ function OrdenesServicio() {
                         cliente: item.cliente_nombre || "Cliente sin nombre",
                         vehiculo_id: item.vehiculo_id,
                         placa: item.vehiculo_placa || "Sin placa",
-                        marca: item.tipo_procedimiento || "Servicio",
+                        marca: vehiculo ? `${vehiculo.marca} ${vehiculo.modelo}` : "Vehículo no encontrado",
                         estado: item.estado_actual || "Recepción",
                         fecha: fechaIngreso.toLocaleString("es-PE", { dateStyle: "short", timeStyle: "short" }),
                         fecha_ingreso: item.fecha_ingreso,
@@ -525,15 +531,37 @@ function OrdenesServicio() {
         }
     };
 
+    // Compara contra el día local de ingreso, igual que se muestra en la tabla.
+    const fechaLocalISO = (valor) => {
+        const fecha = new Date(valor);
+        if (Number.isNaN(fecha.getTime())) return "";
+        const mes = String(fecha.getMonth() + 1).padStart(2, "0");
+        const dia = String(fecha.getDate()).padStart(2, "0");
+        return `${fecha.getFullYear()}-${mes}-${dia}`;
+    };
+
     const odsFiltradas = listaODS.filter(o =>
         (o.estado === estadoActivo) &&
+        (!filtroFecha || fechaLocalISO(o.fecha_ingreso) === filtroFecha) &&
         (o.cliente.toLowerCase().includes(filtroBusqueda.toLowerCase()) || o.placa.toLowerCase().includes(filtroBusqueda.toLowerCase()) || o.id.toLowerCase().includes(filtroBusqueda.toLowerCase()))
     );
 
     return (
-        <div className="os-page">
+        <div className={`os-page ${modoEdicion ? "is-editing" : ""}`}>
 
-            {mensajeDiagnostico && <div role="status">{mensajeDiagnostico}</div>}
+            <header className="vm-page-head os-page-head">
+                <div>
+                    <h1>Órdenes de Servicio</h1>
+                    <p>Seguimiento de cada vehículo en el taller, desde la recepción hasta la entrega.</p>
+                </div>
+            </header>
+
+            {mensajeDiagnostico && (
+                <div role="status" className="vm-alert vm-alert-success">
+                    <span className="material-symbols-outlined">check_circle</span>
+                    {mensajeDiagnostico}
+                </div>
+            )}
 
             {/* =========================================
                 SUBMENÚ DE ESTADOS OPERATIVOS
@@ -594,10 +622,19 @@ function OrdenesServicio() {
                                 onChange={(e) => setFiltroFecha(e.target.value)}
                             />
                             {filtroFecha && (
-                                <button className="btn-clear-date" onClick={() => setFiltroFecha("")} title="Limpiar fecha">✕</button>
+                                <button className="btn-clear-date" onClick={() => setFiltroFecha("")} title="Limpiar fecha">
+                                    <span className="material-symbols-outlined">close</span>
+                                </button>
                             )}
                         </div>
                     </div>
+
+                    {errorDiagnostico && !mostrarModalAdvertenciaDiagnostico && !mostrarModalDiagnostico && (
+                        <div role="alert" className="vm-alert">
+                            <span className="material-symbols-outlined">error</span>
+                            <span>{errorDiagnostico}</span>
+                        </div>
+                    )}
 
                     {/* VISTA DE TABLA DE ODS EN EL ESTADO SELECCIONADO */}
                     <div className="os-table-wrapper">
@@ -616,19 +653,25 @@ function OrdenesServicio() {
                             <tbody>
                                 {odsFiltradas.length === 0 ? (
                                     <tr>
-                                        <td colSpan="7" style={{ textAlign: "center", padding: "40px 0", color: "#64748b" }}>
-                                            No hay órdenes en estado <strong>{estadoActivo}</strong>.
+                                        <td colSpan="7">
+                                            <div className="vm-empty">
+                                                <span className="material-symbols-outlined">garage</span>
+                                                <span>
+                                                    No hay órdenes en estado <strong>{estadoActivo}</strong>
+                                                    {filtroFecha ? " para la fecha seleccionada" : ""}.
+                                                </span>
+                                            </div>
                                         </td>
                                     </tr>
                                 ) : (
                                     odsFiltradas.map(ods => (
                                         <tr key={ods.id}>
-                                            <td><strong className="ods-badge">{ods.id}</strong></td>
-                                            <td>{ods.cliente}</td>
+                                            <td><span className="vm-code">{ods.id}</span></td>
+                                            <td><strong>{ods.cliente}</strong></td>
                                             <td>
                                                 <div className="v-info">
-                                                    <span>{ods.marca}</span>
-                                                    <small>{ods.placa}</small>
+                                                    <small>{ods.marca}</small>
+                                                    <span className="vm-plate">{ods.placa}</span>
                                                 </div>
                                             </td>
                                             <td>
@@ -639,7 +682,8 @@ function OrdenesServicio() {
                                             <td>{ods.tecnico}</td>
                                             <td>
                                                 <span className="time-tag">
-                                                    ⏱ {formatearTiempoAsignacion(ods.asignadoHaceMinutos, ods.fecha)}
+                                                    <span className="material-symbols-outlined">schedule</span>
+                                                    {formatearTiempoAsignacion(ods.asignadoHaceMinutos, ods.fecha)}
                                                 </span>
                                             </td>
                                             <td>
@@ -651,20 +695,30 @@ function OrdenesServicio() {
                                                                 iniciarDiagnosticoModal(ods);
                                                             }}
                                                         >
-                                                            📋 Diagnosticar
+                                                            <span className="material-symbols-outlined">stethoscope</span>
+                                                            Diagnosticar
                                                         </button>
                                                     )}
 
                                                     {estadoActivo === "Recepción" && (
                                                         <button
                                                             className="btn-act-table link"
-                                                            onClick={() => {
+                                                            onClick={async () => {
                                                                 setOdsSeleccionadaModal(ods);
                                                                 setEstadoAprobacionCliente(ods.estado_aprobacion_cliente || "Pendiente");
+                                                                setEnlaceAprobacion("");
+                                                                setErrorEnlace("");
                                                                 setMostrarModalCliente(true);
+                                                                try {
+                                                                    const { token } = await generarEnlaceAprobacion(ods.ods_id);
+                                                                    setEnlaceAprobacion(`${window.location.origin}/aprobacion-cliente/${token}`);
+                                                                } catch (error) {
+                                                                    setErrorEnlace(error.message || "No se pudo generar el enlace de aprobación.");
+                                                                }
                                                             }}
                                                         >
-                                                            📲 Link Cliente
+                                                            <span className="material-symbols-outlined">send_to_mobile</span>
+                                                            Link Cliente
                                                         </button>
                                                     )}
 
@@ -676,7 +730,8 @@ function OrdenesServicio() {
                                                                 setMostrarModalEntrega(true);
                                                             }}
                                                         >
-                                                            ⭐ Entregar & NPS
+                                                            <span className="material-symbols-outlined">star</span>
+                                                            Entregar & NPS
                                                         </button>
                                                     )}
 
@@ -686,7 +741,8 @@ function OrdenesServicio() {
                                                             abrirInspeccionODS(ods);
                                                         }}
                                                     >
-                                                        🔍 Ver ODS
+                                                        <span className="material-symbols-outlined">manage_search</span>
+                                                        Ver ODS
                                                     </button>
                                                 </div>
                                             </td>
@@ -706,7 +762,7 @@ function OrdenesServicio() {
 
                     <div className="os-header">
                         <div className="os-header-info">
-                            <div className="os-breadcrumb">ÓRDENES DE SERVICIO <span>/</span> NUEVA ORDEN DE RECEPCIÓN</div>
+                            <div className="os-breadcrumb">Nueva orden de recepción</div>
                             <h1>Registro de Recepción e Inspección</h1>
                             <p>Complete todos los datos del vehículo, motivo del servicio e inspección vehicular inicial.</p>
                         </div>
@@ -721,252 +777,305 @@ function OrdenesServicio() {
                     <div className="os-main-grid">
 
                         {/* 1. REGISTRO DE VEHÍCULO */}
-                        <section className="os-card os-vehicle-card">
-                            <div className="card-header">
+                        <section className="vm-card os-card">
+                            <div className="vm-card-head os-card-head">
                                 <div className="card-title-icon"><span className="material-symbols-outlined">directions_car</span></div>
                                 <div>
-                                    <h2>1. Registro del Vehículo</h2>
+                                    <span className="os-step">Paso 1 de 4</span>
+                                    <h2>Registro del Vehículo</h2>
                                     <p>Especificaciones generales y propietario.</p>
                                 </div>
                             </div>
 
-                            <div className="os-form">
-                                <div className="campo">
-                                    <label>Cliente / Propietario</label>
-                                    <select value={clienteSeleccionadoId} onChange={(e) => setClienteSeleccionadoId(e.target.value)}>
-                                        <option value="">Seleccione un cliente</option>
-                                        {clientesAPI.map((clienteItem) => (
-                                            <option key={clienteItem.cliente_id} value={clienteItem.cliente_id}>
-                                                {clienteItem.nombre_razon_social}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
+                            <div className="vm-card-body os-form">
+                                <div className="os-form-section">
+                                    <div className="vm-form-section-title">
+                                        <span className="material-symbols-outlined">person</span>
+                                        Propietario y vehículo
+                                    </div>
+                                    <div className="form-grid">
+                                        <div className="campo">
+                                            <label>Cliente / Propietario</label>
+                                            <select value={clienteSeleccionadoId} onChange={(e) => setClienteSeleccionadoId(e.target.value)}>
+                                                <option value="">Seleccione un cliente</option>
+                                                {clientesAPI.map((clienteItem) => (
+                                                    <option key={clienteItem.cliente_id} value={clienteItem.cliente_id}>
+                                                        {clienteItem.nombre_razon_social}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
 
-                                <div className="campo">
-                                    <label>Vehículo del Cliente</label>
-                                    <select value={vehiculoSeleccionadoId} onChange={(e) => manejarCambioVehiculo(e.target.value)} disabled={!clienteSeleccionadoId || vehiculosCliente.length === 0}>
-                                        <option value="">Seleccione un vehículo</option>
-                                        {vehiculosCliente.map((vehiculo) => (
-                                            <option key={vehiculo.vehiculo_id} value={vehiculo.vehiculo_id}>
-                                                {vehiculo.marca} {vehiculo.modelo} / {vehiculo.placa}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div className="campo-group">
-                                    <div className="campo">
-                                        <label>Tipo de Vehículo</label>
-                                        <input type="text" value={tipoVehiculo} readOnly placeholder="Automóvil" />
-                                    </div>
-                                    <div className="campo">
-                                        <label>Placa</label>
-                                        <input type="text" value={placa} readOnly placeholder="ABC-123" />
-                                    </div>
-                                </div>
-
-                                <div className="campo-group">
-                                    <div className="campo">
-                                        <label>Marca</label>
-                                        <input type="text" value={marca} readOnly />
-                                    </div>
-                                    <div className="campo">
-                                        <label>Modelo</label>
-                                        <input type="text" value={modelo} readOnly />
-                                    </div>
-                                    <div className="campo">
-                                        <label>Año</label>
-                                        <input type="number" value={anio} readOnly />
-                                    </div>
-                                </div>
-
-                                <div className="campo-group">
-                                    <div className="campo">
-                                        <label>Color</label>
-                                        <input type="text" value={color} readOnly />
-                                    </div>
-                                    <div className="campo">
-                                        <label>VIN (N° Chasis)</label>
-                                        <input type="text" value={vin} readOnly />
-                                    </div>
-                                    <div className="campo">
-                                        <label>Kilometraje Ingreso</label>
-                                        <div className="input-suffix">
-                                            <input type="number" value={kilometraje} onChange={(e) => setKilometraje(e.target.value)} />
-                                            <span>km</span>
+                                        <div className="campo">
+                                            <label>Vehículo del Cliente</label>
+                                            <select value={vehiculoSeleccionadoId} onChange={(e) => manejarCambioVehiculo(e.target.value)} disabled={!clienteSeleccionadoId || vehiculosCliente.length === 0}>
+                                                <option value="">Seleccione un vehículo</option>
+                                                {vehiculosCliente.map((vehiculo) => (
+                                                    <option key={vehiculo.vehiculo_id} value={vehiculo.vehiculo_id}>
+                                                        {vehiculo.marca} {vehiculo.modelo} / {vehiculo.placa}
+                                                    </option>
+                                                ))}
+                                            </select>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="campo">
-                                    <label>Asesor de Servicio Asignado</label>
-                                    <select value={asesorSeleccionadoId} onChange={(e) => setAsesorSeleccionadoId(e.target.value)}>
-                                        <option value="">Seleccione un asesor</option>
-                                        {usuariosAPI
-                                            .filter((usuario) => usuario.rol === "Asesor de Servicio" || Number(usuario.rol_id) === 2)
-                                            .map((usuario) => (
-                                                <option key={usuario.user_id} value={usuario.user_id}>
-                                                    {usuario.nombre}
-                                                </option>
-                                            ))}
-                                    </select>
+                                <div className="os-form-section">
+                                    <div className="vm-form-section-title">
+                                        <span className="material-symbols-outlined">badge</span>
+                                        Ficha técnica
+                                    </div>
+                                    <div className="form-grid os-spec-grid">
+                                        <div className="campo">
+                                            <label>Tipo de Vehículo</label>
+                                            <select
+                                                value={tipoVehiculo || "Sedán"}
+                                                onChange={(e) => setTipoVehiculo(e.target.value)}
+                                            >
+                                                <option value="Sedán">Sedán</option>
+                                                <option value="SUV / Camioneta">SUV / Camioneta</option>
+                                                <option value="Pick-up">Pick-up</option>
+                                                <option value="Hatchback">Hatchback</option>
+                                                <option value="Van / Furgoneta">Van / Furgoneta</option>
+                                            </select>
+                                        </div>
+                                        <div className="campo">
+                                            <label>Placa</label>
+                                            <input className="os-input-plate" type="text" value={placa} readOnly placeholder="ABC-123" />
+                                        </div>
+                                        <div className="campo">
+                                            <label>Marca</label>
+                                            <input type="text" value={marca} readOnly />
+                                        </div>
+                                        <div className="campo">
+                                            <label>Modelo</label>
+                                            <input type="text" value={modelo} readOnly />
+                                        </div>
+                                        <div className="campo">
+                                            <label>Año</label>
+                                            <input type="number" value={anio} readOnly />
+                                        </div>
+                                        <div className="campo">
+                                            <label>Color</label>
+                                            <input type="text" value={color} readOnly />
+                                        </div>
+                                        <div className="campo os-field-wide">
+                                            <label>VIN (N° Chasis)</label>
+                                            <input className="os-input-mono" type="text" value={vin} readOnly />
+                                        </div>
+                                        <div className="campo os-field-wide">
+                                            <label>Kilometraje Ingreso</label>
+                                            <div className="input-suffix">
+                                                <input type="number" value={kilometraje} onChange={(e) => setKilometraje(e.target.value)} />
+                                                <span>km</span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
 
-                                <div className="campo">
-                                    <label>Técnico Automotriz Asignado</label>
-                                    <select value={tecnicoSeleccionadoId} onChange={(e) => setTecnicoSeleccionadoId(e.target.value)}>
-                                        <option value="">Seleccione un técnico</option>
-                                        {usuariosAPI
-                                            .filter((usuario) => usuario.rol === "Técnico Automotriz" || Number(usuario.rol_id) === 4)
-                                            .map((usuario) => (
-                                                <option key={usuario.user_id} value={usuario.user_id}>
-                                                    {usuario.nombre}
-                                                </option>
-                                            ))}
-                                    </select>
+                                <div className="os-form-section">
+                                    <div className="vm-form-section-title">
+                                        <span className="material-symbols-outlined">engineering</span>
+                                        Responsables
+                                    </div>
+                                    <div className="form-grid">
+                                        <div className="campo">
+                                            <label>Asesor de Servicio Asignado</label>
+                                            <select value={asesorSeleccionadoId} onChange={(e) => setAsesorSeleccionadoId(e.target.value)}>
+                                                <option value="">Seleccione un asesor</option>
+                                                {usuariosAPI
+                                                    .filter((usuario) => usuario.rol === "Asesor de Servicio" || Number(usuario.rol_id) === 2)
+                                                    .map((usuario) => (
+                                                        <option key={usuario.user_id} value={usuario.user_id}>
+                                                            {usuario.nombre}
+                                                        </option>
+                                                    ))}
+                                            </select>
+                                        </div>
+
+                                        <div className="campo">
+                                            <label>Técnico Automotriz Asignado</label>
+                                            <select value={tecnicoSeleccionadoId} onChange={(e) => setTecnicoSeleccionadoId(e.target.value)}>
+                                                <option value="">Seleccione un técnico</option>
+                                                {usuariosAPI
+                                                    .filter((usuario) => usuario.rol === "Técnico Automotriz" || Number(usuario.rol_id) === 4)
+                                                    .map((usuario) => (
+                                                        <option key={usuario.user_id} value={usuario.user_id}>
+                                                            {usuario.nombre}
+                                                        </option>
+                                                    ))}
+                                            </select>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </section>
 
                         {/* 2. MOTIVO DEL SERVICIO */}
-                        <section className="os-card os-motivo-card">
-                            <div className="card-header">
+                        <section className="vm-card os-card">
+                            <div className="vm-card-head os-card-head">
                                 <div className="card-title-icon"><span className="material-symbols-outlined">build</span></div>
                                 <div>
-                                    <h2>2. Motivo del Servicio</h2>
+                                    <span className="os-step">Paso 2 de 4</span>
+                                    <h2>Motivo del Servicio</h2>
                                     <p>Detalle de la solicitud e inspección inicial.</p>
                                 </div>
                             </div>
 
-                            <div className="os-form">
-                                <div className="campo-group">
-                                    <div className="campo">
-                                        <label>¿Realizará Diagnóstico?</label>
-                                        <select value={realizaraDiagnostico} onChange={(e) => setRealizaraDiagnostico(e.target.value)}>
-                                            <option value="Sí">Sí - Requiere Evaluación Técnica</option>
-                                            <option value="No">No - Ingreso Directo a Servicio</option>
-                                        </select>
+                            <div className="vm-card-body os-form">
+                                <div className="os-form-section">
+                                    <div className="vm-form-section-title">
+                                        <span className="material-symbols-outlined">request_quote</span>
+                                        Evaluación y cotización
                                     </div>
+                                    <div className="form-grid">
+                                        <div className="campo">
+                                            <label>¿Realizará Diagnóstico?</label>
+                                            <select value={realizaraDiagnostico} onChange={(e) => setRealizaraDiagnostico(e.target.value)}>
+                                                <option value="Sí">Sí - Requiere Evaluación Técnica</option>
+                                                <option value="No">No - Ingreso Directo a Servicio</option>
+                                            </select>
+                                        </div>
 
-                                    <div className="campo">
-                                        <label>Enlazar Cotización Previa</label>
-                                        <select
-                                            value={cotizacionSeleccionadaId}
-                                            onChange={(e) => {
-                                                const cotId = e.target.value;
-                                                setCotizacionSeleccionadaId(cotId);
-                                                const cot = cotizacionesCliente.find(c => String(c.cotizacion_id) === String(cotId));
-                                                if (cot) {
-                                                    setCotizacionPrevia(`${cot.codigo_cotizacion} (Total: S/ ${Number(cot.total).toFixed(2)})`);
-                                                    if (cot.detalles && cot.detalles.length > 0 && (!motivoDetallado || motivoDetallado === "Ruido inusual en frenos traseros al desacelerar.")) {
-                                                        const desc = cot.detalles.map(d => `${d.descripcion} (Cant: ${d.cantidad})`).join(", ");
-                                                        setMotivoDetallado(desc);
+                                        <div className="campo">
+                                            <label>Enlazar Cotización Previa</label>
+                                            <select
+                                                value={cotizacionSeleccionadaId}
+                                                onChange={(e) => {
+                                                    const cotId = e.target.value;
+                                                    setCotizacionSeleccionadaId(cotId);
+                                                    const cot = cotizacionesCliente.find(c => String(c.cotizacion_id) === String(cotId));
+                                                    if (cot) {
+                                                        setCotizacionPrevia(`${cot.codigo_cotizacion} (Total: S/ ${Number(cot.total).toFixed(2)})`);
+                                                        if (cot.detalles && cot.detalles.length > 0 && (!motivoDetallado || motivoDetallado === "Ruido inusual en frenos traseros al desacelerar.")) {
+                                                            const desc = cot.detalles.map(d => `${d.descripcion} (Cant: ${d.cantidad})`).join(", ");
+                                                            setMotivoDetallado(desc);
+                                                        }
+                                                    } else {
+                                                        setCotizacionPrevia("Sin Cotización");
                                                     }
-                                                } else {
-                                                    setCotizacionPrevia("Sin Cotización");
-                                                }
-                                            }}
-                                            disabled={!clienteSeleccionadoId}
-                                        >
-                                            <option value="">Sin Cotización</option>
-                                            {cotizacionesCliente.map((cot) => (
-                                                <option key={cot.cotizacion_id} value={cot.cotizacion_id}>
-                                                    {cot.codigo_cotizacion} - S/ {Number(cot.total).toFixed(2)} ({cot.estado || 'Emitida'}{cot.vehiculo_placa ? ` | ${cot.vehiculo_placa}` : ''})
-                                                </option>
-                                            ))}
-                                        </select>
-                                        {clienteSeleccionadoId && cotizacionesCliente.length === 0 && (
-                                            <small style={{ color: '#64748b', fontSize: '12px', marginTop: '4px', display: 'block' }}>
-                                                ℹ️ No hay cotizaciones previas registradas para este cliente.
-                                            </small>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className="campo">
-                                    <label>Tipo de Procedimiento</label>
-                                    <div className="radio-pills">
-                                        {["Preventivo", "Correctivo"].map(proc => (
-                                            <button
-                                                key={proc}
-                                                type="button"
-                                                className={`pill-btn ${procedimiento === proc ? "selected" : ""}`}
-                                                onClick={() => setProcedimiento(proc)}
+                                                }}
+                                                disabled={!clienteSeleccionadoId}
                                             >
-                                                {proc}
-                                            </button>
-                                        ))}
+                                                <option value="">Sin Cotización</option>
+                                                {cotizacionesCliente.map((cot) => (
+                                                    <option key={cot.cotizacion_id} value={cot.cotizacion_id}>
+                                                        {cot.codigo_cotizacion} - S/ {Number(cot.total).toFixed(2)} ({cot.estado || 'Emitida'}{cot.vehiculo_placa ? ` | ${cot.vehiculo_placa}` : ''})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            {clienteSeleccionadoId && cotizacionesCliente.length === 0 && (
+                                                <small className="os-hint">
+                                                    <span className="material-symbols-outlined">info</span>
+                                                    No hay cotizaciones previas registradas para este cliente.
+                                                </small>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div className="campo">
-                                    <label>Motivo Detallado de Ingreso</label>
-                                    <textarea
-                                        rows="3"
-                                        value={motivoDetallado}
-                                        onChange={(e) => setMotivoDetallado(e.target.value)}
-                                        placeholder="Escriba las fallas reportadas por el cliente..."
-                                    />
-                                </div>
-
-                                <div className="campo">
-                                    <label>Fotos de Evidencia al Ingreso</label>
-                                    <div className="photo-uploader">
-                                        {fotosMotivo.map((foto, index) => (
-                                            <div key={`${foto.nombre}-${index}`} className="photo-thumb">
-                                                <img src={foto.contenido} alt={foto.nombre} width="64" height="48" />
-                                                <span>{foto.nombre}</span>
+                                <div className="os-form-section">
+                                    <div className="vm-form-section-title">
+                                        <span className="material-symbols-outlined">description</span>
+                                        Detalle del ingreso
+                                    </div>
+                                    <div className="os-field-stack">
+                                        <div className="campo">
+                                            <label>Tipo de Procedimiento</label>
+                                            <div className="radio-pills">
+                                                {["Preventivo", "Correctivo"].map(proc => (
+                                                    <button
+                                                        key={proc}
+                                                        type="button"
+                                                        className={`pill-btn ${procedimiento === proc ? "selected" : ""}`}
+                                                        onClick={() => setProcedimiento(proc)}
+                                                    >
+                                                        {proc}
+                                                    </button>
+                                                ))}
                                             </div>
-                                        ))}
-                                        <label className="btn-add-photo">
-                                            Seleccionar imagen
-                                            <input type="file" accept="image/*" multiple onChange={seleccionarFotosIngreso} />
-                                        </label>
+                                        </div>
+
+                                        <div className="campo">
+                                            <label>Motivo Detallado de Ingreso</label>
+                                            <textarea
+                                                rows="3"
+                                                value={motivoDetallado}
+                                                onChange={(e) => setMotivoDetallado(e.target.value)}
+                                                placeholder="Escriba las fallas reportadas por el cliente..."
+                                            />
+                                        </div>
+
+                                        <div className="campo">
+                                            <label>Fotos de Evidencia al Ingreso</label>
+                                            <div className="photo-uploader">
+                                                {fotosMotivo.map((foto, index) => (
+                                                    <div key={`${foto.nombre}-${index}`} className="photo-thumb">
+                                                        <img src={foto.contenido} alt={foto.nombre} width="64" height="48" />
+                                                        <span>{foto.nombre}</span>
+                                                    </div>
+                                                ))}
+                                                <label className="btn-add-photo">
+                                                    <span className="material-symbols-outlined">add_a_photo</span>
+                                                    Seleccionar imagen
+                                                    <input type="file" accept="image/*" multiple onChange={seleccionarFotosIngreso} />
+                                                </label>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </section>
 
                         {/* 3. CHECKLIST DE INSPECCIÓN VEHICULAR */}
-                        <section className="os-card full-width">
-                            <div className="card-header">
+                        <section className="vm-card os-card full-width">
+                            <div className="vm-card-head os-card-head">
                                 <div className="card-title-icon"><span className="material-symbols-outlined">fact_check</span></div>
                                 <div>
-                                    <h2>3. Checklist de Inspección Inicial</h2>
+                                    <span className="os-step">Paso 3 de 4</span>
+                                    <h2>Checklist de Inspección Inicial</h2>
                                     <p>Nivel de combustible, fluidos, inventario de cabina y documentos.</p>
                                 </div>
                             </div>
 
-                            <div className="checklist-grid">
+                            <div className="vm-card-body checklist-grid">
 
                                 {/* COMBUSIBLE */}
-                                <div className="check-block">
-                                    <h3>⛽ Nivel de Combustible</h3>
+                                <div className="check-block is-fuel">
+                                    <h3><span className="material-symbols-outlined">local_gas_station</span> Nivel de Combustible</h3>
                                     <select value={nivelCombustible} onChange={(e) => setNivelCombustible(e.target.value)}>
+                                        <option value="">Sin revisar</option>
                                         <option>Reserva</option>
                                         <option>1/4</option>
                                         <option>1/2</option>
                                         <option>3/4</option>
                                         <option>Lleno</option>
                                     </select>
+                                    <div
+                                        className={`os-fuel-gauge nivel-${(nivelCombustible || "sin-revisar").toLowerCase().replace("/", "-")}`}
+                                        aria-hidden="true"
+                                    >
+                                        <i /><i /><i /><i /><i />
+                                        <span>E</span>
+                                        <span>F</span>
+                                    </div>
                                 </div>
 
                                 {/* FLUIDOS */}
-                                <div className="check-block">
-                                    <h3>💧 Estado de Fluidos del Motor</h3>
+                                <div className="check-block is-fluids">
+                                    <h3><span className="material-symbols-outlined">opacity</span> Estado de Fluidos del Motor</h3>
                                     <div className="fluidos-list">
                                         {[
-                                            { key: "aceite", label: "Aceite de Motor", icon: "🛢️" },
-                                            { key: "frenos", label: "Líquido de Frenos", icon: "🛑" },
-                                            { key: "embrague", label: "Líquido de Embrague", icon: "⚙️" },
-                                            { key: "refrigerante", label: "Refrigerante / Coolant", icon: "❄️" },
-                                            { key: "hidraulico", label: "Líquido Hidráulico", icon: "💧" },
-                                            { key: "limpiaparabrisas", label: "Agua Limpiaparabrisas", icon: "🧹" }
+                                            { key: "aceite", label: "Aceite de Motor", icon: "oil_barrel" },
+                                            { key: "frenos", label: "Líquido de Frenos", icon: "emergency_home" },
+                                            { key: "embrague", label: "Líquido de Embrague", icon: "settings" },
+                                            { key: "refrigerante", label: "Refrigerante / Coolant", icon: "ac_unit" },
+                                            { key: "hidraulico", label: "Líquido Hidráulico", icon: "water_drop" },
+                                            { key: "limpiaparabrisas", label: "Agua Limpiaparabrisas", icon: "cleaning_services" }
                                         ].map(({ key, label, icon }) => (
                                             <div key={key} className={`fluid-row fluid-status-${fluidos[key]?.toLowerCase().replace(/\s+/g, '-')}`}>
                                                 <div className="fluid-label">
-                                                    <span className="fluid-icon">{icon}</span>
+                                                    <span className="material-symbols-outlined fluid-icon">{icon}</span>
                                                     <span>{label}</span>
                                                 </div>
                                                 <select
@@ -974,9 +1083,10 @@ function OrdenesServicio() {
                                                     value={fluidos[key]}
                                                     onChange={(e) => toggleFluido(key, e.target.value)}
                                                 >
-                                                    <option value="Correcto">🟢 Correcto</option>
-                                                    <option value="Bajo">🟡 Nivel Bajo</option>
-                                                    <option value="Requiere Cambio">🔴 Cambiar</option>
+                                                    <option value="">Sin revisar</option>
+                                                    <option value="Correcto">Correcto</option>
+                                                    <option value="Bajo">Nivel Bajo</option>
+                                                    <option value="Requiere Cambio">Cambiar</option>
                                                 </select>
                                             </div>
                                         ))}
@@ -984,8 +1094,8 @@ function OrdenesServicio() {
                                 </div>
 
                                 {/* INVENTARIO CABINA */}
-                                <div className="check-block">
-                                    <h3>🧰 Inventario Vehicular</h3>
+                                <div className="check-block is-inventory">
+                                    <h3><span className="material-symbols-outlined">home_repair_service</span> Inventario Vehicular</h3>
                                     <div className="checkbox-list">
                                         <label>
                                             <input type="checkbox" checked={inventarioVehicular.kitEmergencia} onChange={() => toggleInventario('kitEmergencia')} />
@@ -1007,8 +1117,8 @@ function OrdenesServicio() {
                                 </div>
 
                                 {/* DOCUMENTOS */}
-                                <div className="check-block">
-                                    <h3>📄 Documentación Recibida</h3>
+                                <div className="check-block is-documents">
+                                    <h3><span className="material-symbols-outlined">folder_open</span> Documentación Recibida</h3>
                                     <div className="checkbox-list">
                                         <label>
                                             <input type="checkbox" checked={documentos.tarjetaPropiedad} onChange={() => toggleDoc('tarjetaPropiedad')} />
@@ -1029,20 +1139,25 @@ function OrdenesServicio() {
                         </section>
 
                         {/* 4. INSPECCIÓN 3D DAÑOS EN CARROCERÍA */}
-                        <section className="os-card full-width">
-                            <div className="card-header">
+                        <section className="vm-card os-card full-width">
+                            <div className="vm-card-head os-card-head">
                                 <div className="card-title-icon"><span className="material-symbols-outlined">car_repair</span></div>
                                 <div>
-                                    <h2>4. Mapa Visual de Daños de Carrocería</h2>
+                                    <span className="os-step">Paso 4 de 4</span>
+                                    <h2>Mapa Visual de Daños de Carrocería</h2>
                                     <p>Haz clic en las piezas del vehículo para registrar tipo de daño, severidad, observación y ubicación 3D.</p>
                                 </div>
                             </div>
 
-                            <VisorVehiculo3D
-                                tipoVehiculo={tipoVehiculo}
-                                danios={danios}
-                                setDanios={setDanios}
-                            />
+                            <div className="os-visor-slot">
+                                <VisorVehiculo3D
+                                    tipoVehiculo={tipoVehiculo || "Sedán"}
+                                    colorVehiculo={color || "#2563eb"}
+                                    danios={danios}
+                                    setDanios={setDanios}
+                                    onTipoVehiculoChange={(nuevoTipo) => setTipoVehiculo(nuevoTipo)}
+                                />
+                            </div>
                         </section>
 
                     </div>
@@ -1058,46 +1173,81 @@ function OrdenesServicio() {
                     <div className="modal-content client-preview">
                         <div className="modal-header">
                             <div>
-                                <span className="read-only-badge">👁 VISTA DE APROBACIÓN DEL CLIENTE</span>
+                                <span className="read-only-badge">
+                                    <span className="material-symbols-outlined">visibility</span>
+                                    Vista de aprobación del cliente
+                                </span>
                                 <h2>Aprobación de Orden de Servicio</h2>
                                 <p>Enlace interactivo generado para envío por WhatsApp o Mail.</p>
                             </div>
-                            <button className="btn-close" onClick={() => setMostrarModalCliente(false)}>✕</button>
+                            <button className="btn-close" onClick={() => setMostrarModalCliente(false)} aria-label="Cerrar">
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
                         </div>
 
                         <div className="modal-body">
-                            <div className="summary-box">
-                                <h3>VERAMOTORS SAC - {odsSeleccionadaModal.id}</h3>
-                                <p><strong>Cliente:</strong> {odsSeleccionadaModal.cliente} | <strong>Vehículo / Placa:</strong> {odsSeleccionadaModal.placa}</p>
-                                <p><strong>Motivo Reportado:</strong> {odsSeleccionadaModal.motivo}</p>
-                                <p><strong>Tipo de Procedimiento:</strong> {odsSeleccionadaModal.procedimiento}</p>
-                                <p><strong>Técnico Responsable:</strong> {odsSeleccionadaModal.tecnico}</p>
+                            <div className="os-panel is-muted">
+                                <h3 className="os-panel-title">VERAMOTORS SAC <span className="vm-code">{odsSeleccionadaModal.id}</span></h3>
+                                <div className="os-detail-grid">
+                                    <div className="os-detail-item">
+                                        <span>Cliente</span>
+                                        <strong>{odsSeleccionadaModal.cliente}</strong>
+                                    </div>
+                                    <div className="os-detail-item">
+                                        <span>Vehículo / Placa</span>
+                                        <strong><span className="vm-plate">{odsSeleccionadaModal.placa}</span></strong>
+                                    </div>
+                                    <div className="os-detail-item is-full">
+                                        <span>Motivo Reportado</span>
+                                        <p>{odsSeleccionadaModal.motivo}</p>
+                                    </div>
+                                    <div className="os-detail-item">
+                                        <span>Tipo de Procedimiento</span>
+                                        <strong>{odsSeleccionadaModal.procedimiento}</strong>
+                                    </div>
+                                    <div className="os-detail-item">
+                                        <span>Técnico Responsable</span>
+                                        <strong>{odsSeleccionadaModal.tecnico}</strong>
+                                    </div>
+                                </div>
                             </div>
 
-                            <div style={{ margin: "14px 0", display: "flex", gap: "10px", alignItems: "center" }}>
+                            <div className="os-link-row">
                                 <input
                                     type="text"
                                     readOnly
-                                    value={`${window.location.origin}/aprobacion-cliente/${odsSeleccionadaModal.id}`}
-                                    style={{ flex: 1, padding: "8px 12px", borderRadius: "6px", border: "1px solid #334155", background: "#0f172a", color: "#94a3b8", fontSize: "13px" }}
+                                    aria-label="Enlace de aprobación para el cliente"
+                                    placeholder={errorEnlace ? "" : "Generando enlace…"}
+                                    value={enlaceAprobacion}
                                 />
                                 <button
                                     type="button"
-                                    className="btn-act-table link"
-                                    onClick={() => {
-                                        const link = `${window.location.origin}/aprobacion-cliente/${odsSeleccionadaModal.id}`;
-                                        navigator.clipboard.writeText(link);
-                                        alert(`¡Link de aprobación copiado al portapapeles!\n\n${link}`);
+                                    className="vm-btn vm-btn-secondary"
+                                    disabled={!enlaceAprobacion}
+                                    onClick={async () => {
+                                        try {
+                                            await navigator.clipboard.writeText(enlaceAprobacion);
+                                            alert("¡Link de aprobación copiado al portapapeles! Vence en 7 días.");
+                                        } catch {
+                                            alert("No se pudo copiar automáticamente. Selecciona el enlace y cópialo.");
+                                        }
                                     }}
-                                    style={{ padding: "8px 14px", fontWeight: "bold" }}
                                 >
-                                    📋 Copiar Link
+                                    <span className="material-symbols-outlined">content_copy</span>
+                                    Copiar Link
                                 </button>
                             </div>
 
+                            {errorEnlace && (
+                                <div className="vm-alert" role="alert">
+                                    <span className="material-symbols-outlined">error</span>
+                                    <span>{errorEnlace}</span>
+                                </div>
+                            )}
+
                             <div className="approval-status-box">
                                 <strong>Estado Actual de Aprobación:</strong>{" "}
-                                <span className={`status-pill ${estadoAprobacionCliente.toLowerCase()}`}>
+                                <span className={`vm-badge ${{ aprobado: "vm-badge-success", denegado: "vm-badge-danger" }[estadoAprobacionCliente.toLowerCase()] || "vm-badge-warning"}`}>
                                     {estadoAprobacionCliente}
                                 </span>
                             </div>
@@ -1119,7 +1269,8 @@ function OrdenesServicio() {
                                     }
                                 }}
                             >
-                                ✖ Denegar Orden
+                                <span className="material-symbols-outlined">close</span>
+                                Denegar Orden
                             </button>
                             <button
                                 className="btn-approve"
@@ -1139,7 +1290,8 @@ function OrdenesServicio() {
                                     }
                                 }}
                             >
-                                ✔ Aprobar & Avanzar a Diagnóstico
+                                <span className="material-symbols-outlined">check</span>
+                                Aprobar & Avanzar a Diagnóstico
                             </button>
                         </div>
                     </div>
@@ -1153,13 +1305,16 @@ function OrdenesServicio() {
                 <div className="modal-overlay">
                     <div className="modal-content warning-modal">
                         <div className="modal-header yellow">
-                            <h2>⚠️ ADVERTENCIA DE DIAGNÓSTICO TÉCNICO</h2>
+                            <h2 className="os-modal-title">
+                                <span className="material-symbols-outlined">warning</span>
+                                Advertencia de diagnóstico técnico
+                            </h2>
                         </div>
                         <div className="modal-body">
-                            <p style={{ fontSize: '1rem', lineHeight: '1.5', color: '#f8fafc' }}>
+                            <p className="os-warning-lead">
                                 Estimado Técnico <strong>{rolActivo}</strong>:
                             </p>
-                            <ul style={{ margin: '15px 0', paddingLeft: '20px', color: '#cbd5e1', lineHeight: '1.8' }}>
+                            <ul className="os-warning-list">
                                 <li>Debe tener especial cuidado al diagnosticar cada sistema del vehículo.</li>
                                 <li>Detalle minuciosamente cada falla y causa raíz encontrada.</li>
                                 <li>Asigne correctamente las <strong>Horas Hombre (HH)</strong> necesarias.</li>
@@ -1187,55 +1342,79 @@ function OrdenesServicio() {
                                     ODS: {odsSeleccionadaModal?.id || "ODS"} | Vehículo: {odsSeleccionadaModal?.placa || "Vehículo"} | Propietario: {odsSeleccionadaModal?.cliente || "Cliente"}
                                 </p>
                             </div>
-                            <button className="btn-close" onClick={() => setMostrarModalDiagnostico(false)}>✕</button>
+                            <button className="btn-close" onClick={() => setMostrarModalDiagnostico(false)} aria-label="Cerrar">
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
                         </div>
 
                         <div className="modal-body">
-                            <div className="form-group">
-                                <label>Falla Detectada *</label>
-                                <input type="text" value={nuevaFalla} onChange={(e) => setNuevaFalla(e.target.value)} placeholder="Ej: Desgaste severo en pastillas y fuga de líquido de frenos" />
-                            </div>
-
-                            <div className="form-group">
-                                <label>Comentarios del Técnico / Observaciones *</label>
-                                <textarea rows="3" value={nuevosComentarios} onChange={(e) => setNuevosComentarios(e.target.value)} placeholder="Describa el diagnóstico exacto y causa raíz..." />
-                            </div>
-
-                            <div className="form-group">
-                                <label>Tiempo Estimado en Horas Hombre (HH) *</label>
-                                <input type="number" value={horasHombreFalla} onChange={(e) => setHorasHombreFalla(e.target.value)} step="0.5" />
-                            </div>
-
-                            <div className="form-group">
-                                <label>Repuestos de inventario</label>
-                                <div className="repuesto-search-box" style={{ display: "flex", gap: "10px" }}>
-                                    <select value={repuestoItemId} onChange={(event) => setRepuestoItemId(event.target.value)}>
-                                        <option value="">Selecciona un artículo existente</option>
-                                        {repuestosDisponibles.filter((item) => item.activo).map((item) => (
-                                            <option key={item.item_id} value={item.item_id}>
-                                                {item.codigo_referencia} · {item.nombre_nomenclatura} · stock {item.stock_actual}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <input type="number" min="0.01" step="0.01" value={cantidadRepuesto} onChange={(event) => setCantidadRepuesto(event.target.value)} aria-label="Cantidad de repuesto" />
-                                    <button type="button" className="btn-act-table diag" onClick={agregarRepuestoDiagnostico} disabled={!repuestoItemId || Number(cantidadRepuesto) <= 0}>
-                                        Añadir
-                                    </button>
+                            <div className="os-form-section">
+                                <div className="vm-form-section-title">
+                                    <span className="material-symbols-outlined">stethoscope</span>
+                                    Falla y causa raíz
                                 </div>
-                                {repuestosODS.length > 0 && <p>Repuestos ya asociados a esta ODS: {repuestosODS.map((item) => `${item.codigo_referencia} × ${item.cantidad}`).join(", ")}</p>}
-                                {repuestosSeleccionados.map((linea) => {
-                                    const item = repuestosDisponibles.find((disponible) => disponible.item_id === linea.item_id);
-                                    return <div key={linea.item_id}>{item?.codigo_referencia} · {item?.nombre_nomenclatura} × {linea.cantidad}</div>;
-                                })}
+                                <div className="form-grid">
+                                    <div className="form-group form-group-full">
+                                        <label>Falla Detectada *</label>
+                                        <input type="text" value={nuevaFalla} onChange={(e) => setNuevaFalla(e.target.value)} placeholder="Ej: Desgaste severo en pastillas y fuga de líquido de frenos" />
+                                    </div>
+
+                                    <div className="form-group form-group-full">
+                                        <label>Comentarios del Técnico / Observaciones *</label>
+                                        <textarea rows="3" value={nuevosComentarios} onChange={(e) => setNuevosComentarios(e.target.value)} placeholder="Describa el diagnóstico exacto y causa raíz..." />
+                                    </div>
+
+                                    <div className="form-group">
+                                        <label>Tiempo Estimado en Horas Hombre (HH) *</label>
+                                        <input type="number" value={horasHombreFalla} onChange={(e) => setHorasHombreFalla(e.target.value)} step="0.5" />
+                                    </div>
+                                </div>
                             </div>
 
-                            {errorDiagnostico && <div role="alert">{errorDiagnostico}</div>}
-                            {cargandoDiagnostico && <p>Cargando información de PostgreSQL…</p>}
+                            <div className="os-form-section">
+                                <div className="vm-form-section-title">
+                                    <span className="material-symbols-outlined">inventory_2</span>
+                                    Repuestos
+                                </div>
+                                <div className="form-group">
+                                    <label>Repuestos de inventario</label>
+                                    <div className="repuesto-search-box">
+                                        <select value={repuestoItemId} onChange={(event) => setRepuestoItemId(event.target.value)}>
+                                            <option value="">Selecciona un artículo existente</option>
+                                            {repuestosDisponibles.filter((item) => item.activo).map((item) => (
+                                                <option key={item.item_id} value={item.item_id}>
+                                                    {item.codigo_referencia} · {item.nombre_nomenclatura} · stock {item.stock_actual}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <input type="number" min="0.01" step="0.01" value={cantidadRepuesto} onChange={(event) => setCantidadRepuesto(event.target.value)} aria-label="Cantidad de repuesto" />
+                                        <button type="button" className="vm-btn vm-btn-secondary" onClick={agregarRepuestoDiagnostico} disabled={!repuestoItemId || Number(cantidadRepuesto) <= 0}>
+                                            Añadir
+                                        </button>
+                                    </div>
+                                    {repuestosODS.length > 0 && <p className="os-hint">Repuestos ya asociados a esta ODS: {repuestosODS.map((item) => `${item.codigo_referencia} × ${item.cantidad}`).join(", ")}</p>}
+                                    {repuestosSeleccionados.map((linea) => {
+                                        const item = repuestosDisponibles.find((disponible) => disponible.item_id === linea.item_id);
+                                        return <div key={linea.item_id} className="os-repuesto-line"><span className="vm-code">{item?.codigo_referencia}</span> <span>{item?.nombre_nomenclatura}</span> <span className="vm-num">× {linea.cantidad}</span></div>;
+                                    })}
+                                </div>
+                            </div>
+
+                            {errorDiagnostico && (
+                                <div role="alert" className="vm-alert">
+                                    <span className="material-symbols-outlined">error</span>
+                                    {errorDiagnostico}
+                                </div>
+                            )}
+                            {cargandoDiagnostico && <p className="vm-loading">Cargando información de PostgreSQL…</p>}
                             {fallasRegistradas.length > 0 && (
-                                <div className="diagnosticos-persistidos">
-                                    <h3>Diagnósticos registrados</h3>
+                                <div className="os-form-section diagnosticos-persistidos">
+                                    <h3 className="vm-form-section-title">
+                                        <span className="material-symbols-outlined">history</span>
+                                        Diagnósticos registrados
+                                    </h3>
                                     {fallasRegistradas.map((diagnostico) => (
-                                        <div key={diagnostico.diagnostico_id}>
+                                        <div key={diagnostico.diagnostico_id} className="os-diagnostico-item">
                                             <strong>{diagnostico.falla_reportada}</strong>
                                             <p>{diagnostico.comentarios_tecnico || "Sin comentarios"}</p>
                                             <small>{new Date(diagnostico.fecha_diagnostico).toLocaleString("es-PE")}</small>
@@ -1270,11 +1449,16 @@ function OrdenesServicio() {
                                 <h2>Entrega de Vehículo - {odsSeleccionadaModal.id}</h2>
                                 <p>Cliente: {odsSeleccionadaModal.cliente} | Vehículo: {odsSeleccionadaModal.placa}</p>
                             </div>
-                            <button className="btn-close" onClick={() => setMostrarModalEntrega(false)}>✕</button>
+                            <button className="btn-close" onClick={() => setMostrarModalEntrega(false)} aria-label="Cerrar">
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
                         </div>
 
                         <div className="modal-body">
-                            <p>Confirma la entrega del vehículo para archivar esta orden de servicio.</p>
+                            <div className="vm-alert vm-alert-info os-alert-flush">
+                                <span className="material-symbols-outlined">key</span>
+                                <p>Confirma la entrega del vehículo para archivar esta orden de servicio.</p>
+                            </div>
                         </div>
 
                         <div className="modal-footer">
@@ -1305,57 +1489,42 @@ function OrdenesServicio() {
             ========================================= */}
             {mostrarModalTrazabilidad && odsSeleccionadaModal && (
                 <div className="modal-overlay">
-                    <div
-                        className="modal-content trace-modal"
-                        style={{
-                            maxWidth: "900px",
-                            width: "95vw",
-                            maxHeight: "92vh",
-                            display: "flex",
-                            flexDirection: "column",
-                            overflow: "hidden"
-                        }}
-                    >
+                    <div className="modal-content trace-modal">
                         <div className="modal-header">
                             <div>
                                 <h2>Trazabilidad & Detalle - {odsSeleccionadaModal.id}</h2>
-                                <p style={{ margin: "4px 0 0", color: "#94a3b8" }}>
-                                    Ticket: <strong>{odsSeleccionadaModal.ticket}</strong> | Ingreso: {odsSeleccionadaModal.fecha}
+                                <p>
+                                    Ticket: <strong className="os-ticket">{odsSeleccionadaModal.ticket}</strong> | Ingreso: {odsSeleccionadaModal.fecha}
                                 </p>
                             </div>
-                            <button className="btn-close" onClick={() => setMostrarModalTrazabilidad(false)}>✕</button>
+                            <button className="btn-close" onClick={() => setMostrarModalTrazabilidad(false)} aria-label="Cerrar">
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
                         </div>
 
-                        <div
-                            className="modal-body"
-                            style={{
-                                overflowY: "auto",
-                                flex: 1,
-                                minHeight: 0
-                            }}
-                        >
+                        <div className="modal-body">
                             {/* DATOS GENERALES DE LA ORDEN */}
-                            <div style={{ background: "#0f172a", border: "1px solid #334155", borderRadius: "8px", padding: "16px", marginBottom: "20px" }}>
-                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", fontSize: "14px" }}>
-                                    <div>
-                                        <span style={{ color: "#94a3b8" }}>Cliente / Propietario:</span>
-                                        <strong style={{ display: "block", color: "#f8fafc", fontSize: "15px" }}>{odsSeleccionadaModal.cliente}</strong>
+                            <div className="os-panel is-muted">
+                                <div className="os-detail-grid">
+                                    <div className="os-detail-item">
+                                        <span>Cliente / Propietario</span>
+                                        <strong>{odsSeleccionadaModal.cliente}</strong>
                                     </div>
-                                    <div>
-                                        <span style={{ color: "#94a3b8" }}>Vehículo / Placa:</span>
-                                        <strong style={{ display: "block", color: "#f8fafc", fontSize: "15px" }}>{odsSeleccionadaModal.placa}</strong>
+                                    <div className="os-detail-item">
+                                        <span>Vehículo / Placa</span>
+                                        <strong><span className="vm-plate">{odsSeleccionadaModal.placa}</span></strong>
                                     </div>
-                                    <div>
-                                        <span style={{ color: "#94a3b8" }}>Técnico Asignado:</span>
-                                        <strong style={{ display: "block", color: "#38bdf8" }}>{odsSeleccionadaModal.tecnico}</strong>
+                                    <div className="os-detail-item">
+                                        <span>Técnico Asignado</span>
+                                        <strong>{odsSeleccionadaModal.tecnico}</strong>
                                     </div>
-                                    <div>
-                                        <span style={{ color: "#94a3b8" }}>Procedimiento:</span>
-                                        <strong style={{ display: "block", color: "#f8fafc" }}>{odsSeleccionadaModal.procedimiento}</strong>
+                                    <div className="os-detail-item">
+                                        <span>Procedimiento</span>
+                                        <strong>{odsSeleccionadaModal.procedimiento}</strong>
                                     </div>
-                                    <div style={{ gridColumn: "span 2" }}>
-                                        <span style={{ color: "#94a3b8" }}>Motivo de Ingreso:</span>
-                                        <p style={{ margin: "4px 0 0", color: "#e2e8f0" }}>{odsSeleccionadaModal.motivo}</p>
+                                    <div className="os-detail-item is-full">
+                                        <span>Motivo de Ingreso</span>
+                                        <p>{odsSeleccionadaModal.motivo}</p>
                                     </div>
                                 </div>
                             </div>
@@ -1363,90 +1532,69 @@ function OrdenesServicio() {
                             {/* =====================================================
                                 INSPECCIÓN 3D REGISTRADA
                             ===================================================== */}
-                            <div
-                                style={{
-                                    background: "#0f172a",
-                                    border: "1px solid #334155",
-                                    borderRadius: "8px",
-                                    padding: "16px",
-                                    marginBottom: "20px"
-                                }}
-                            >
-                                <div style={{ marginBottom: "14px" }}>
-                                    <h3
-                                        style={{
-                                            margin: 0,
-                                            color: "#60a5fa",
-                                            fontSize: "16px"
-                                        }}
-                                    >
-                                        🚗 Inspección 3D de Carrocería
-                                    </h3>
-                                    <p
-                                        style={{
-                                            margin: "5px 0 0",
-                                            color: "#94a3b8",
-                                            fontSize: "12px"
-                                        }}
-                                    >
-                                        Visualización de los daños registrados durante la recepción del vehículo.
-                                    </p>
+                            <div className="os-panel">
+                                <div className="os-panel-head">
+                                    <div>
+                                        <h3 className="os-panel-title">
+                                            <span className="material-symbols-outlined">car_repair</span>
+                                            Inspección 3D de Carrocería
+                                        </h3>
+                                        <p>Visualización de los daños registrados durante la recepción del vehículo.</p>
+                                    </div>
                                 </div>
 
                                 <VisorVehiculo3D
                                     tipoVehiculo={
                                         odsSeleccionadaModal?.inspeccion_json?.tipo_vehiculo ||
-                                        "Automóvil"
+                                        "Sedán"
+                                    }
+                                    colorVehiculo={
+                                        odsSeleccionadaModal?.inspeccion_json?.color ||
+                                        odsSeleccionadaModal?.color ||
+                                        "#2563eb"
                                     }
                                     danios={daniosODSSeleccionada}
                                     setDanios={setDaniosODSSeleccionada}
                                     modoLectura={false}
                                 />
 
-                                <div
-                                    style={{
-                                        marginTop: "14px",
-                                        display: "flex",
-                                        justifyContent: "space-between",
-                                        alignItems: "center",
-                                        gap: "12px",
-                                        flexWrap: "wrap"
-                                    }}
-                                >
-                                    <span style={{ color: "#94a3b8", fontSize: "12px" }}>
+                                <div className="os-panel-actions">
+                                    <span className="os-hint">
                                         Puedes hacer clic en otra pieza para registrar más daños.
                                     </span>
                                     <button
                                         type="button"
-                                        className="btn-guardar"
+                                        className="vm-btn vm-btn-primary"
                                         onClick={guardarDanosODSSeleccionada}
                                         disabled={guardandoDanosODS}
-                                        style={{ padding: "10px 16px", fontWeight: "bold" }}
                                     >
+                                        <span className="material-symbols-outlined">save</span>
                                         {guardandoDanosODS
                                             ? "Guardando inspección..."
-                                            : "💾 Guardar cambios de inspección"}
+                                            : "Guardar cambios de inspección"}
                                     </button>
                                 </div>
                             </div>
 
                             {/* CONTROL INTERACTIVO DE AVANCE DE ESTADO */}
-                            <div style={{ background: "#1e293b", border: "1px solid #3b82f6", borderRadius: "8px", padding: "16px", marginBottom: "20px" }}>
-                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                            <div className="os-panel">
+                                <div className="os-panel-head">
                                     <div>
-                                        <h3 style={{ margin: 0, color: "#60a5fa", fontSize: "16px" }}>Mover Estado Operativo</h3>
-                                        <span style={{ fontSize: "12px", color: "#94a3b8" }}>Actualiza en tiempo real en la tabla y en el Tablero Kanban</span>
+                                        <h3 className="os-panel-title">
+                                            <span className="material-symbols-outlined">swap_horiz</span>
+                                            Mover Estado Operativo
+                                        </h3>
+                                        <p>Actualiza en tiempo real en la tabla y en el Tablero Kanban</p>
                                     </div>
-                                    <span className={`proc-tag ${odsSeleccionadaModal.estado.toLowerCase()}`} style={{ fontSize: "13px", padding: "4px 10px" }}>
+                                    <span className={`vm-badge ${["Entrega", "Archivados"].includes(odsSeleccionadaModal.estado) ? "vm-badge-success" : odsSeleccionadaModal.estado === "Aprobación" ? "vm-badge-warning" : "vm-badge-info"}`}>
                                         Estado: {odsSeleccionadaModal.estado}
                                     </span>
                                 </div>
 
-                                <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                                <div className="os-state-control">
                                     <select
                                         value={estadoCambioODS}
                                         onChange={(e) => setEstadoCambioODS(e.target.value)}
-                                        style={{ flex: 1, padding: "10px 12px", borderRadius: "6px", border: "1px solid #475569", background: "#0f172a", color: "#fff", fontSize: "14px" }}
                                     >
                                         {["Recepción", "Diagnóstico", "Repuestos", "Aprobación", "Reparación", "Control de Calidad", "Entrega", "Archivados"].map((st) => (
                                             <option key={st} value={st}>{st}</option>
@@ -1470,58 +1618,48 @@ function OrdenesServicio() {
                                                 setGuardandoEstado(false);
                                             }
                                         }}
-                                        style={{ padding: "10px 18px", fontWeight: "bold" }}
                                     >
-                                        {guardandoEstado ? "Guardando..." : "🚀 Actualizar Estado"}
+                                        <span className="material-symbols-outlined">published_with_changes</span>
+                                        {guardandoEstado ? "Guardando..." : "Actualizar Estado"}
                                     </button>
                                 </div>
                             </div>
 
                             {/* TIMELINE VISUAL */}
-                            <div className="timeline" style={{ borderLeft: '2px solid #3b82f6', paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                                <div>
-                                    <strong style={{ color: '#60a5fa' }}>🟢 1. RECEPCIÓN</strong>
-                                    <p style={{ margin: '4px 0', fontSize: '0.85rem', color: '#cbd5e1' }}>
+                            <div className="os-timeline">
+                                <div className="os-timeline-step is-done">
+                                    <strong>Recepción</strong>
+                                    <p>
                                         Registrado el {odsSeleccionadaModal.fecha} por Asesor de Servicio. Inspección inicial y motivo detallado listos.
                                     </p>
                                 </div>
-                                <div>
-                                    <strong style={{ color: ['Diagnóstico', 'Repuestos', 'Aprobación', 'Reparación', 'Control de Calidad', 'Entrega', 'Archivados'].includes(odsSeleccionadaModal.estado) ? '#eab308' : '#64748b' }}>
-                                        🟡 2. EVALUACIÓN Y DIAGNÓSTICO TÉCNICO
-                                    </strong>
-                                    <p style={{ margin: '4px 0', fontSize: '0.85rem', color: '#94a3b8' }}>
-                                        Técnico responsable: <strong>{odsSeleccionadaModal.tecnico}</strong>.
+                                <div className={`os-timeline-step ${['Diagnóstico', 'Repuestos', 'Aprobación', 'Reparación', 'Control de Calidad', 'Entrega', 'Archivados'].includes(odsSeleccionadaModal.estado) ? 'is-done' : ''}`}>
+                                    <strong>Evaluación y diagnóstico técnico</strong>
+                                    <p>
+                                        Técnico responsable: <b>{odsSeleccionadaModal.tecnico}</b>.
                                     </p>
                                 </div>
-                                <div>
-                                    <strong style={{ color: ['Repuestos', 'Aprobación', 'Reparación', 'Control de Calidad', 'Entrega', 'Archivados'].includes(odsSeleccionadaModal.estado) ? '#a855f7' : '#64748b' }}>
-                                        🟣 3. GESTIÓN DE REPUESTOS E INSUMOS
-                                    </strong>
-                                    <p style={{ margin: '4px 0', fontSize: '0.85rem', color: '#94a3b8' }}>
+                                <div className={`os-timeline-step ${['Repuestos', 'Aprobación', 'Reparación', 'Control de Calidad', 'Entrega', 'Archivados'].includes(odsSeleccionadaModal.estado) ? 'is-done' : ''}`}>
+                                    <strong>Gestión de repuestos e insumos</strong>
+                                    <p>
                                         Despacho y verificación de stock para la orden.
                                     </p>
                                 </div>
-                                <div>
-                                    <strong style={{ color: ['Aprobación', 'Reparación', 'Control de Calidad', 'Entrega', 'Archivados'].includes(odsSeleccionadaModal.estado) ? '#06b6d4' : '#64748b' }}>
-                                        🔵 4. APROBACIÓN DEL CLIENTE
-                                    </strong>
-                                    <p style={{ margin: '4px 0', fontSize: '0.85rem', color: '#94a3b8' }}>
-                                        Estado de aprobación del cliente: <strong>{odsSeleccionadaModal.estado_aprobacion_cliente}</strong>.
+                                <div className={`os-timeline-step ${['Aprobación', 'Reparación', 'Control de Calidad', 'Entrega', 'Archivados'].includes(odsSeleccionadaModal.estado) ? 'is-done' : ''}`}>
+                                    <strong>Aprobación del cliente</strong>
+                                    <p>
+                                        Estado de aprobación del cliente: <b>{odsSeleccionadaModal.estado_aprobacion_cliente}</b>.
                                     </p>
                                 </div>
-                                <div>
-                                    <strong style={{ color: ['Reparación', 'Control de Calidad', 'Entrega', 'Archivados'].includes(odsSeleccionadaModal.estado) ? '#f97316' : '#64748b' }}>
-                                        🟠 5. REPARACIÓN / SERVICIO EN TALLER
-                                    </strong>
-                                    <p style={{ margin: '4px 0', fontSize: '0.85rem', color: '#94a3b8' }}>
+                                <div className={`os-timeline-step ${['Reparación', 'Control de Calidad', 'Entrega', 'Archivados'].includes(odsSeleccionadaModal.estado) ? 'is-done' : ''}`}>
+                                    <strong>Reparación / servicio en taller</strong>
+                                    <p>
                                         Ejecución de trabajos y pruebas mecánicas/eléctricas.
                                     </p>
                                 </div>
-                                <div>
-                                    <strong style={{ color: ['Entrega', 'Archivados'].includes(odsSeleccionadaModal.estado) ? '#22c55e' : '#64748b' }}>
-                                        🟢 6. CONTROL DE CALIDAD & ENTREGA
-                                    </strong>
-                                    <p style={{ margin: '4px 0', fontSize: '0.85rem', color: '#94a3b8' }}>
+                                <div className={`os-timeline-step ${['Entrega', 'Archivados'].includes(odsSeleccionadaModal.estado) ? 'is-done' : ''}`}>
+                                    <strong>Control de calidad & entrega</strong>
+                                    <p>
                                         Lavado, verificación final y encuesta NPS de satisfacción.
                                     </p>
                                 </div>

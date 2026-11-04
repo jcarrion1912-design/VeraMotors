@@ -83,9 +83,9 @@ function DiagramaVehiculo({ danios, setDanios, onChange }) {
     const cantidadDanos = Object.keys(datosActivos).length;
 
     return (
-        <div className="diagrama-vehiculo">
+        <div className="vm-card diagrama-vehiculo">
 
-            <div className="diagrama-header">
+            <div className="vm-card-head diagrama-header">
                 <div>
                     <h3>Inspección visual del vehículo</h3>
                     <p>

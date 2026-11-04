@@ -12,6 +12,7 @@ from app.models.nota_credito import NotaCredito
 from app.models.cierre_caja import CierreCaja
 from app.models.asistencia import Asistencia
 from app.models.configuracion_correlativo import ConfiguracionCorrelativo
+from app.models.configuracion_empresa import ConfiguracionEmpresa
 from app.models.compra import Compra
 from app.models.detalle_compra import DetalleCompra
 from app.models.proveedor import Proveedor
@@ -47,6 +48,7 @@ __all__ = [
     "CierreCaja",
     "Asistencia",
     "ConfiguracionCorrelativo",
+    "ConfiguracionEmpresa",
     "Compra",
     "DetalleCompra",
     "Proveedor",

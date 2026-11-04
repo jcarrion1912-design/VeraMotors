@@ -21,6 +21,7 @@ import Bancos from "./pages/Bancos/Bancos";
 import Configuracion from "./pages/Configuracion/Configuracion";
 import Asistencia from "./pages/Asistencia/Asistencia";
 import Login from "./pages/Login/Login";
+import AprobacionCliente from "./pages/AprobacionCliente/AprobacionCliente";
 
 function App() {
   return (
@@ -38,175 +39,40 @@ function App() {
             element={<Login />}
           />
 
+          {/* Pública: el cliente responde desde el enlace firmado */}
+          <Route
+            path="/aprobacion-cliente/:token"
+            element={<AprobacionCliente />}
+          />
+
 
           {/* =========================================
                         RUTAS PROTEGIDAS
                     ========================================= */}
 
           <Route
-            path="/dashboard"
             element={
               <ProtectedRoute>
-                <MainLayout>
-                  <Dashboard />
-                </MainLayout>
+                <MainLayout />
               </ProtectedRoute>
             }
-          />
-
-          <Route
-            path="/citas"
-            element={
-              <ProtectedRoute>
-                <MainLayout>
-                  <Citas />
-                </MainLayout>
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/kanban"
-            element={
-              <ProtectedRoute>
-                <MainLayout>
-                  <Kanban />
-                </MainLayout>
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/clientes"
-            element={
-              <ProtectedRoute>
-                <MainLayout>
-                  <Clientes />
-                </MainLayout>
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/inventario"
-            element={
-              <ProtectedRoute>
-                <MainLayout>
-                  <Inventario />
-                </MainLayout>
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/ordenes-servicio"
-            element={
-              <ProtectedRoute>
-                <MainLayout>
-                  <OrdenesServicio />
-                </MainLayout>
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/facturacion"
-            element={
-              <ProtectedRoute>
-                <MainLayout>
-                  <Facturacion />
-                </MainLayout>
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/cotizaciones"
-            element={
-              <ProtectedRoute>
-                <MainLayout>
-                  <Cotizaciones />
-                </MainLayout>
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/reportes"
-            element={
-              <ProtectedRoute>
-                <MainLayout>
-                  <Reportes />
-                </MainLayout>
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/metricas"
-            element={
-              <ProtectedRoute>
-                <MainLayout>
-                  <Metricas />
-                </MainLayout>
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/proveedores"
-            element={
-              <ProtectedRoute>
-                <MainLayout>
-                  <Proveedores />
-                </MainLayout>
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/compras"
-            element={
-              <ProtectedRoute>
-                <MainLayout>
-                  <Compras />
-                </MainLayout>
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/bancos"
-            element={
-              <ProtectedRoute>
-                <MainLayout>
-                  <Bancos />
-                </MainLayout>
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/configuracion"
-            element={
-              <ProtectedRoute>
-                <MainLayout>
-                  <Configuracion />
-                </MainLayout>
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/asistencia"
-            element={
-              <ProtectedRoute>
-                <MainLayout>
-                  <Asistencia />
-                </MainLayout>
-              </ProtectedRoute>
-            }
-          />
+          >
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/citas" element={<Citas />} />
+            <Route path="/kanban" element={<Kanban />} />
+            <Route path="/clientes" element={<Clientes />} />
+            <Route path="/inventario" element={<Inventario />} />
+            <Route path="/ordenes-servicio" element={<OrdenesServicio />} />
+            <Route path="/facturacion" element={<Facturacion />} />
+            <Route path="/cotizaciones" element={<Cotizaciones />} />
+            <Route path="/reportes" element={<Reportes />} />
+            <Route path="/metricas" element={<Metricas />} />
+            <Route path="/proveedores" element={<Proveedores />} />
+            <Route path="/compras" element={<Compras />} />
+            <Route path="/bancos" element={<Bancos />} />
+            <Route path="/configuracion" element={<Configuracion />} />
+            <Route path="/asistencia" element={<Asistencia />} />
+          </Route>
 
 
           {/* =========================================

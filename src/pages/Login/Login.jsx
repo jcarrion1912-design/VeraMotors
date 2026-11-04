@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useRole } from "../../context/authContext";
-import { login } from "../../services/authService";
+import { login, loginDemo } from "../../services/authService";
+import { BrandMark, VehicleSilhouette } from "../../components/Brand/Brand";
 import "./Login.css";
 
 function Login() {
@@ -72,211 +73,245 @@ function Login() {
     };
 
 
+    const entrarModoDemo = async () => {
+        setError("");
+        setCargando(true);
+
+        try {
+            iniciarSesion(await loginDemo());
+            navigate("/dashboard", { replace: true });
+        } catch (error) {
+            console.error("Error en modo demo:", error);
+            setError(error.message || "No se pudo entrar en modo demo.");
+        } finally {
+            setCargando(false);
+        }
+    };
+
+
     return (
         <div className="login-page">
 
-            <div className="login-container">
+            {/* ==========================================
+                PANEL DE MARCA
+            ========================================== */}
 
-                {/* ==========================================
-                    MARCA
-                ========================================== */}
+            <aside className="login-panel">
 
                 <div className="login-brand">
-
-                    <div className="brand-logo">
-                        VM
+                    <BrandMark size={44} />
+                    <div>
+                        <h1>VERAMOTORS</h1>
+                        <p>Sistema de Gestión Automotriz</p>
                     </div>
-
-                    <h1>
-                        VERAMOTORS
-                    </h1>
-
-                    <p>
-                        Sistema de Gestión Automotriz
-                    </p>
-
                 </div>
 
+                <VehicleSilhouette className="login-panel-auto" />
 
-                {/* ==========================================
-                    TARJETA LOGIN
-                ========================================== */}
+                <div className="login-mensaje">
+                    <h2>Cada vehículo, <em>bajo control</em> de la recepción a la entrega.</h2>
+                    <p>Citas, órdenes de servicio, diagnóstico, repuestos y facturación de tu taller en un solo lugar.</p>
+                </div>
 
-                <div className="login-card">
+                <ul className="login-flujo">
+                    <li><span className="material-symbols-outlined">car_repair</span>Órdenes de servicio</li>
+                    <li><span className="material-symbols-outlined">inventory_2</span>Inventario</li>
+                    <li><span className="material-symbols-outlined">receipt_long</span>Facturación SUNAT</li>
+                </ul>
 
-                    <div className="login-header">
+            </aside>
 
-                        <h2>
-                            Bienvenido
-                        </h2>
 
-                        <p>
-                            Ingresa tus credenciales para continuar
-                        </p>
+            <main className="login-form-side">
 
+                <div className="login-container">
+
+                    <div className="login-brand login-brand-movil">
+                        <BrandMark size={40} />
+                        <div>
+                            <h1>VERAMOTORS</h1>
+                            <p>Sistema de Gestión Automotriz</p>
+                        </div>
                     </div>
 
 
                     {/* ==========================================
-                        ERROR
+                        TARJETA LOGIN
                     ========================================== */}
 
-                    {error && (
-                        <div
-                            style={{
-                                background: "#fee2e2",
-                                color: "#b91c1c",
-                                padding: "10px 12px",
-                                borderRadius: "6px",
-                                marginBottom: "16px",
-                                fontSize: "0.9rem",
-                                border: "1px solid #fecaca",
-                            }}
-                        >
-                            {error}
-                        </div>
-                    )}
+                    <div className="login-card">
 
-
-                    <form onSubmit={handleSubmit}>
-
-                        {/* ==========================================
-                            CORREO
-                        ========================================== */}
-
-                        <div className="form-group">
-
-                            <label htmlFor="correo">
-                                Correo electrónico
-                            </label>
-
-                            <input
-                                id="correo"
-                                type="email"
-                                placeholder="correo@veramotors.com"
-                                value={correo}
-                                onChange={(e) =>
-                                    setCorreo(e.target.value)
-                                }
-                                required
-                                disabled={cargando}
-                            />
-
+                        <div className="login-header">
+                            <h2>Bienvenido</h2>
+                            <p>Ingresa tus credenciales para continuar</p>
                         </div>
 
 
                         {/* ==========================================
-                            CONTRASEÑA
+                            ERROR
                         ========================================== */}
 
-                        <div className="form-group">
+                        {error && (
+                            <div className="vm-alert" role="alert">
+                                <span className="material-symbols-outlined">error</span>
+                                <span>{error}</span>
+                            </div>
+                        )}
 
-                            <label htmlFor="password">
-                                Contraseña
-                            </label>
 
-                            <div className="password-container">
+                        <form onSubmit={handleSubmit}>
+
+                            {/* ==========================================
+                                CORREO
+                            ========================================== */}
+
+                            <div className="form-group">
+
+                                <label htmlFor="correo">
+                                    Correo electrónico
+                                </label>
 
                                 <input
-                                    id="password"
-                                    type={
-                                        mostrarPassword
-                                            ? "text"
-                                            : "password"
-                                    }
-                                    placeholder="Ingresa tu contraseña"
-                                    value={password}
+                                    id="correo"
+                                    type="email"
+                                    placeholder="correo@veramotors.com"
+                                    value={correo}
                                     onChange={(e) =>
-                                        setPassword(e.target.value)
+                                        setCorreo(e.target.value)
                                     }
                                     required
                                     disabled={cargando}
                                 />
 
+                            </div>
+
+
+                            {/* ==========================================
+                                CONTRASEÑA
+                            ========================================== */}
+
+                            <div className="form-group">
+
+                                <label htmlFor="password">
+                                    Contraseña
+                                </label>
+
+                                <div className="password-container">
+
+                                    <input
+                                        id="password"
+                                        type={
+                                            mostrarPassword
+                                                ? "text"
+                                                : "password"
+                                        }
+                                        placeholder="Ingresa tu contraseña"
+                                        value={password}
+                                        onChange={(e) =>
+                                            setPassword(e.target.value)
+                                        }
+                                        required
+                                        disabled={cargando}
+                                    />
+
+                                    <button
+                                        type="button"
+                                        className="password-toggle"
+                                        onClick={() =>
+                                            setMostrarPassword(
+                                                !mostrarPassword
+                                            )
+                                        }
+                                        disabled={cargando}
+                                    >
+                                        {mostrarPassword
+                                            ? "Ocultar"
+                                            : "Ver"}
+                                    </button>
+
+                                </div>
+
+                            </div>
+
+
+                            {/* ==========================================
+                                OPCIONES
+                            ========================================== */}
+
+                            <div className="login-options">
+
+                                <label className="remember-me">
+
+                                    <input
+                                        type="checkbox"
+                                        disabled={cargando}
+                                    />
+
+                                    <span>
+                                        Recordarme
+                                    </span>
+
+                                </label>
+
+
                                 <button
                                     type="button"
-                                    className="password-toggle"
+                                    className="forgot-password"
+                                    disabled={cargando}
                                     onClick={() =>
-                                        setMostrarPassword(
-                                            !mostrarPassword
+                                        alert(
+                                            "La recuperación de contraseña estará disponible próximamente."
                                         )
                                     }
-                                    disabled={cargando}
                                 >
-                                    {mostrarPassword
-                                        ? "Ocultar"
-                                        : "Ver"}
+                                    ¿Olvidaste tu contraseña?
                                 </button>
 
                             </div>
 
-                        </div>
 
-
-                        {/* ==========================================
-                            OPCIONES
-                        ========================================== */}
-
-                        <div className="login-options">
-
-                            <label className="remember-me">
-
-                                <input
-                                    type="checkbox"
-                                    disabled={cargando}
-                                />
-
-                                <span>
-                                    Recordarme
-                                </span>
-
-                            </label>
-
+                            {/* ==========================================
+                                BOTÓN LOGIN
+                            ========================================== */}
 
                             <button
-                                type="button"
-                                className="forgot-password"
+                                type="submit"
+                                className="vm-btn vm-btn-accent login-button"
                                 disabled={cargando}
-                                onClick={() =>
-                                    alert(
-                                        "La recuperación de contraseña estará disponible próximamente."
-                                    )
-                                }
                             >
-                                ¿Olvidaste tu contraseña?
+                                {cargando
+                                    ? "Iniciando sesión..."
+                                    : "Iniciar sesión"}
                             </button>
 
-                        </div>
+                            {/* Entra como Administrador sin contraseña: solo en desarrollo */}
+                            {import.meta.env.DEV && (
+                                <button
+                                    type="button"
+                                    className="vm-btn vm-btn-secondary login-button is-demo"
+                                    disabled={cargando}
+                                    onClick={entrarModoDemo}
+                                >
+                                    <span className="material-symbols-outlined">rocket_launch</span>
+                                    Entrar en Modo Demo
+                                </button>
+                            )}
+                        </form>
+
+                    </div>
 
 
-                        {/* ==========================================
-                            BOTÓN LOGIN
-                        ========================================== */}
+                    {/* ==========================================
+                        FOOTER
+                    ========================================== */}
 
-                        <button
-                            type="submit"
-                            className="login-button"
-                            disabled={cargando}
-                        >
-                            {cargando
-                                ? "Iniciando sesión..."
-                                : "Iniciar sesión"}
-                        </button>
-
-                    </form>
+                    <p className="login-footer">
+                        © 2026 VeraMotors SAC
+                    </p>
 
                 </div>
 
-
-                {/* ==========================================
-                    FOOTER
-                ========================================== */}
-
-                <p className="login-footer">
-                    © 2026 VeraMotors SAC
-                </p>
-
-            </div>
+            </main>
 
         </div>
     );

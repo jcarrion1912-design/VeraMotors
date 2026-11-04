@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from sqlalchemy import func
 
+from app.core.security import get_current_user
+from app.models.usuario import Usuario
 from app.database import get_db
 from app.models.cuenta_bancaria import CuentaBancaria
 from app.models.movimiento_bancario import MovimientoBancario
@@ -129,8 +131,12 @@ def obtener_movimiento(
 @router.post("/movimientos", response_model=MovimientoBancarioResponse, status_code=201)
 def registrar_movimiento(
     datos: MovimientoBancarioCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    usuario_actual: Usuario = Depends(get_current_user),
 ):
+    # El autor siempre es quien tiene la sesión, no lo que diga el cuerpo.
+    datos.usuario_id = usuario_actual.user_id
+
     # Verificar que la cuenta existe
     cuenta = db.query(CuentaBancaria).filter(
         CuentaBancaria.cuenta_bancaria_id == datos.cuenta_bancaria_id
@@ -178,7 +184,7 @@ def actualizar_movimiento(
             detail="Movimiento bancario no encontrado."
         )
 
-    for key, value in datos.model_dump().items():
+    for key, value in datos.model_dump(exclude={"usuario_id"}).items():
         setattr(movimiento, key, value)
 
     db.commit()

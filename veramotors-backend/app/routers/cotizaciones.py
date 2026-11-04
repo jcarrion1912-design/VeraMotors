@@ -5,6 +5,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from typing import List, Optional
 
+from app.core.security import get_current_user
+from app.models.usuario import Usuario
 from app.database import get_db
 from app.models.cotizacion import Cotizacion
 from app.models.detalle_cotizacion import DetalleCotizacion
@@ -61,7 +63,10 @@ def obtener_cotizacion(cotizacion_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/{cotizacion_id}/aprobar", response_model=CotizacionResponse)
-def aprobar_cotizacion(cotizacion_id: int, datos: CotizacionAprobacionRequest, db: Session = Depends(get_db)):
+def aprobar_cotizacion(cotizacion_id: int, datos: CotizacionAprobacionRequest, db: Session = Depends(get_db), usuario_actual: Usuario = Depends(get_current_user)):
+    # El autor siempre es quien tiene la sesión, no lo que diga el cuerpo.
+    datos.usuario_id = usuario_actual.user_id
+
     c = db.query(Cotizacion).filter(Cotizacion.cotizacion_id == cotizacion_id).first()
     if not c:
         raise HTTPException(status_code=404, detail="Cotización no encontrada.")
@@ -81,7 +86,10 @@ def aprobar_cotizacion(cotizacion_id: int, datos: CotizacionAprobacionRequest, d
 
 
 @router.post("/{cotizacion_id}/rechazar", response_model=CotizacionResponse)
-def rechazar_cotizacion(cotizacion_id: int, datos: CotizacionAprobacionRequest, db: Session = Depends(get_db)):
+def rechazar_cotizacion(cotizacion_id: int, datos: CotizacionAprobacionRequest, db: Session = Depends(get_db), usuario_actual: Usuario = Depends(get_current_user)):
+    # El autor siempre es quien tiene la sesión, no lo que diga el cuerpo.
+    datos.usuario_id = usuario_actual.user_id
+
     c = db.query(Cotizacion).filter(Cotizacion.cotizacion_id == cotizacion_id).first()
     if not c:
         raise HTTPException(status_code=404, detail="Cotización no encontrada.")

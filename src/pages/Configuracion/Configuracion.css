@@ -1,111 +1,192 @@
-.config-page {
-    padding: 24px;
-    background-color: #f8fafc;
-    min-height: 100vh;
-    color: #0f172a;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
-}
+/* =====================================================
+   CONFIGURACIÓN
+   Pestañas, tablas, modal y campos vienen de components.css.
+   Aquí solo va lo propio del módulo.
+===================================================== */
 
-.config-header {
-    margin-bottom: 20px;
-}
-
-.config-header h2 {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #0f172a;
-    margin: 0;
-}
-
-.config-header p {
-    color: #64748b;
-    font-size: 0.875rem;
-    margin: 4px 0 0 0;
-}
-
-.config-tabs {
-    display: flex;
-    gap: 8px;
-    border-bottom: 1px solid #e2e8f0;
-    padding-bottom: 8px;
-    margin-bottom: 20px;
-}
-
-.config-tab-btn {
-    padding: 8px 16px;
-    border: none;
-    border-radius: 6px;
-    background: #f1f5f9;
-    color: #475569;
-    font-weight: 600;
-    font-size: 0.875rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.config-tab-btn.active {
-    background: #2563eb;
-    color: #ffffff;
+/* El título y la descripción son hijos directos: van apilados */
+.config-page > .config-header {
+    display: block;
 }
 
 .config-card {
-    background: #ffffff;
-    border-radius: 10px;
-    padding: 24px;
-    border: 1px solid #e2e8f0;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    margin-bottom: 24px;
+    margin-bottom: var(--s-5);
+    overflow: hidden;
 }
 
-.config-card h3 {
-    font-size: 1.1rem;
-    margin: 0 0 16px 0;
-    color: #0f172a;
-    border-bottom: 1px solid #f1f5f9;
-    padding-bottom: 10px;
+.config-card .vm-card-head {
+    flex-wrap: wrap;
 }
 
-.config-form-grid {
+/* La tabla llega hasta los bordes de la tarjeta */
+.config-card .os-table-wrapper {
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.config-card-intro {
+    padding: var(--s-3) var(--s-4);
+    border-bottom: 1px solid var(--border-soft);
+    color: var(--text-muted);
+    font-size: var(--fs-sm);
+    line-height: 1.5;
+}
+
+.config-card-alerta {
+    margin: var(--s-3) var(--s-4);
+}
+
+.config-card-carga {
+    justify-content: center;
+    margin-bottom: 0;
+    padding: var(--s-8) var(--s-4);
+}
+
+/* -----------------------------------------------------
+   Formularios por secciones
+----------------------------------------------------- */
+.config-seccion-grid + .vm-form-section-title {
+    margin-top: var(--s-5);
+    padding-top: var(--s-5);
+    border-top: 1px solid var(--border-soft);
+}
+
+.config-form-acciones {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: var(--s-5);
+    padding-top: var(--s-4);
+    border-top: 1px solid var(--border-soft);
+}
+
+/* -----------------------------------------------------
+   Usuarios
+----------------------------------------------------- */
+.config-tabla-usuarios {
+    min-width: 760px;
+}
+
+.btn-act-table.config-accion-desactivar {
+    border-color: var(--danger-border);
+    color: var(--danger-text);
+}
+
+.btn-act-table.config-accion-desactivar:hover:not(:disabled) {
+    border-color: var(--danger-border);
+    background: var(--danger-soft);
+    color: var(--danger-text);
+}
+
+/* -----------------------------------------------------
+   Integraciones
+----------------------------------------------------- */
+.config-integraciones {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+    gap: var(--s-4);
 }
 
-.config-field {
+.config-integracion {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: var(--s-3);
+    min-width: 0;
+    padding: var(--s-4);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
 }
 
-.config-field label {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: #475569;
+.config-integracion .vm-form-section-title {
+    margin-bottom: 0;
 }
 
-.config-field input,
-.config-field select {
-    padding: 8px 12px;
-    border-radius: 6px;
-    border: 1px solid #cbd5e1;
-    background: #ffffff;
-    color: #0f172a;
-    font-size: 0.9rem;
+.config-integracion-texto {
+    color: var(--text-muted);
+    font-size: var(--fs-sm);
+    line-height: 1.5;
 }
 
-.config-modal {
-    background: #ffffff !important;
-    color: #0f172a !important;
+.config-integracion .vm-btn {
+    align-self: flex-start;
+    margin-top: auto;
 }
 
-.config-modal input,
-.config-modal select {
+/* -----------------------------------------------------
+   Series y correlativos
+----------------------------------------------------- */
+.config-tabla-series {
+    min-width: 980px;
+}
+
+.config-col-compacta {
+    width: 130px;
+}
+
+.config-centro {
+    text-align: center;
+}
+
+.config-doc {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+}
+
+.config-doc-icono {
+    flex-shrink: 0;
+    color: var(--primary-text);
+}
+
+.config-doc strong {
+    display: block;
+    font-size: var(--fs-sm);
+}
+
+.config-doc small {
+    color: var(--text-muted);
+    font-size: var(--fs-xs);
+}
+
+.vm-code.config-code-neutro {
+    background: var(--surface-3);
+    color: var(--text-2);
+}
+
+.config-serie-input {
     width: 100%;
-    padding: 8px 12px;
-    border-radius: 6px;
-    border: 1px solid #cbd5e1;
-    background: #ffffff;
-    color: #0f172a;
-    font-size: 0.9rem;
-    box-sizing: border-box;
+    min-height: 34px;
+    padding: 0 var(--s-2);
+    font-family: var(--font-mono);
+}
+
+.config-serie-numero {
+    text-align: right;
+}
+
+/* -----------------------------------------------------
+   Modal de usuario
+----------------------------------------------------- */
+.modal-content.config-modal {
+    max-width: 500px;
+}
+
+select.config-estado-fijo {
+    color: var(--success-text);
+    font-weight: 600;
+    opacity: 1;
+}
+
+@media (max-width: 720px) {
+    .config-card .vm-card-head {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .config-form-acciones .vm-btn,
+    .config-integracion .vm-btn {
+        align-self: stretch;
+        width: 100%;
+    }
 }

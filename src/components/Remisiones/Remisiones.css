@@ -1,0 +1,249 @@
+/* Guías de remisión: pestaña dentro de Facturación. Las piezas base vienen de components.css. */
+
+.remisiones-page {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--s-4);
+}
+
+.remisiones-page > .vm-page-head,
+.remisiones-page > .vm-alert {
+    margin-bottom: 0;
+}
+
+/* Subtítulo de pestaña: un nivel por debajo del título de la página */
+.remisiones-page .vm-page-head h2 {
+    font-size: var(--fs-xl);
+}
+
+.remisiones-header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-2);
+}
+
+/* Formulario de nueva guía */
+.remisiones-form-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--s-4);
+}
+
+.remisiones-page label.form-group {
+    color: var(--text-2);
+    font-size: var(--fs-xs);
+    font-weight: 600;
+}
+
+.remisiones-page label.form-group input,
+.remisiones-page label.form-group select {
+    font-weight: 400;
+}
+
+.remisiones-fields {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.remisiones-sale-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-1) var(--s-4);
+    padding: var(--s-2) var(--s-3);
+    border-left: 3px solid var(--primary);
+    border-radius: var(--r-sm);
+    background: var(--surface-2);
+    font-size: var(--fs-sm);
+}
+
+.remisiones-sale-summary strong {
+    color: var(--text);
+    font-weight: 600;
+}
+
+.remisiones-sale-summary span {
+    color: var(--text-2);
+}
+
+.remisiones-line {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 130px;
+    align-items: center;
+    gap: var(--s-3);
+    padding: var(--s-2) 0;
+    border-top: 1px solid var(--border-soft);
+    color: var(--text);
+    font-size: var(--fs-sm);
+}
+
+.remisiones-line small {
+    display: block;
+    margin-top: 2px;
+    color: var(--text-muted);
+    font-size: var(--fs-xs);
+}
+
+.remisiones-line input {
+    width: 100%;
+    text-align: right;
+}
+
+.remisiones-form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--s-2);
+    padding: var(--s-3) var(--s-4);
+    border-top: 1px solid var(--border-soft);
+    border-radius: 0 0 var(--r-lg) var(--r-lg);
+    background: var(--surface-2);
+}
+
+/* Tabla */
+.remisiones-table {
+    min-width: 1080px;
+}
+
+.remisiones-table .table-actions {
+    min-width: 200px;
+}
+
+/* Vacío y carga siguen a la vista aunque la tabla se desplace en horizontal */
+.remisiones-table .vm-empty,
+.remisiones-table .vm-loading {
+    position: sticky;
+    left: 0;
+    width: min(100%, calc(100vw - 2 * var(--gutter) - 30px));
+}
+
+.remisiones-loading {
+    justify-content: center;
+    margin: 0;
+    padding: var(--s-6) 0;
+}
+
+.remisiones-muted {
+    color: var(--text-muted);
+    font-size: var(--fs-xs);
+}
+
+.remisiones-act-danger {
+    border-color: var(--danger-border);
+    background: var(--surface);
+    color: var(--danger-text);
+}
+
+.remisiones-act-danger:hover:not(:disabled) {
+    border-color: var(--danger);
+    background: var(--danger-soft);
+    color: var(--danger-text);
+}
+
+/* Variantes de .vm-badge según el estado de la guía y de SUNAT */
+.remisiones-state-entregada,
+.remisiones-state-sunat-aceptado {
+    border-color: var(--success-border);
+    background: var(--success-soft);
+    color: var(--success-text);
+}
+
+.remisiones-state-en-transito {
+    border-color: var(--info-border);
+    background: var(--info-soft);
+    color: var(--info-text);
+}
+
+.remisiones-state-pendiente,
+.remisiones-state-sunat-,
+.remisiones-state-sunat-pendiente {
+    border-color: var(--warning-border);
+    background: var(--warning-soft);
+    color: var(--warning-text);
+}
+
+.remisiones-state-anulada,
+.remisiones-state-sunat-rechazado,
+.remisiones-state-sunat-excepcion {
+    border-color: var(--danger-border);
+    background: var(--danger-soft);
+    color: var(--danger-text);
+}
+
+/* Diálogos: la cabecera petróleo aloja una acción sobre fondo oscuro */
+.remisiones-dialog-actions {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    gap: var(--s-2);
+}
+
+.remisiones-header-btn {
+    border-color: var(--on-dark-3);
+    background: transparent;
+    color: var(--on-dark);
+}
+
+.remisiones-header-btn:hover:not(:disabled) {
+    background: var(--surface-dark-2);
+}
+
+.remisiones-detail-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--s-4);
+}
+
+.remisiones-detail-body > .vm-alert {
+    margin-bottom: 0;
+}
+
+.remisiones-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--s-3) var(--s-4);
+}
+
+.remisiones-detail-grid dt {
+    color: var(--text-muted);
+    font-size: var(--fs-xs);
+}
+
+.remisiones-detail-grid dd {
+    margin-top: 2px;
+    color: var(--text);
+    font-size: var(--fs-sm);
+    overflow-wrap: anywhere;
+}
+
+.remisiones-detail-lines > div {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--s-3);
+    padding: var(--s-2) 0;
+    border-top: 1px solid var(--border-soft);
+    font-size: var(--fs-sm);
+    font-variant-numeric: tabular-nums;
+}
+
+.remisiones-detail-lines strong {
+    color: var(--text);
+    font-weight: 600;
+}
+
+.modal-content.remisiones-dispatch-dialog {
+    max-width: 460px;
+}
+
+@media (max-width: 760px) {
+    .remisiones-header-actions > * {
+        flex: 1 1 auto;
+    }
+
+    .remisiones-fields,
+    .remisiones-detail-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .remisiones-line {
+        grid-template-columns: minmax(0, 1fr) 100px;
+    }
+}

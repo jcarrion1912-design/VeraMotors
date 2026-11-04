@@ -7,6 +7,7 @@ from sqlalchemy import func, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.security import admin_o_repuestos
 from app.database import get_db
 from app.models.inventario import Inventario
 from app.models.categoria import Categoria
@@ -122,6 +123,7 @@ def obtener_item(
     "",
     response_model=InventarioResponse,
     status_code=201,
+    dependencies=[Depends(admin_o_repuestos)],
 )
 def crear_item(
     datos: InventarioCreate,
@@ -192,6 +194,7 @@ def crear_item(
 @router.put(
     "/{item_id}",
     response_model=InventarioResponse,
+    dependencies=[Depends(admin_o_repuestos)],
 )
 def actualizar_item(
     item_id: int,
@@ -279,6 +282,7 @@ def actualizar_item(
 
 @router.delete(
     "/{item_id}",
+    dependencies=[Depends(admin_o_repuestos)],
 )
 def desactivar_item(
     item_id: int,
