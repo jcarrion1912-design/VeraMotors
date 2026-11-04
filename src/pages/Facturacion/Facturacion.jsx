@@ -10,7 +10,6 @@ import {
     obtenerMetodosPago,
     registrarPago
 } from "../../services/cobrosService";
-import { abrirDocumentoProtegido } from "../../services/autenticacion";
 import "./Facturacion.css";
 
 const API_URL = "http://127.0.0.1:8000/api";
@@ -1757,27 +1756,45 @@ function Facturacion() {
 
         <div className="facturacion-page">
 
-            {errorModalPago && !mostrarModalPago && <div className="vm-alert" role="alert"><span className="material-symbols-outlined" aria-hidden="true">error</span>{errorModalPago}</div>}
+            {errorModalPago && !mostrarModalPago && <div className="cxc-alert" role="alert">{errorModalPago}</div>}
 
             {/* =================================================
                 CABECERA
             ================================================= */}
 
             <div className="facturacion-header">
+
                 <div>
-                    <h2>Ingresos y Facturación Electrónica</h2>
-                    <p>Gestión comercial, cotizaciones, cobranzas y comprobantes SUNAT de VeraMotors.</p>
+
+                    <h2>
+                        Ingresos y Facturación Electrónica
+                    </h2>
+
+                    <p>
+                        Gestión comercial, cotizaciones,
+                        cobranzas y comprobantes SUNAT
+                        de VeraMotors.
+                    </p>
+
                 </div>
 
                 <div className="facturacion-header-actions">
+
                     <button
                         className="btn-nueva-factura"
                         onClick={abrirWizard}
                     >
-                        <span className="material-symbols-outlined" aria-hidden="true">receipt_long</span>
-                        Nueva Factura
+
+                        <span className="material-symbols-outlined">
+                            receipt_long
+                        </span>
+
+                        + Nueva Factura
+
                     </button>
+
                 </div>
+
             </div>
 
             {/* =================================================
@@ -1785,19 +1802,30 @@ function Facturacion() {
             ================================================= */}
 
             <div className="fact-tabs-nav">
+
                 {SUBMENUS_FACTURACION.map(
                     (sub) => (
+
                         <button
                             key={sub}
-                            className={`fact-tab-btn ${submodulo === sub ? "active" : ""}`}
+                            className={
+                                `fact-tab-btn ${submodulo === sub
+                                    ? "active"
+                                    : ""
+                                }`
+                            }
                             onClick={() =>
                                 setSubmodulo(sub)
                             }
                         >
+
                             {sub}
+
                         </button>
+
                     )
                 )}
+
             </div>
 
             {/* =================================================
@@ -1806,47 +1834,107 @@ function Facturacion() {
 
             {submodulo === "Facturas" && (
 
-                <div className="os-table-wrapper">
-                    <table className="os-table fact-table">
+                <div
+                    className="os-table-wrapper"
+                    style={{
+                        marginTop: "16px"
+                    }}
+                >
+
+                    <table className="os-table">
+
                         <thead>
+
                             <tr>
+
                                 <th>N° Factura</th>
+
                                 <th>Fecha Emisión</th>
+
                                 <th>Cliente</th>
+
                                 <th>Tipo</th>
-                                <th className="vm-num">Subtotal</th>
-                                <th className="vm-num">IGV</th>
-                                <th className="vm-num">Total</th>
+
+                                <th>Subtotal</th>
+
+                                <th>IGV</th>
+
+                                <th>Total</th>
+
                                 <th>Estado Pago</th>
+
                                 <th>Estado SUNAT</th>
+
                                 <th>Acciones</th>
+
                             </tr>
+
                         </thead>
 
                         <tbody>
+
                             {cargandoFacturas ? (
+
                                 <tr>
-                                    <td colSpan="10">
-                                        <div className="vm-loading fact-loading">Cargando facturas...</div>
+
+                                    <td
+                                        colSpan="10"
+                                        style={{
+                                            textAlign:
+                                                "center",
+                                            padding:
+                                                "30px"
+                                        }}
+                                    >
+                                        Cargando facturas...
                                     </td>
+
                                 </tr>
+
                             ) : facturasList.length === 0 ? (
+
                                 <tr>
-                                    <td colSpan="10">
-                                        <div className="vm-empty">
-                                            <span className="material-symbols-outlined" aria-hidden="true">receipt_long</span>
-                                            <strong>No existen facturas registradas.</strong>
-                                        </div>
+
+                                    <td
+                                        colSpan="10"
+                                        style={{
+                                            textAlign:
+                                                "center",
+                                            padding:
+                                                "30px"
+                                        }}
+                                    >
+                                        No existen facturas
+                                        registradas.
                                     </td>
+
                                 </tr>
+
                             ) : (
+
                                 facturasList.map(
                                     (factura) => (
-                                        <tr key={factura.factura_id}>
+
+                                        <tr
+                                            key={
+                                                factura.factura_id
+                                            }
+                                        >
+
                                             <td>
-                                                <span className="vm-code">{factura.numero_comprobante}</span>
+                                                <strong>
+                                                    {
+                                                        factura.numero_comprobante
+                                                    }
+                                                </strong>
                                             </td>
-                                            <td>{fecha(factura.fecha_emision)}</td>
+
+                                            <td>
+                                                {fecha(
+                                                    factura.fecha_emision
+                                                )}
+                                            </td>
+
                                             <td>
                                                 {
                                                     factura.cliente_nombre ||
@@ -1856,44 +1944,95 @@ function Facturacion() {
                                                     )
                                                 }
                                             </td>
-                                            <td>{factura.tipo_comprobante}</td>
-                                            <td className="vm-num">{moneda(factura.subtotal)}</td>
-                                            <td className="vm-num">{moneda(factura.impuestos)}</td>
-                                            <td className="vm-num"><strong>{moneda(factura.total)}</strong></td>
+
                                             <td>
-                                                <span className={`vm-badge ${factura.estado_pago === "Pagado" ? "vm-badge-success" : factura.estado_pago === "Anulado" ? "vm-badge-danger" : "vm-badge-warning"}`}>
-                                                    {factura.estado_pago || "Pendiente"}
-                                                </span>
+                                                {
+                                                    factura.tipo_comprobante
+                                                }
                                             </td>
+
                                             <td>
-                                                <span className={`vm-badge ${factura.estado_sunat === "Aceptado" ? "vm-badge-success" : factura.estado_sunat === "Rechazado" || factura.estado_sunat === "Anulado" ? "vm-badge-danger" : "vm-badge-warning"}`}>
-                                                    {factura.estado_sunat || "Pendiente"}
-                                                </span>
+                                                {moneda(
+                                                    factura.subtotal
+                                                )}
                                             </td>
+
                                             <td>
-                                                <div className="table-actions fact-row-actions">
+                                                {moneda(
+                                                    factura.impuestos
+                                                )}
+                                            </td>
+
+                                            <td>
+                                                <strong>
+                                                    {moneda(
+                                                        factura.total
+                                                    )}
+                                                </strong>
+                                            </td>
+
+                                            <td>
+
+                                                <span
+                                                    className={
+                                                        `proc-tag ${factura.estado_pago ===
+                                                            "Pagado"
+                                                            ? "preventivo"
+                                                            : "correctivo"
+                                                        }`
+                                                    }
+                                                >
+                                                    {
+                                                        factura.estado_pago ||
+                                                        "Pendiente"
+                                                    }
+                                                </span>
+
+                                            </td>
+
+                                            <td>
+
+                                                <span
+                                                    className={
+                                                        `proc-tag ${factura.estado_sunat ===
+                                                            "Aceptado"
+                                                            ? "preventivo"
+                                                            : "correctivo"
+                                                        }`
+                                                    }
+                                                >
+                                                    {
+                                                        factura.estado_sunat ||
+                                                        "Pendiente"
+                                                    }
+                                                </span>
+
+                                            </td>
+
+                                            <td>
+
+                                                <div className="table-actions" style={{ display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center" }}>
 
                                                     <a
                                                         href={`${API_URL}/facturacion/${factura.factura_id}/pdf?formato=A4`}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                        onClick={(e) => abrirDocumentoProtegido(e, `${API_URL}/facturacion/${factura.factura_id}/pdf?formato=A4`)}
                                                         className="btn-act-table link"
+                                                        style={{ padding: "6px 10px", fontSize: "12px", textDecoration: "none", backgroundColor: "#3b82f6", color: "#ffffff", borderColor: "#3b82f6" }}
                                                         title="Ver / Descargar PDF oficial generado por APISUNAT"
                                                     >
-                                                        <span className="material-symbols-outlined" aria-hidden="true">picture_as_pdf</span>
-                                                        PDF
+                                                        📄 PDF
                                                     </a>
 
                                                     <button
                                                         type="button"
-                                                        className="btn-act-table"
+                                                        className="btn-act-table link"
+                                                        style={{ padding: "6px 10px", fontSize: "12px" }}
                                                         onClick={() => consultarEstadoSunatFactura(factura)}
                                                         disabled={consultandoFactura === factura.factura_id}
                                                         title="Consultar estado del comprobante directamente en APISUNAT"
                                                     >
-                                                        <span className="material-symbols-outlined" aria-hidden="true">sync</span>
-                                                        {consultandoFactura === factura.factura_id ? "Consultando..." : "Consultar"}
+                                                        {consultandoFactura === factura.factura_id ? "Consultando..." : "🔄 Consultar"}
                                                     </button>
 
                                                     {factura.estado_sunat === "Aceptado" && (
@@ -1902,71 +2041,74 @@ function Facturacion() {
                                                                 href={`${API_URL}/facturacion/${factura.factura_id}/xml`}
                                                                 target="_blank"
                                                                 rel="noopener noreferrer"
-                                                                onClick={(e) => abrirDocumentoProtegido(e, `${API_URL}/facturacion/${factura.factura_id}/xml`)}
-                                                                className="btn-act-table"
+                                                                className="btn-act-table link"
+                                                                style={{ padding: "6px 8px", fontSize: "11px", textDecoration: "none" }}
                                                                 title="Descargar XML firmado de APISUNAT"
                                                             >
-                                                                <span className="material-symbols-outlined" aria-hidden="true">code</span>
-                                                                XML
+                                                                📦 XML
                                                             </a>
                                                             <a
                                                                 href={`${API_URL}/facturacion/${factura.factura_id}/cdr`}
                                                                 target="_blank"
                                                                 rel="noopener noreferrer"
-                                                                onClick={(e) => abrirDocumentoProtegido(e, `${API_URL}/facturacion/${factura.factura_id}/cdr`)}
-                                                                className="btn-act-table"
+                                                                className="btn-act-table link"
+                                                                style={{ padding: "6px 8px", fontSize: "11px", textDecoration: "none" }}
                                                                 title="Descargar Constancia de Recepción (CDR) de SUNAT"
                                                             >
-                                                                <span className="material-symbols-outlined" aria-hidden="true">verified</span>
-                                                                CDR
+                                                                📜 CDR
                                                             </a>
                                                         </>
                                                     )}
 
                                                     {factura.estado_pago !== "Pagado" && factura.estado_pago !== "Anulado" && (
                                                         <button
-                                                            className="btn-act-table fact-act-primary"
+                                                            className="btn-act-table link"
+                                                            style={{ backgroundColor: "#10b981", color: "#ffffff", borderColor: "#10b981", fontWeight: "bold" }}
                                                             type="button"
                                                             onClick={() => abrirModalPago(factura)}
                                                             title="Registrar cobro / pago de este comprobante"
                                                         >
-                                                            <span className="material-symbols-outlined" aria-hidden="true">payments</span>
-                                                            Cobrar
+                                                            💳 Cobrar
                                                         </button>
                                                     )}
 
                                                     <button
-                                                        className="btn-act-table"
+                                                        className="btn-act-table diag"
                                                         type="button"
                                                         onClick={() =>
                                                             abrirModalNC(factura)
                                                         }
                                                         title="Emitir Nota de Crédito por anulación, devolución o descuento"
                                                     >
-                                                        <span className="material-symbols-outlined" aria-hidden="true">remove_circle</span>
-                                                        Nota Crédito
+                                                        📝 Nota Crédito
                                                     </button>
 
                                                     <button
-                                                        className="btn-act-table"
+                                                        className="btn-act-table diag"
                                                         type="button"
                                                         onClick={() =>
                                                             abrirModalND(factura)
                                                         }
                                                         title="Emitir Nota de Débito por aumento en el valor del servicio"
                                                     >
-                                                        <span className="material-symbols-outlined" aria-hidden="true">add_circle</span>
-                                                        Nota Débito
+                                                        📝 Nota Débito
                                                     </button>
 
                                                 </div>
+
                                             </td>
+
                                         </tr>
+
                                     )
                                 )
+
                             )}
+
                         </tbody>
+
                     </table>
+
                 </div>
 
             )}
@@ -1977,122 +2119,263 @@ function Facturacion() {
 
             {submodulo === "Notas de Crédito" && (
 
-                <div className="vm-card fact-panel">
+                <div
+                    className="os-table-wrapper"
+                    style={{
+                        marginTop: "16px"
+                    }}
+                >
 
-                    <div className="vm-card-head fact-panel-head">
+                    <div
+                        style={{
+                            padding: "12px 16px",
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center"
+                        }}
+                    >
+
                         <div>
-                            <h3>Notas de Crédito</h3>
-                            <p>Notas de crédito registradas en PostgreSQL.</p>
+
+                            <h3>
+                                Notas de Crédito
+                            </h3>
+
+                            <p
+                                style={{
+                                    margin: "4px 0",
+                                    color: "#64748b"
+                                }}
+                            >
+                                Notas de crédito registradas
+                                en PostgreSQL.
+                            </p>
+
                         </div>
 
                         <button
                             type="button"
-                            className="vm-btn vm-btn-primary"
+                            className="btn-act-table link"
+                            style={{ padding: "8px 16px" }}
                             onClick={() => abrirModalNC()}
                         >
-                            <span className="material-symbols-outlined" aria-hidden="true">add</span>
-                            Nueva Nota de Crédito
+                            + Nueva Nota de Crédito
                         </button>
+
                     </div>
 
-                    <div className="os-table-wrapper">
-                        <table className="os-table fact-table">
-                            <thead>
+                    <table className="os-table">
+
+                        <thead>
+
+                            <tr>
+
+                                <th>N° Nota</th>
+
+                                <th>Fecha</th>
+
+                                <th>Factura</th>
+
+                                <th>Cliente</th>
+
+                                <th>Tipo</th>
+
+                                <th>Motivo</th>
+
+                                <th>Subtotal</th>
+
+                                <th>IGV</th>
+
+                                <th>Total</th>
+
+                                <th>Estado SUNAT</th>
+
+                            </tr>
+
+                        </thead>
+
+                        <tbody>
+
+                            {cargandoNotasCredito ? (
+
                                 <tr>
-                                    <th>N° Nota</th>
-                                    <th>Fecha</th>
-                                    <th>Factura</th>
-                                    <th>Cliente</th>
-                                    <th>Tipo</th>
-                                    <th>Motivo</th>
-                                    <th className="vm-num">Subtotal</th>
-                                    <th className="vm-num">IGV</th>
-                                    <th className="vm-num">Total</th>
-                                    <th>Estado SUNAT</th>
+
+                                    <td
+                                        colSpan="10"
+                                        style={{
+                                            textAlign: "center",
+                                            padding: "30px"
+                                        }}
+                                    >
+                                        Cargando notas de crédito...
+                                    </td>
+
                                 </tr>
-                            </thead>
 
-                            <tbody>
-                                {cargandoNotasCredito ? (
-                                    <tr>
-                                        <td colSpan="10">
-                                            <div className="vm-loading fact-loading">Cargando notas de crédito...</div>
-                                        </td>
-                                    </tr>
-                                ) : notasCreditoList.length === 0 ? (
-                                    <tr>
-                                        <td colSpan="10">
-                                            <div className="vm-empty">
-                                                <span className="material-symbols-outlined" aria-hidden="true">remove_circle</span>
-                                                <strong>No existen notas de crédito registradas.</strong>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    notasCreditoList.map(
-                                        (nota) => (
-                                            <tr key={nota.nota_credito_id}>
-                                                <td><span className="vm-code">{nota.numero_nota}</span></td>
-                                                <td>{fecha(nota.fecha_emision)}</td>
-                                                <td><span className="vm-code">{nota.numero_factura || nota.factura_id}</span></td>
-                                                <td className="fact-cell-client">
+                            ) : notasCreditoList.length === 0 ? (
+
+                                <tr>
+
+                                    <td
+                                        colSpan="10"
+                                        style={{
+                                            textAlign: "center",
+                                            padding: "30px"
+                                        }}
+                                    >
+                                        No existen notas de crédito
+                                        registradas.
+                                    </td>
+
+                                </tr>
+
+                            ) : (
+
+                                notasCreditoList.map(
+                                    (nota) => (
+
+                                        <tr
+                                            key={
+                                                nota.nota_credito_id
+                                            }
+                                        >
+
+                                            <td>
+
+                                                <strong>
                                                     {
-                                                        nota.cliente_nombre ||
-                                                        nota.nombre_razon_social ||
-                                                        obtenerNombreCliente(
-                                                            nota.cliente_id
-                                                        )
+                                                        nota.numero_nota
                                                     }
-                                                </td>
-                                                <td>{nota.tipo_nota}</td>
-                                                <td className="fact-cell-text">{nota.motivo}</td>
-                                                <td className="vm-num">{moneda(nota.subtotal)}</td>
-                                                <td className="vm-num">{moneda(nota.impuestos)}</td>
-                                                <td className="vm-num"><strong>{moneda(nota.total)}</strong></td>
-                                                <td>
-                                                    <div className="table-actions fact-status-actions">
-                                                        <span className={`vm-badge ${nota.estado_sunat === "Aceptado" ? "vm-badge-success" : nota.estado_sunat === "Rechazado" || nota.estado_sunat === "Anulado" ? "vm-badge-danger" : "vm-badge-warning"}`}>
-                                                            {nota.estado_sunat || "Pendiente"}
-                                                        </span>
+                                                </strong>
 
-                                                        <a
-                                                            href={`${API_URL}/notas-credito/${nota.nota_credito_id}/pdf?formato=A4`}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            onClick={(e) => abrirDocumentoProtegido(e, `${API_URL}/notas-credito/${nota.nota_credito_id}/pdf?formato=A4`)}
-                                                            className="btn-act-table link"
-                                                            title="Ver / Descargar PDF oficial generado por APISUNAT"
-                                                        >
-                                                            <span className="material-symbols-outlined" aria-hidden="true">picture_as_pdf</span>
-                                                            PDF
-                                                        </a>
+                                            </td>
 
-                                                        <button
-                                                            type="button"
-                                                            className="btn-act-table"
-                                                            onClick={() =>
-                                                                consultarEstadoSunatNC(nota)
-                                                            }
-                                                            disabled={
-                                                                consultandoNC ===
-                                                                nota.nota_credito_id
-                                                            }
-                                                        >
-                                                            <span className="material-symbols-outlined" aria-hidden="true">sync</span>
-                                                            {consultandoNC ===
-                                                                nota.nota_credito_id
-                                                                ? "Consultando..."
-                                                                : "Consultar"}
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        )
+                                            <td>
+                                                {fecha(
+                                                    nota.fecha_emision
+                                                )}
+                                            </td>
+
+                                            <td>
+                                                <strong>{nota.numero_factura || nota.factura_id}</strong>
+                                            </td>
+
+                                            <td>
+                                                {
+                                                    nota.cliente_nombre ||
+                                                    nota.nombre_razon_social ||
+                                                    obtenerNombreCliente(
+                                                        nota.cliente_id
+                                                    )
+                                                }
+                                            </td>
+
+                                            <td>
+                                                {
+                                                    nota.tipo_nota
+                                                }
+                                            </td>
+
+                                            <td>
+                                                {
+                                                    nota.motivo
+                                                }
+                                            </td>
+
+                                            <td>
+                                                {moneda(
+                                                    nota.subtotal
+                                                )}
+                                            </td>
+
+                                            <td>
+                                                {moneda(
+                                                    nota.impuestos
+                                                )}
+                                            </td>
+
+                                            <td>
+
+                                                <strong>
+                                                    {moneda(
+                                                        nota.total
+                                                    )}
+                                                </strong>
+
+                                            </td>
+
+                                            <td>
+                                                <div
+                                                    style={{
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        gap: "8px",
+                                                        flexWrap: "wrap"
+                                                    }}
+                                                >
+                                                    <span
+                                                        className={
+                                                            `proc-tag ${nota.estado_sunat ===
+                                                                "Aceptado"
+                                                                ? "preventivo"
+                                                                : "correctivo"
+                                                            }`
+                                                        }
+                                                    >
+                                                        {nota.estado_sunat || "Pendiente"}
+                                                    </span>
+
+                                                    <a
+                                                        href={`${API_URL}/notas-credito/${nota.nota_credito_id}/pdf?formato=A4`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="btn-act-table link"
+                                                        style={{
+                                                            padding: "6px 10px",
+                                                            fontSize: "12px",
+                                                            textDecoration: "none",
+                                                            backgroundColor: "#3b82f6",
+                                                            color: "#ffffff",
+                                                            borderColor: "#3b82f6"
+                                                        }}
+                                                        title="Ver / Descargar PDF oficial generado por APISUNAT"
+                                                    >
+                                                        📄 PDF
+                                                    </a>
+
+                                                    <button
+                                                        type="button"
+                                                        className="btn-act-table link"
+                                                        style={{
+                                                            padding: "6px 10px",
+                                                            fontSize: "12px"
+                                                        }}
+                                                        onClick={() =>
+                                                            consultarEstadoSunatNC(nota)
+                                                        }
+                                                        disabled={
+                                                            consultandoNC ===
+                                                            nota.nota_credito_id
+                                                        }
+                                                    >
+                                                        {consultandoNC ===
+                                                            nota.nota_credito_id
+                                                            ? "Consultando..."
+                                                            : "🔄 Consultar"}
+                                                    </button>
+                                                </div>
+                                            </td>
+
+                                        </tr>
+
                                     )
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
+                                )
+
+                            )}
+
+                        </tbody>
+
+                    </table>
 
                 </div>
 
@@ -2104,117 +2387,149 @@ function Facturacion() {
 
             {submodulo === "Notas de Débito" && (
 
-                <div className="vm-card fact-panel">
+                <div
+                    className="os-table-wrapper"
+                    style={{
+                        marginTop: "16px"
+                    }}
+                >
 
-                    <div className="vm-card-head fact-panel-head">
+                    <div
+                        style={{
+                            padding: "12px 16px",
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center"
+                        }}
+                    >
+
                         <div>
                             <h3>Notas de Débito</h3>
-                            <p>Notas de débito registradas en PostgreSQL.</p>
+                            <p style={{ margin: "4px 0", color: "#64748b" }}>
+                                Notas de débito registradas en PostgreSQL.
+                            </p>
                         </div>
 
                         <button
                             type="button"
-                            className="vm-btn vm-btn-primary"
+                            className="btn-act-table link"
+                            style={{ padding: "8px 16px" }}
                             onClick={() => abrirModalND()}
                         >
-                            <span className="material-symbols-outlined" aria-hidden="true">add</span>
-                            Nueva Nota de Débito
+                            + Nueva Nota de Débito
                         </button>
                     </div>
 
-                    <div className="os-table-wrapper">
-                        <table className="os-table fact-table">
-                            <thead>
-                                <tr>
-                                    <th>N° Nota</th>
-                                    <th>Fecha</th>
-                                    <th>Factura</th>
-                                    <th>Cliente</th>
-                                    <th>Tipo</th>
-                                    <th>Motivo</th>
-                                    <th className="vm-num">Subtotal</th>
-                                    <th className="vm-num">IGV</th>
-                                    <th className="vm-num">Total</th>
-                                    <th>Estado SUNAT</th>
-                                </tr>
-                            </thead>
+                    <table className="os-table">
+                        <thead>
+                            <tr>
+                                <th>N° Nota</th>
+                                <th>Fecha</th>
+                                <th>Factura</th>
+                                <th>Cliente</th>
+                                <th>Tipo</th>
+                                <th>Motivo</th>
+                                <th>Subtotal</th>
+                                <th>IGV</th>
+                                <th>Total</th>
+                                <th>Estado SUNAT</th>
+                            </tr>
+                        </thead>
 
-                            <tbody>
-                                {cargandoNotasDebito ? (
-                                    <tr>
-                                        <td colSpan="10">
-                                            <div className="vm-loading fact-loading">Cargando notas de débito...</div>
+                        <tbody>
+                            {cargandoNotasDebito ? (
+                                <tr>
+                                    <td colSpan="10" style={{ textAlign: "center", padding: "30px" }}>
+                                        Cargando notas de débito...
+                                    </td>
+                                </tr>
+                            ) : notasDebitoList.length === 0 ? (
+                                <tr>
+                                    <td colSpan="10" style={{ textAlign: "center", padding: "30px" }}>
+                                        No existen notas de débito registradas.
+                                    </td>
+                                </tr>
+                            ) : (
+                                notasDebitoList.map((nota) => (
+                                    <tr key={nota.nota_debito_id}>
+                                        <td>
+                                            <strong>{nota.numero_nota}</strong>
                                         </td>
-                                    </tr>
-                                ) : notasDebitoList.length === 0 ? (
-                                    <tr>
-                                        <td colSpan="10">
-                                            <div className="vm-empty">
-                                                <span className="material-symbols-outlined" aria-hidden="true">add_circle</span>
-                                                <strong>No existen notas de débito registradas.</strong>
+                                        <td>{fecha(nota.fecha_emision)}</td>
+                                        <td>{nota.numero_factura || nota.factura_id || "-"}</td>
+                                        <td>
+                                            {nota.cliente_nombre ||
+                                                nota.nombre_razon_social ||
+                                                obtenerNombreCliente(nota.cliente_id)}
+                                        </td>
+                                        <td>{nota.tipo_nota || "Débito"}</td>
+                                        <td>{nota.motivo || "-"}</td>
+                                        <td>{moneda(nota.subtotal)}</td>
+                                        <td>{moneda(nota.impuestos)}</td>
+                                        <td><strong>{moneda(nota.total)}</strong></td>
+                                        <td>
+                                            <div
+                                                style={{
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    gap: "8px",
+                                                    flexWrap: "wrap"
+                                                }}
+                                            >
+                                                <span
+                                                    className={`proc-tag ${nota.estado_sunat === "Aceptado"
+                                                        ? "preventivo"
+                                                        : "correctivo"
+                                                        }`}
+                                                >
+                                                    {nota.estado_sunat || "Pendiente"}
+                                                </span>
+
+                                                <a
+                                                    href={`${API_URL}/notas-debito/${nota.nota_debito_id}/pdf?formato=A4`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="btn-act-table link"
+                                                    style={{
+                                                        padding: "6px 10px",
+                                                        fontSize: "12px",
+                                                        textDecoration: "none",
+                                                        backgroundColor: "#3b82f6",
+                                                        color: "#ffffff",
+                                                        borderColor: "#3b82f6"
+                                                    }}
+                                                    title="Ver / Descargar PDF oficial generado por APISUNAT"
+                                                >
+                                                    📄 PDF
+                                                </a>
+
+                                                <button
+                                                    type="button"
+                                                    className="btn-act-table link"
+                                                    style={{
+                                                        padding: "6px 10px",
+                                                        fontSize: "12px"
+                                                    }}
+                                                    onClick={() =>
+                                                        consultarEstadoSunatND(nota)
+                                                    }
+                                                    disabled={
+                                                        consultandoND ===
+                                                        nota.nota_debito_id
+                                                    }
+                                                >
+                                                    {consultandoND ===
+                                                        nota.nota_debito_id
+                                                        ? "Consultando..."
+                                                        : "🔄 Consultar"}
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
-                                ) : (
-                                    notasDebitoList.map((nota) => (
-                                        <tr key={nota.nota_debito_id}>
-                                            <td><span className="vm-code">{nota.numero_nota}</span></td>
-                                            <td>{fecha(nota.fecha_emision)}</td>
-                                            <td><span className="vm-code">{nota.numero_factura || nota.factura_id || "-"}</span></td>
-                                            <td className="fact-cell-client">
-                                                {nota.cliente_nombre ||
-                                                    nota.nombre_razon_social ||
-                                                    obtenerNombreCliente(nota.cliente_id)}
-                                            </td>
-                                            <td>{nota.tipo_nota || "Débito"}</td>
-                                            <td className="fact-cell-text">{nota.motivo || "-"}</td>
-                                            <td className="vm-num">{moneda(nota.subtotal)}</td>
-                                            <td className="vm-num">{moneda(nota.impuestos)}</td>
-                                            <td className="vm-num"><strong>{moneda(nota.total)}</strong></td>
-                                            <td>
-                                                <div className="table-actions fact-status-actions">
-                                                    <span className={`vm-badge ${nota.estado_sunat === "Aceptado" ? "vm-badge-success" : nota.estado_sunat === "Rechazado" || nota.estado_sunat === "Anulado" ? "vm-badge-danger" : "vm-badge-warning"}`}>
-                                                        {nota.estado_sunat || "Pendiente"}
-                                                    </span>
-
-                                                    <a
-                                                        href={`${API_URL}/notas-debito/${nota.nota_debito_id}/pdf?formato=A4`}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        onClick={(e) => abrirDocumentoProtegido(e, `${API_URL}/notas-debito/${nota.nota_debito_id}/pdf?formato=A4`)}
-                                                        className="btn-act-table link"
-                                                        title="Ver / Descargar PDF oficial generado por APISUNAT"
-                                                    >
-                                                        <span className="material-symbols-outlined" aria-hidden="true">picture_as_pdf</span>
-                                                        PDF
-                                                    </a>
-
-                                                    <button
-                                                        type="button"
-                                                        className="btn-act-table"
-                                                        onClick={() =>
-                                                            consultarEstadoSunatND(nota)
-                                                        }
-                                                        disabled={
-                                                            consultandoND ===
-                                                            nota.nota_debito_id
-                                                        }
-                                                    >
-                                                        <span className="material-symbols-outlined" aria-hidden="true">sync</span>
-                                                        {consultandoND ===
-                                                            nota.nota_debito_id
-                                                            ? "Consultando..."
-                                                            : "Consultar"}
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-
+                                ))
+                            )}
+                        </tbody>
+                    </table>
                 </div>
             )}
 
@@ -2246,51 +2561,114 @@ function Facturacion() {
                 const totalPorCobrar = cuentasPendientes.reduce((acc, f) => acc + Number(f.total || 0), 0);
 
                 return (
-                    <div>
+                    <div style={{ marginTop: "16px" }}>
                         {/* TARJETAS DE RESUMEN KPI */}
-                        <div className="vm-kpi-grid">
-                            <div className="vm-kpi">
-                                <span className="vm-kpi-label">Total por Cobrar</span>
-                                <strong className="vm-kpi-value fact-kpi-danger">{moneda(totalPorCobrar)}</strong>
-                                <small className="fact-hint">Suma de facturas y boletas pendientes</small>
+                        <div
+                            style={{
+                                display: "grid",
+                                gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+                                gap: "16px",
+                                marginBottom: "20px"
+                            }}
+                        >
+                            <div
+                                style={{
+                                    background: "#ffffff",
+                                    padding: "18px 20px",
+                                    borderRadius: "10px",
+                                    border: "1px solid #e2e8f0",
+                                    boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                                    borderLeft: "5px solid #ef4444"
+                                }}
+                            >
+                                <span style={{ fontSize: "13px", color: "#64748b", fontWeight: 600, textTransform: "uppercase" }}>
+                                    Total por Cobrar
+                                </span>
+                                <h2 style={{ margin: "8px 0 0", color: "#ef4444", fontSize: "26px", fontWeight: 700 }}>
+                                    {moneda(totalPorCobrar)}
+                                </h2>
+                                <small style={{ color: "#94a3b8" }}>Suma de facturas y boletas pendientes</small>
                             </div>
 
-                            <div className="vm-kpi">
-                                <span className="vm-kpi-label">Comprobantes Pendientes</span>
-                                <strong className="vm-kpi-value">{cuentasPendientes.length}</strong>
-                                <small className="fact-hint">Documentos pendientes de cobro</small>
+                            <div
+                                style={{
+                                    background: "#ffffff",
+                                    padding: "18px 20px",
+                                    borderRadius: "10px",
+                                    border: "1px solid #e2e8f0",
+                                    boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                                    borderLeft: "5px solid #f59e0b"
+                                }}
+                            >
+                                <span style={{ fontSize: "13px", color: "#64748b", fontWeight: 600, textTransform: "uppercase" }}>
+                                    Comprobantes Pendientes
+                                </span>
+                                <h2 style={{ margin: "8px 0 0", color: "#0f172a", fontSize: "26px", fontWeight: 700 }}>
+                                    {cuentasPendientes.length}
+                                </h2>
+                                <small style={{ color: "#94a3b8" }}>Documentos pendientes de cobro</small>
                             </div>
 
-                            <div className="vm-kpi">
-                                <span className="vm-kpi-label">Comprobantes Pagados</span>
-                                <strong className="vm-kpi-value">{facturasList.filter(f => (f.estado_pago || "").toLowerCase() === "pagado").length}</strong>
-                                <small className="fact-hint">Operaciones ya saldadas</small>
+                            <div
+                                style={{
+                                    background: "#ffffff",
+                                    padding: "18px 20px",
+                                    borderRadius: "10px",
+                                    border: "1px solid #e2e8f0",
+                                    boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                                    borderLeft: "5px solid #10b981"
+                                }}
+                            >
+                                <span style={{ fontSize: "13px", color: "#64748b", fontWeight: 600, textTransform: "uppercase" }}>
+                                    Comprobantes Pagados
+                                </span>
+                                <h2 style={{ margin: "8px 0 0", color: "#10b981", fontSize: "26px", fontWeight: 700 }}>
+                                    {facturasList.filter(f => (f.estado_pago || "").toLowerCase() === "pagado").length}
+                                </h2>
+                                <small style={{ color: "#94a3b8" }}>Operaciones ya saldadas</small>
                             </div>
                         </div>
 
                         {/* TABLA DE CUENTAS POR COBRAR */}
-                        <div className="vm-card fact-panel">
-                            <div className="vm-card-head fact-panel-head">
+                        <div className="os-table-wrapper">
+                            <div
+                                style={{
+                                    padding: "14px 18px",
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                    borderBottom: "1px solid #e2e8f0",
+                                    flexWrap: "wrap",
+                                    gap: "12px"
+                                }}
+                            >
                                 <div>
-                                    <h3>Listado de Cuentas por Cobrar</h3>
-                                    <p>Solo se muestran comprobantes con estado de pago <strong>Pendiente</strong>. Al pagar, se retirarán automáticamente de esta sección.</p>
+                                    <h3 style={{ margin: 0, color: "#0f172a" }}>Listado de Cuentas por Cobrar</h3>
+                                    <p style={{ margin: "4px 0 0", color: "#64748b", fontSize: "13px" }}>
+                                        Solo se muestran comprobantes con estado de pago <strong>Pendiente</strong>. Al pagar, se retirarán automáticamente de esta sección.
+                                    </p>
                                 </div>
 
-                                <div className="fact-panel-search">
-                                    <div className="vm-search">
-                                        <span className="material-symbols-outlined" aria-hidden="true">search</span>
-                                        <input
-                                            type="text"
-                                            placeholder="Buscar por N° Comprobante o Cliente..."
-                                            value={busquedaCxC}
-                                            onChange={(e) => setBusquedaCxC(e.target.value)}
-                                        />
-                                    </div>
+                                <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                                    <input
+                                        type="text"
+                                        placeholder="Buscar por N° Comprobante o Cliente..."
+                                        value={busquedaCxC}
+                                        onChange={(e) => setBusquedaCxC(e.target.value)}
+                                        style={{
+                                            padding: "8px 12px",
+                                            borderRadius: "6px",
+                                            border: "1px solid #cbd5e1",
+                                            fontSize: "13px",
+                                            minWidth: "260px"
+                                        }}
+                                    />
                                     {busquedaCxC && (
                                         <button
                                             type="button"
-                                            className="vm-btn vm-btn-secondary"
+                                            className="btn-act-table link"
                                             onClick={() => setBusquedaCxC("")}
+                                            style={{ padding: "6px 12px" }}
                                         >
                                             Limpiar
                                         </button>
@@ -2298,191 +2676,112 @@ function Facturacion() {
                                 </div>
                             </div>
 
-                            <div className="os-table-wrapper">
-                                <table className="os-table fact-table">
-                                    <thead>
+                            <table className="os-table">
+                                <thead>
+                                    <tr>
+                                        <th>N° Comprobante</th>
+                                        <th>Tipo</th>
+                                        <th>Fecha Emisión</th>
+                                        <th>Cliente</th>
+                                        <th>Método Pactado</th>
+                                        <th>Total Pendiente</th>
+                                        <th>Estado de Pago</th>
+                                        <th style={{ textAlign: "center" }}>Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {cargandoFacturas ? (
                                         <tr>
-                                            <th>N° Comprobante</th>
-                                            <th>Tipo</th>
-                                            <th>Fecha Emisión</th>
-                                            <th>Cliente</th>
-                                            <th>Método Pactado</th>
-                                            <th className="vm-num">Total Pendiente</th>
-                                            <th>Estado de Pago</th>
-                                            <th>Acción</th>
+                                            <td colSpan="8" style={{ textAlign: "center", padding: "30px" }}>
+                                                Cargando cuentas por cobrar...
+                                            </td>
                                         </tr>
-                                    </thead>
-                                    <tbody>
-                                        {cargandoFacturas ? (
-                                            <tr>
-                                                <td colSpan="8">
-                                                    <div className="vm-loading fact-loading">Cargando cuentas por cobrar...</div>
+                                    ) : cuentasFiltradas.length === 0 ? (
+                                        <tr>
+                                            <td
+                                                colSpan="8"
+                                                style={{
+                                                    textAlign: "center",
+                                                    padding: "45px 20px",
+                                                    color: "#64748b"
+                                                }}
+                                            >
+                                                <div style={{ fontSize: "36px", marginBottom: "8px" }}>✅</div>
+                                                <strong style={{ fontSize: "16px", color: "#0f172a", display: "block" }}>
+                                                    {cuentasPendientes.length === 0
+                                                        ? "¡No hay cuentas pendientes por cobrar!"
+                                                        : "No se encontraron comprobantes con el criterio de búsqueda."}
+                                                </strong>
+                                                <span style={{ fontSize: "13px" }}>
+                                                    {cuentasPendientes.length === 0
+                                                        ? "Todos los comprobantes emitidos han sido pagados y regularizados."
+                                                        : "Intente con otro nombre de cliente o número de serie."}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        cuentasFiltradas.map((factura) => (
+                                            <tr key={factura.factura_id}>
+                                                <td>
+                                                    <strong style={{ color: "#0f172a" }}>
+                                                        {factura.numero_comprobante}
+                                                    </strong>
+                                                </td>
+                                                <td>{factura.tipo_comprobante}</td>
+                                                <td>{fecha(factura.fecha_emision)}</td>
+                                                <td>
+                                                    <strong>
+                                                        {factura.cliente_nombre ||
+                                                            factura.nombre_razon_social ||
+                                                            obtenerNombreCliente(factura.cliente_id)}
+                                                    </strong>
+                                                </td>
+                                                <td>
+                                                    <span style={{ color: "#475569", fontSize: "13px" }}>
+                                                        {factura.metodo_pago || "Efectivo"}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <strong style={{ color: "#ef4444", fontSize: "15px" }}>
+                                                        {moneda(factura.total)}
+                                                    </strong>
+                                                </td>
+                                                <td>
+                                                    <span className="proc-tag correctivo">
+                                                        {factura.estado_pago || "Pendiente"}
+                                                    </span>
+                                                </td>
+                                                <td style={{ textAlign: "center" }}>
+                                                    <button
+                                                        type="button"
+                                                        className="btn-act-table link"
+                                                        style={{
+                                                            background: "#10b981",
+                                                            color: "#ffffff",
+                                                            borderColor: "#10b981",
+                                                            fontWeight: "bold",
+                                                            padding: "8px 16px",
+                                                            borderRadius: "6px",
+                                                            cursor: "pointer",
+                                                            boxShadow: "0 2px 4px rgba(16,185,129,0.2)"
+                                                        }}
+                                                        onClick={() => abrirModalPago(factura)}
+                                                        title="Registrar pago / saldar comprobante"
+                                                    >
+                                                        💳 Registrar Pago
+                                                    </button>
                                                 </td>
                                             </tr>
-                                        ) : cuentasFiltradas.length === 0 ? (
-                                            <tr>
-                                                <td colSpan="8">
-                                                    <div className="vm-empty">
-                                                        <span className="material-symbols-outlined" aria-hidden="true">task_alt</span>
-                                                        <strong>
-                                                            {cuentasPendientes.length === 0
-                                                                ? "¡No hay cuentas pendientes por cobrar!"
-                                                                : "No se encontraron comprobantes con el criterio de búsqueda."}
-                                                        </strong>
-                                                        <span>
-                                                            {cuentasPendientes.length === 0
-                                                                ? "Todos los comprobantes emitidos han sido pagados y regularizados."
-                                                                : "Intente con otro nombre de cliente o número de serie."}
-                                                        </span>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ) : (
-                                            cuentasFiltradas.map((factura) => (
-                                                <tr key={factura.factura_id}>
-                                                    <td>
-                                                        <span className="vm-code">{factura.numero_comprobante}</span>
-                                                    </td>
-                                                    <td>{factura.tipo_comprobante}</td>
-                                                    <td>{fecha(factura.fecha_emision)}</td>
-                                                    <td>
-                                                        <strong>
-                                                            {factura.cliente_nombre ||
-                                                                factura.nombre_razon_social ||
-                                                                obtenerNombreCliente(factura.cliente_id)}
-                                                        </strong>
-                                                    </td>
-                                                    <td>{factura.metodo_pago || "Efectivo"}</td>
-                                                    <td className="vm-num">
-                                                        <strong>{moneda(factura.total)}</strong>
-                                                    </td>
-                                                    <td>
-                                                        <span className="vm-badge vm-badge-warning">
-                                                            {factura.estado_pago || "Pendiente"}
-                                                        </span>
-                                                    </td>
-                                                    <td>
-                                                        <button
-                                                            type="button"
-                                                            className="btn-act-table fact-act-primary"
-                                                            onClick={() => abrirModalPago(factura)}
-                                                            title="Registrar pago / saldar comprobante"
-                                                        >
-                                                            <span className="material-symbols-outlined" aria-hidden="true">payments</span>
-                                                            Registrar Pago
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            ))
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 );
             })()}
 
             {/* =================================================
-<<<<<<< HEAD
-=======
-                REMISIONES
-            ================================================= */}
-
-            {submodulo === "Remisiones" && <Remisiones />}
-
-            {submodulo === "RemisionesLegacy" && (
-
-                <div className="vm-card fact-panel">
-
-                    <div className="vm-card-head fact-panel-head">
-                        <div>
-                            <h3>Remisiones</h3>
-                            <p>Guías de remisión registradas en PostgreSQL.</p>
-                        </div>
-                    </div>
-
-                    <div className="os-table-wrapper">
-                        <table className="os-table fact-table">
-                            <thead>
-                                <tr>
-                                    <th>N° Remisión</th>
-                                    <th>Fecha</th>
-                                    <th>Cliente</th>
-                                    <th>Vehículo</th>
-                                    <th>ODS</th>
-                                    <th>Motivo Traslado</th>
-                                    <th>Punto Partida</th>
-                                    <th>Punto Llegada</th>
-                                    <th>Estado</th>
-                                    <th>Estado SUNAT</th>
-                                </tr>
-                            </thead>
-
-                            <tbody>
-                                {cargandoRemisiones ? (
-                                    <tr>
-                                        <td colSpan="10">
-                                            <div className="vm-loading fact-loading">Cargando remisiones...</div>
-                                        </td>
-                                    </tr>
-                                ) : remisionesList.length === 0 ? (
-                                    <tr>
-                                        <td colSpan="10">
-                                            <div className="vm-empty">
-                                                <span className="material-symbols-outlined" aria-hidden="true">local_shipping</span>
-                                                <strong>No existen remisiones registradas.</strong>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    remisionesList.map(
-                                        (remision) => (
-                                            <tr key={remision.remision_id}>
-                                                <td><span className="vm-code">{remision.numero_remision}</span></td>
-                                                <td>{fecha(remision.fecha_emision)}</td>
-                                                <td>
-                                                    {
-                                                        remision.cliente_nombre ||
-                                                        remision.nombre_razon_social ||
-                                                        obtenerNombreCliente(
-                                                            remision.cliente_id
-                                                        )
-                                                    }
-                                                </td>
-                                                <td>
-                                                    {obtenerVehiculo(
-                                                        remision.vehiculo_id
-                                                    )}
-                                                </td>
-                                                <td>{remision.ods_id || "-"}</td>
-                                                <td>{remision.motivo_traslado}</td>
-                                                <td>{remision.punto_partida || "-"}</td>
-                                                <td>{remision.punto_llegada || "-"}</td>
-                                                <td>
-                                                    <span className={`vm-badge ${remision.estado === "Emitida" || remision.estado === "Aceptada" ? "vm-badge-success" : "vm-badge-warning"}`}>
-                                                        {remision.estado || "Pendiente"}
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    <span className={`vm-badge ${remision.estado_sunat === "Aceptado" ? "vm-badge-success" : remision.estado_sunat === "Rechazado" || remision.estado_sunat === "Anulado" ? "vm-badge-danger" : "vm-badge-warning"}`}>
-                                                        {remision.estado_sunat || "Pendiente"}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        )
-                                    )
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-
-                </div>
-
-            )}
-
-            {/* =================================================
->>>>>>> c50f4ef899f2d8106c402b44bb7cd55c4df493ab
                 CIERRE DE CAJA
             ================================================= */}
 
@@ -2490,88 +2789,254 @@ function Facturacion() {
 
             {submodulo === "Cierre de Caja Legacy" && (
 
-                <div className="vm-card fact-panel">
+                <div
+                    className="os-table-wrapper"
+                    style={{
+                        marginTop: "16px"
+                    }}
+                >
 
-                    <div className="vm-card-head fact-panel-head">
+                    <div
+                        style={{
+                            padding: "12px 16px",
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center"
+                        }}
+                    >
+
                         <div>
-                            <h3>Cierre de Caja</h3>
-                            <p>Historial de cierres de caja registrados en PostgreSQL.</p>
+
+                            <h3>
+                                Cierre de Caja
+                            </h3>
+
+                            <p
+                                style={{
+                                    margin: "4px 0",
+                                    color: "#64748b"
+                                }}
+                            >
+                                Historial de cierres de caja
+                                registrados en PostgreSQL.
+                            </p>
+
                         </div>
+
                     </div>
 
-                    <div className="os-table-wrapper">
-                        <table className="os-table fact-table">
-                            <thead>
+                    <table className="os-table">
+
+                        <thead>
+
+                            <tr>
+
+                                <th>ID</th>
+
+                                <th>Apertura</th>
+
+                                <th>Cierre</th>
+
+                                <th>Usuario</th>
+
+                                <th>Monto Inicial</th>
+
+                                <th>Efectivo</th>
+
+                                <th>Yape</th>
+
+                                <th>Plin</th>
+
+                                <th>Tarjeta</th>
+
+                                <th>Transferencia</th>
+
+                                <th>Total Ventas</th>
+
+                                <th>Esperado</th>
+
+                                <th>Real</th>
+
+                                <th>Diferencia</th>
+
+                                <th>Estado</th>
+
+                            </tr>
+
+                        </thead>
+
+                        <tbody>
+
+                            {cargandoCierresCaja ? (
+
                                 <tr>
-                                    <th>ID</th>
-                                    <th>Apertura</th>
-                                    <th>Cierre</th>
-                                    <th>Usuario</th>
-                                    <th className="vm-num">Monto Inicial</th>
-                                    <th className="vm-num">Efectivo</th>
-                                    <th className="vm-num">Yape</th>
-                                    <th className="vm-num">Plin</th>
-                                    <th className="vm-num">Tarjeta</th>
-                                    <th className="vm-num">Transferencia</th>
-                                    <th className="vm-num">Total Ventas</th>
-                                    <th className="vm-num">Esperado</th>
-                                    <th className="vm-num">Real</th>
-                                    <th className="vm-num">Diferencia</th>
-                                    <th>Estado</th>
-                                </tr>
-                            </thead>
 
-                            <tbody>
-                                {cargandoCierresCaja ? (
-                                    <tr>
-                                        <td colSpan="15">
-                                            <div className="vm-loading fact-loading">Cargando cierres de caja...</div>
-                                        </td>
-                                    </tr>
-                                ) : cierresCajaList.length === 0 ? (
-                                    <tr>
-                                        <td colSpan="15">
-                                            <div className="vm-empty">
-                                                <span className="material-symbols-outlined" aria-hidden="true">point_of_sale</span>
-                                                <strong>No existen cierres de caja registrados.</strong>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    cierresCajaList.map(
-                                        (cierre) => (
-                                            <tr key={cierre.cierre_caja_id}>
-                                                <td><span className="vm-code">{cierre.cierre_caja_id}</span></td>
-                                                <td>{fecha(cierre.fecha_apertura)}</td>
-                                                <td>{fecha(cierre.fecha_cierre)}</td>
-                                                <td>
+                                    <td
+                                        colSpan="15"
+                                        style={{
+                                            textAlign: "center",
+                                            padding: "30px"
+                                        }}
+                                    >
+                                        Cargando cierres de caja...
+                                    </td>
+
+                                </tr>
+
+                            ) : cierresCajaList.length === 0 ? (
+
+                                <tr>
+
+                                    <td
+                                        colSpan="15"
+                                        style={{
+                                            textAlign: "center",
+                                            padding: "30px"
+                                        }}
+                                    >
+                                        No existen cierres de caja
+                                        registrados.
+                                    </td>
+
+                                </tr>
+
+                            ) : (
+
+                                cierresCajaList.map(
+                                    (cierre) => (
+
+                                        <tr
+                                            key={
+                                                cierre.cierre_caja_id
+                                            }
+                                        >
+
+                                            <td>
+
+                                                <strong>
                                                     {
-                                                        cierre.usuario_nombre ||
-                                                        cierre.usuario_id
+                                                        cierre.cierre_caja_id
                                                     }
-                                                </td>
-                                                <td className="vm-num">{moneda(cierre.monto_inicial)}</td>
-                                                <td className="vm-num">{moneda(cierre.total_efectivo)}</td>
-                                                <td className="vm-num">{moneda(cierre.total_yape)}</td>
-                                                <td className="vm-num">{moneda(cierre.total_plin)}</td>
-                                                <td className="vm-num">{moneda(cierre.total_tarjeta)}</td>
-                                                <td className="vm-num">{moneda(cierre.total_transferencia)}</td>
-                                                <td className="vm-num"><strong>{moneda(cierre.total_ventas)}</strong></td>
-                                                <td className="vm-num">{moneda(cierre.total_esperado)}</td>
-                                                <td className="vm-num">{moneda(cierre.monto_real)}</td>
-                                                <td className="vm-num"><strong>{moneda(cierre.diferencia)}</strong></td>
-                                                <td>
-                                                    <span className={`vm-badge ${cierre.estado === "Cerrada" ? "is-plain" : "vm-badge-success"}`}>
-                                                        {cierre.estado || "Pendiente"}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        )
+                                                </strong>
+
+                                            </td>
+
+                                            <td>
+                                                {fecha(
+                                                    cierre.fecha_apertura
+                                                )}
+                                            </td>
+
+                                            <td>
+                                                {fecha(
+                                                    cierre.fecha_cierre
+                                                )}
+                                            </td>
+
+                                            <td>
+                                                {
+                                                    cierre.usuario_nombre ||
+                                                    cierre.usuario_id
+                                                }
+                                            </td>
+
+                                            <td>
+                                                {moneda(
+                                                    cierre.monto_inicial
+                                                )}
+                                            </td>
+
+                                            <td>
+                                                {moneda(
+                                                    cierre.total_efectivo
+                                                )}
+                                            </td>
+
+                                            <td>
+                                                {moneda(
+                                                    cierre.total_yape
+                                                )}
+                                            </td>
+
+                                            <td>
+                                                {moneda(
+                                                    cierre.total_plin
+                                                )}
+                                            </td>
+
+                                            <td>
+                                                {moneda(
+                                                    cierre.total_tarjeta
+                                                )}
+                                            </td>
+
+                                            <td>
+                                                {moneda(
+                                                    cierre.total_transferencia
+                                                )}
+                                            </td>
+
+                                            <td>
+
+                                                <strong>
+                                                    {moneda(
+                                                        cierre.total_ventas
+                                                    )}
+                                                </strong>
+
+                                            </td>
+
+                                            <td>
+                                                {moneda(
+                                                    cierre.total_esperado
+                                                )}
+                                            </td>
+
+                                            <td>
+                                                {moneda(
+                                                    cierre.monto_real
+                                                )}
+                                            </td>
+
+                                            <td>
+
+                                                <strong>
+                                                    {moneda(
+                                                        cierre.diferencia
+                                                    )}
+                                                </strong>
+
+                                            </td>
+
+                                            <td>
+
+                                                <span
+                                                    className={
+                                                        `proc-tag ${cierre.estado ===
+                                                            "Cerrada"
+                                                            ? "preventivo"
+                                                            : "correctivo"
+                                                        }`
+                                                    }
+                                                >
+                                                    {
+                                                        cierre.estado ||
+                                                        "Pendiente"
+                                                    }
+                                                </span>
+
+                                            </td>
+
+                                        </tr>
+
                                     )
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
+                                )
+
+                            )}
+
+                        </tbody>
+
+                    </table>
 
                 </div>
 
@@ -2585,15 +3050,33 @@ function Facturacion() {
 
                 <div className="modal-overlay">
 
-                    <div className="modal-content fact-modal-wide">
+                    <div
+                        className="modal-content wizard-modal"
+                        style={{
+                            maxWidth: "850px"
+                        }}
+                    >
 
                         {/* HEADER */}
 
                         <div className="modal-header">
+
                             <div>
-                                <h2>Emisión de{" "}{tipoComprobante}</h2>
+
+                                <h2>
+                                    Wizard de Emisión
+                                    de{" "}
+                                    {tipoComprobante}
+                                </h2>
+
                                 <p>
-                                    Paso{" "}{pasoWizard}{" "}de 3 ·{" "}
+
+                                    Paso{" "}
+                                    {pasoWizard}
+                                    {" "}de 3 -
+
+                                    {" "}
+
                                     {
                                         pasoWizard === 1
                                             ? "Selección de Cliente / ODS"
@@ -2601,7 +3084,9 @@ function Facturacion() {
                                                 ? "Carga de Detalle de Ítems"
                                                 : "Método de Pago & Emisión"
                                     }
+
                                 </p>
+
                             </div>
 
                             <button
@@ -2609,29 +3094,78 @@ function Facturacion() {
                                 onClick={
                                     cerrarWizard
                                 }
-                                aria-label="Cerrar"
                             >
-                                <span className="material-symbols-outlined" aria-hidden="true">close</span>
+                                ✕
                             </button>
+
                         </div>
 
                         {/* PASOS */}
 
-                        <div className="wizard-steps-bar">
-                            <div className={`step-item ${pasoWizard === 1 ? "active" : pasoWizard > 1 ? "done" : ""}`}>
-                                <span className="step-num">1</span>
-                                <span>Cliente / ODS</span>
+                        <div
+                            className="wizard-steps-bar"
+                            style={{
+                                display: "flex",
+                                background: "#f1f5f9",
+                                borderBottom:
+                                    "1px solid #e2e8f0"
+                            }}
+                        >
+
+                            <div
+                                className={
+                                    `step-item ${pasoWizard === 1
+                                        ? "active"
+                                        : ""
+                                    }`
+                                }
+                                style={{
+                                    flex: 1,
+                                    padding: "10px",
+                                    textAlign: "center",
+                                    fontSize: "0.85rem",
+                                    fontWeight: "bold"
+                                }}
+                            >
+                                1. Cliente / ODS
                             </div>
 
-                            <div className={`step-item ${pasoWizard === 2 ? "active" : pasoWizard > 2 ? "done" : ""}`}>
-                                <span className="step-num">2</span>
-                                <span>Ítems</span>
+                            <div
+                                className={
+                                    `step-item ${pasoWizard === 2
+                                        ? "active"
+                                        : ""
+                                    }`
+                                }
+                                style={{
+                                    flex: 1,
+                                    padding: "10px",
+                                    textAlign: "center",
+                                    fontSize: "0.85rem",
+                                    fontWeight: "bold"
+                                }}
+                            >
+                                2. Ítems
                             </div>
 
-                            <div className={`step-item ${pasoWizard === 3 ? "active" : ""}`}>
-                                <span className="step-num">3</span>
-                                <span>Pago & Emisión</span>
+                            <div
+                                className={
+                                    `step-item ${pasoWizard === 3
+                                        ? "active"
+                                        : ""
+                                    }`
+                                }
+                                style={{
+                                    flex: 1,
+                                    padding: "10px",
+                                    textAlign: "center",
+                                    fontSize: "0.85rem",
+                                    fontWeight: "bold"
+                                }}
+                            >
+                                3. Pago & Emisión
                             </div>
+
                         </div>
 
                         {/* BODY */}
@@ -2642,170 +3176,262 @@ function Facturacion() {
 
                             {pasoWizard === 1 && (
 
-                                <div className="fact-form-sections">
+                                <div>
 
-                                    <div>
-                                        <div className="vm-form-section-title">
-                                            <span className="material-symbols-outlined" aria-hidden="true">description</span>
-                                            Comprobante y cliente
-                                        </div>
+                                    <div
+                                        className="form-group"
+                                        style={{
+                                            marginBottom:
+                                                "14px"
+                                        }}
+                                    >
 
-                                        <div className="form-grid">
-                                            <div className="form-group">
-                                                <label>Tipo de Comprobante *</label>
-                                                <select
-                                                    value={
-                                                        tipoComprobante
-                                                    }
-                                                    onChange={
-                                                        (e) =>
-                                                            setTipoComprobante(
-                                                                e.target.value
-                                                            )
-                                                    }
-                                                >
-                                                    <option>Factura Electrónica</option>
-                                                    <option>Boleta Electrónica</option>
-                                                </select>
-                                            </div>
+                                        <label>
+                                            Tipo de
+                                            Comprobante *
+                                        </label>
 
-                                            <div className="form-group">
-                                                <label>Seleccionar Cliente *</label>
-                                                <select
-                                                    value={
-                                                        clienteFactura
-                                                    }
-                                                    onChange={
-                                                        (e) => {
+                                        <select
+                                            value={
+                                                tipoComprobante
+                                            }
+                                            onChange={
+                                                (e) =>
+                                                    setTipoComprobante(
+                                                        e.target.value
+                                                    )
+                                            }
+                                        >
 
-                                                            const nuevoClienteId =
-                                                                e.target.value;
+                                            <option>
+                                                Factura Electrónica
+                                            </option>
 
-                                                            setClienteFactura(
-                                                                nuevoClienteId
-                                                            );
+                                            <option>
+                                                Boleta Electrónica
+                                            </option>
 
-                                                            setVehiculoFactura(
-                                                                ""
-                                                            );
+                                        </select>
 
-                                                            setOdsSeleccionada(
-                                                                ""
-                                                            );
-
-                                                            const cliente =
-                                                                clientes.find(
-                                                                    (item) =>
-                                                                        String(
-                                                                            item.cliente_id ??
-                                                                            item.id
-                                                                        ) ===
-                                                                        String(
-                                                                            nuevoClienteId
-                                                                        )
-                                                                );
-
-                                                            setTipoComprobante(
-                                                                obtenerTipoComprobanteCliente(
-                                                                    cliente
-                                                                )
-                                                            );
-
-                                                        }
-                                                    }
-                                                >
-                                                    <option value="">Seleccionar cliente...</option>
-
-                                                    {clientes.map(
-                                                        (cliente) => (
-                                                            <option
-                                                                key={
-                                                                    cliente.cliente_id
-                                                                }
-                                                                value={
-                                                                    cliente.cliente_id
-                                                                }
-                                                            >
-                                                                {cliente.nombre_razon_social}{" - "}{cliente.documento_identidad}
-                                                            </option>
-                                                        )
-                                                    )}
-                                                </select>
-                                            </div>
-                                        </div>
                                     </div>
 
-                                    <div>
-                                        <div className="vm-form-section-title">
-                                            <span className="material-symbols-outlined" aria-hidden="true">directions_car</span>
-                                            Vehículo y orden de servicio
-                                        </div>
+                                    <div
+                                        className="form-group"
+                                        style={{
+                                            marginBottom:
+                                                "14px"
+                                        }}
+                                    >
 
-                                        <div className="form-grid">
-                                            <div className="form-group">
-                                                <label>Vehículo / Placa</label>
-                                                <select
-                                                    value={
-                                                        vehiculoFactura
-                                                    }
-                                                    onChange={
-                                                        (e) =>
-                                                            setVehiculoFactura(
-                                                                e.target.value
-                                                            )
-                                                    }
-                                                >
-                                                    <option value="">Seleccionar vehículo...</option>
+                                        <label>
+                                            Seleccionar
+                                            Cliente *
+                                        </label>
 
-                                                    {vehiculosCliente.map(
-                                                        (vehiculo) => (
-                                                            <option
-                                                                key={
-                                                                    vehiculo.vehiculo_id
-                                                                }
-                                                                value={
-                                                                    vehiculo.vehiculo_id
-                                                                }
-                                                            >
-                                                                {vehiculo.marca}{" "}{vehiculo.modelo}{" ("}{vehiculo.placa}{")"}
-                                                            </option>
+                                        <select
+                                            value={
+                                                clienteFactura
+                                            }
+                                            onChange={
+                                                (e) => {
+
+                                                    const nuevoClienteId =
+                                                        e.target.value;
+
+                                                    setClienteFactura(
+                                                        nuevoClienteId
+                                                    );
+
+                                                    setVehiculoFactura(
+                                                        ""
+                                                    );
+
+                                                    setOdsSeleccionada(
+                                                        ""
+                                                    );
+
+                                                    const cliente =
+                                                        clientes.find(
+                                                            (item) =>
+                                                                String(
+                                                                    item.cliente_id ??
+                                                                    item.id
+                                                                ) ===
+                                                                String(
+                                                                    nuevoClienteId
+                                                                )
+                                                        );
+
+                                                    setTipoComprobante(
+                                                        obtenerTipoComprobanteCliente(
+                                                            cliente
                                                         )
-                                                    )}
-                                                </select>
-                                            </div>
+                                                    );
 
-                                            <div className="form-group">
-                                                <label>Orden de Servicio (ODS)</label>
-                                                <select
-                                                    value={
-                                                        odsSeleccionada
-                                                    }
-                                                    onChange={
-                                                        (e) =>
-                                                            setOdsSeleccionada(
-                                                                e.target.value
-                                                            )
-                                                    }
-                                                >
-                                                    <option value="">Sin ODS</option>
+                                                }
+                                            }
+                                        >
 
-                                                    {ordenesServicioCliente.map(
-                                                        (ods) => (
-                                                            <option
-                                                                key={
-                                                                    ods.ods_id
-                                                                }
-                                                                value={
-                                                                    ods.ods_id
-                                                                }
-                                                            >
-                                                                {ods.codigo_ods}{" - "}{ods.estado_actual}
-                                                            </option>
-                                                        )
-                                                    )}
-                                                </select>
-                                            </div>
-                                        </div>
+                                            <option value="">
+                                                Seleccionar
+                                                cliente...
+                                            </option>
+
+                                            {clientes.map(
+                                                (cliente) => (
+
+                                                    <option
+                                                        key={
+                                                            cliente.cliente_id
+                                                        }
+                                                        value={
+                                                            cliente.cliente_id
+                                                        }
+                                                    >
+
+                                                        {
+                                                            cliente.nombre_razon_social
+                                                        }
+
+                                                        {" - "}
+
+                                                        {
+                                                            cliente.documento_identidad
+                                                        }
+
+                                                    </option>
+
+                                                )
+                                            )}
+
+                                        </select>
+
+                                    </div>
+
+                                    <div
+                                        className="form-group"
+                                        style={{
+                                            marginBottom:
+                                                "14px"
+                                        }}
+                                    >
+
+                                        <label>
+                                            Vehículo /
+                                            Placa
+                                        </label>
+
+                                        <select
+                                            value={
+                                                vehiculoFactura
+                                            }
+                                            onChange={
+                                                (e) =>
+                                                    setVehiculoFactura(
+                                                        e.target.value
+                                                    )
+                                            }
+                                        >
+
+                                            <option value="">
+                                                Seleccionar
+                                                vehículo...
+                                            </option>
+
+                                            {vehiculosCliente.map(
+                                                (vehiculo) => (
+
+                                                    <option
+                                                        key={
+                                                            vehiculo.vehiculo_id
+                                                        }
+                                                        value={
+                                                            vehiculo.vehiculo_id
+                                                        }
+                                                    >
+
+                                                        {
+                                                            vehiculo.marca
+                                                        }
+
+                                                        {" "}
+
+                                                        {
+                                                            vehiculo.modelo
+                                                        }
+
+                                                        {" ("}
+
+                                                        {
+                                                            vehiculo.placa
+                                                        }
+
+                                                        {")"}
+
+                                                    </option>
+
+                                                )
+                                            )}
+
+                                        </select>
+
+                                    </div>
+
+                                    <div
+                                        className="form-group"
+                                    >
+
+                                        <label>
+                                            Orden de
+                                            Servicio
+                                            (ODS)
+                                        </label>
+
+                                        <select
+                                            value={
+                                                odsSeleccionada
+                                            }
+                                            onChange={
+                                                (e) =>
+                                                    setOdsSeleccionada(
+                                                        e.target.value
+                                                    )
+                                            }
+                                        >
+
+                                            <option value="">
+                                                Sin ODS
+                                            </option>
+
+                                            {ordenesServicioCliente.map(
+                                                (ods) => (
+
+                                                    <option
+                                                        key={
+                                                            ods.ods_id
+                                                        }
+                                                        value={
+                                                            ods.ods_id
+                                                        }
+                                                    >
+
+                                                        {
+                                                            ods.codigo_ods
+                                                        }
+
+                                                        {" - "}
+
+                                                        {
+                                                            ods.estado_actual
+                                                        }
+
+                                                    </option>
+
+                                                )
+                                            )}
+
+                                        </select>
+
                                     </div>
 
                                 </div>
@@ -2816,174 +3442,278 @@ function Facturacion() {
 
                             {pasoWizard === 2 && (
 
-                                <div className="fact-form-sections">
+                                <div>
 
-                                    <div>
-                                        <h4 className="vm-form-section-title">
-                                            <span className="material-symbols-outlined" aria-hidden="true">list_alt</span>
-                                            Detalle de Ítems a Facturar
-                                        </h4>
+                                    <h4
+                                        style={{
+                                            color:
+                                                "#0f172a"
+                                        }}
+                                    >
+                                        Detalle de Ítems
+                                        a Facturar
+                                    </h4>
 
-                                        <div className="vm-table-wrap">
-                                            <table className="os-table fact-items-table">
-                                                <thead>
-                                                    <tr>
-                                                        <th>Descripción</th>
-                                                        <th className="vm-num">Cant.</th>
-                                                        <th className="vm-num">Precio</th>
-                                                        <th className="vm-num">Desc.</th>
-                                                        <th className="vm-num">Total</th>
-                                                        <th>Acción</th>
-                                                    </tr>
-                                                </thead>
+                                    <table
+                                        className="os-table"
+                                        style={{
+                                            marginTop:
+                                                "10px",
+                                            marginBottom:
+                                                "15px"
+                                        }}
+                                    >
 
-                                                <tbody>
-                                                    {itemsFactura.length === 0 ? (
-                                                        <tr>
-                                                            <td colSpan="6">
-                                                                <div className="vm-empty fact-empty-compact">
-                                                                    <span className="material-symbols-outlined" aria-hidden="true">playlist_add</span>
-                                                                    <strong>No hay ítems agregados.</strong>
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    ) : (
-                                                        itemsFactura.map(
-                                                            (item) => {
+                                        <thead>
 
-                                                                const totalItem =
-                                                                    (
-                                                                        Number(
-                                                                            item.cantidad
-                                                                        ) *
-                                                                        Number(
-                                                                            item.precio_unitario
-                                                                        )
-                                                                    ) -
-                                                                    Number(
-                                                                        item.descuento ||
-                                                                        0
-                                                                    );
+                                            <tr>
 
-                                                                return (
-                                                                    <tr key={item.id}>
-                                                                        <td>{item.descripcion}</td>
-                                                                        <td className="vm-num">{item.cantidad}</td>
-                                                                        <td className="vm-num">{moneda(item.precio_unitario)}</td>
-                                                                        <td className="vm-num">{moneda(item.descuento)}</td>
-                                                                        <td className="vm-num"><strong>{moneda(totalItem)}</strong></td>
-                                                                        <td>
-                                                                            <button
-                                                                                type="button"
-                                                                                className="btn-act-table fact-act-danger"
-                                                                                onClick={() =>
-                                                                                    eliminarItem(
-                                                                                        item.id
-                                                                                    )
-                                                                                }
-                                                                                aria-label="Eliminar ítem"
-                                                                                title="Eliminar ítem"
-                                                                            >
-                                                                                <span className="material-symbols-outlined" aria-hidden="true">delete</span>
-                                                                            </button>
-                                                                        </td>
-                                                                    </tr>
-                                                                );
+                                                <th>
+                                                    Descripción
+                                                </th>
 
-                                                            }
-                                                        )
-                                                    )}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
+                                                <th>
+                                                    Cant.
+                                                </th>
+
+                                                <th>
+                                                    Precio
+                                                </th>
+
+                                                <th>
+                                                    Desc.
+                                                </th>
+
+                                                <th>
+                                                    Total
+                                                </th>
+
+                                                <th>
+                                                    Acción
+                                                </th>
+
+                                            </tr>
+
+                                        </thead>
+
+                                        <tbody>
+
+                                            {itemsFactura.length === 0 ? (
+
+                                                <tr>
+
+                                                    <td
+                                                        colSpan="6"
+                                                        style={{
+                                                            textAlign:
+                                                                "center",
+                                                            padding:
+                                                                "20px"
+                                                        }}
+                                                    >
+                                                        No hay
+                                                        ítems
+                                                        agregados.
+                                                    </td>
+
+                                                </tr>
+
+                                            ) : (
+
+                                                itemsFactura.map(
+                                                    (item) => {
+
+                                                        const totalItem =
+                                                            (
+                                                                Number(
+                                                                    item.cantidad
+                                                                ) *
+                                                                Number(
+                                                                    item.precio_unitario
+                                                                )
+                                                            ) -
+                                                            Number(
+                                                                item.descuento ||
+                                                                0
+                                                            );
+
+                                                        return (
+
+                                                            <tr
+                                                                key={
+                                                                    item.id
+                                                                }
+                                                            >
+
+                                                                <td>
+                                                                    {
+                                                                        item.descripcion
+                                                                    }
+                                                                </td>
+
+                                                                <td>
+                                                                    {
+                                                                        item.cantidad
+                                                                    }
+                                                                </td>
+
+                                                                <td>
+                                                                    {moneda(
+                                                                        item.precio_unitario
+                                                                    )}
+                                                                </td>
+
+                                                                <td>
+                                                                    {moneda(
+                                                                        item.descuento
+                                                                    )}
+                                                                </td>
+
+                                                                <td>
+                                                                    <strong>
+                                                                        {moneda(
+                                                                            totalItem
+                                                                        )}
+                                                                    </strong>
+                                                                </td>
+
+                                                                <td>
+
+                                                                    <button
+                                                                        type="button"
+                                                                        className="btn-act-table diag"
+                                                                        onClick={() =>
+                                                                            eliminarItem(
+                                                                                item.id
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        🗑️
+                                                                    </button>
+
+                                                                </td>
+
+                                                            </tr>
+
+                                                        );
+
+                                                    }
+                                                )
+
+                                            )}
+
+                                        </tbody>
+
+                                    </table>
 
                                     {/* AGREGAR ITEM */}
 
-                                    <div className="fact-add-item">
-                                        <label className="fact-add-field fact-add-desc">
-                                            Descripción
-                                            <input
-                                                type="text"
-                                                placeholder="Descripción..."
-                                                value={
-                                                    nuevoItemDesc
-                                                }
-                                                onChange={
-                                                    (e) =>
-                                                        setNuevoItemDesc(
-                                                            e.target.value
-                                                        )
-                                                }
-                                            />
-                                        </label>
+                                    <div
+                                        style={{
+                                            background:
+                                                "#f8fafc",
+                                            padding:
+                                                "12px",
+                                            borderRadius:
+                                                "6px",
+                                            border:
+                                                "1px solid #e2e8f0",
+                                            display:
+                                                "flex",
+                                            gap:
+                                                "8px",
+                                            flexWrap:
+                                                "wrap"
+                                        }}
+                                    >
 
-                                        <label className="fact-add-field">
-                                            Cantidad
-                                            <input
-                                                type="number"
-                                                min="1"
-                                                placeholder="Cantidad"
-                                                value={
-                                                    nuevoItemCantidad
-                                                }
-                                                onChange={
-                                                    (e) =>
-                                                        setNuevoItemCantidad(
-                                                            e.target.value
-                                                        )
-                                                }
-                                            />
-                                        </label>
+                                        <input
+                                            type="text"
+                                            placeholder="Descripción..."
+                                            value={
+                                                nuevoItemDesc
+                                            }
+                                            onChange={
+                                                (e) =>
+                                                    setNuevoItemDesc(
+                                                        e.target.value
+                                                    )
+                                            }
+                                            style={{
+                                                flex:
+                                                    "2 1 250px"
+                                            }}
+                                        />
 
-                                        <label className="fact-add-field">
-                                            Precio
-                                            <input
-                                                type="number"
-                                                min="0"
-                                                step="0.01"
-                                                placeholder="Precio S/"
-                                                value={
-                                                    nuevoItemPrecio
-                                                }
-                                                onChange={
-                                                    (e) =>
-                                                        setNuevoItemPrecio(
-                                                            e.target.value
-                                                        )
-                                                }
-                                            />
-                                        </label>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            placeholder="Cantidad"
+                                            value={
+                                                nuevoItemCantidad
+                                            }
+                                            onChange={
+                                                (e) =>
+                                                    setNuevoItemCantidad(
+                                                        e.target.value
+                                                    )
+                                            }
+                                            style={{
+                                                flex:
+                                                    "1 1 100px"
+                                            }}
+                                        />
 
-                                        <label className="fact-add-field">
-                                            Descuento
-                                            <input
-                                                type="number"
-                                                min="0"
-                                                step="0.01"
-                                                placeholder="Descuento"
-                                                value={
-                                                    nuevoItemDescuento
-                                                }
-                                                onChange={
-                                                    (e) =>
-                                                        setNuevoItemDescuento(
-                                                            e.target.value
-                                                        )
-                                                }
-                                            />
-                                        </label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            placeholder="Precio S/"
+                                            value={
+                                                nuevoItemPrecio
+                                            }
+                                            onChange={
+                                                (e) =>
+                                                    setNuevoItemPrecio(
+                                                        e.target.value
+                                                    )
+                                            }
+                                            style={{
+                                                flex:
+                                                    "1 1 120px"
+                                            }}
+                                        />
+
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            placeholder="Descuento"
+                                            value={
+                                                nuevoItemDescuento
+                                            }
+                                            onChange={
+                                                (e) =>
+                                                    setNuevoItemDescuento(
+                                                        e.target.value
+                                                    )
+                                            }
+                                            style={{
+                                                flex:
+                                                    "1 1 120px"
+                                            }}
+                                        />
 
                                         <button
                                             type="button"
-                                            className="vm-btn vm-btn-primary"
+                                            className="btn-act-table link"
                                             onClick={
                                                 agregarItemManual
                                             }
                                         >
-                                            <span className="material-symbols-outlined" aria-hidden="true">add</span>
-                                            Añadir
+                                            + Añadir
                                         </button>
+
                                     </div>
 
                                 </div>
@@ -2994,73 +3724,227 @@ function Facturacion() {
 
                             {pasoWizard === 3 && (
 
-                                <div className="fact-wizard-pay">
+                                <div>
 
-                                    <div className="fact-form-stack">
-                                        <div className="vm-form-section-title">
-                                            <span className="material-symbols-outlined" aria-hidden="true">payments</span>
-                                            Forma de pago
-                                        </div>
+                                    <div
+                                        style={{
+                                            display:
+                                                "grid",
+                                            gridTemplateColumns:
+                                                "1fr 1fr",
+                                            gap:
+                                                "20px"
+                                        }}
+                                    >
 
-                                        <div className="form-group">
-                                            <label>Método de Pago *</label>
-                                            <select
-                                                value={
-                                                    metodoPago
-                                                }
-                                                onChange={
-                                                    (e) =>
-                                                        setMetodoPago(
-                                                            e.target.value
-                                                        )
-                                                }
+                                        <div>
+
+                                            <div
+                                                className="form-group"
+                                                style={{
+                                                    marginBottom:
+                                                        "12px"
+                                                }}
                                             >
-                                                {metodosPagoDisponibles.map((metodo) => <option key={metodo} value={metodo}>{metodo}</option>)}
-                                            </select>
+
+                                                <label>
+                                                    Método
+                                                    de Pago *
+                                                </label>
+
+                                                <select
+                                                    value={
+                                                        metodoPago
+                                                    }
+                                                    onChange={
+                                                        (e) =>
+                                                            setMetodoPago(
+                                                                e.target.value
+                                                            )
+                                                    }
+                                                >
+
+                                                    {metodosPagoDisponibles.map((metodo) => <option key={metodo} value={metodo}>{metodo}</option>)}
+
+                                                </select>
+
+                                            </div>
+
+                                            <div className="form-group">
+
+                                                <label>
+                                                    Observaciones
+                                                    de Pago
+                                                </label>
+
+                                                <textarea
+                                                    rows="4"
+                                                    value={
+                                                        observacionesPago
+                                                    }
+                                                    onChange={
+                                                        (e) =>
+                                                            setObservacionesPago(
+                                                                e.target.value
+                                                            )
+                                                    }
+                                                    placeholder="Observaciones del pago..."
+                                                />
+
+                                            </div>
+
                                         </div>
 
-                                        <div className="form-group">
-                                            <label>Observaciones de Pago</label>
-                                            <textarea
-                                                rows="4"
-                                                value={
-                                                    observacionesPago
-                                                }
-                                                onChange={
-                                                    (e) =>
-                                                        setObservacionesPago(
-                                                            e.target.value
-                                                        )
-                                                }
-                                                placeholder="Observaciones del pago..."
+                                        {/* RESUMEN */}
+
+                                        <div
+                                            style={{
+                                                background:
+                                                    "#f8fafc",
+                                                padding:
+                                                    "16px",
+                                                borderRadius:
+                                                    "8px",
+                                                border:
+                                                    "1px solid #cbd5e1",
+                                                color:
+                                                    "#0f172a"
+                                            }}
+                                        >
+
+                                            <h4
+                                                style={{
+                                                    margin:
+                                                        "0 0 10px 0",
+                                                    borderBottom:
+                                                        "1px solid #cbd5e1",
+                                                    paddingBottom:
+                                                        "6px"
+                                                }}
+                                            >
+                                                Resumen
+                                                Financiero
+                                            </h4>
+
+                                            <div
+                                                style={{
+                                                    display:
+                                                        "flex",
+                                                    justifyContent:
+                                                        "space-between",
+                                                    fontSize:
+                                                        "0.85rem",
+                                                    margin:
+                                                        "4px 0"
+                                                }}
+                                            >
+
+                                                <span>
+                                                    Base Imponible:
+                                                </span>
+
+                                                <span>
+                                                    {moneda(
+                                                        baseImponible
+                                                    )}
+                                                </span>
+
+                                            </div>
+
+                                            <div
+                                                style={{
+                                                    display:
+                                                        "flex",
+                                                    justifyContent:
+                                                        "space-between",
+                                                    fontSize:
+                                                        "0.85rem",
+                                                    margin:
+                                                        "4px 0",
+                                                    color:
+                                                        "#dc2626"
+                                                }}
+                                            >
+
+                                                <span>
+                                                    Descuentos:
+                                                </span>
+
+                                                <span>
+                                                    -
+                                                    {" "}
+                                                    {moneda(
+                                                        totalDescuentos
+                                                    )}
+                                                </span>
+
+                                            </div>
+
+                                            <div
+                                                style={{
+                                                    display:
+                                                        "flex",
+                                                    justifyContent:
+                                                        "space-between",
+                                                    fontSize:
+                                                        "0.85rem",
+                                                    margin:
+                                                        "4px 0",
+                                                    color:
+                                                        "#2563eb"
+                                                }}
+                                            >
+
+                                                <span>
+                                                    IGV 18%:
+                                                </span>
+
+                                                <span>
+                                                    {moneda(
+                                                        igvMonto
+                                                    )}
+                                                </span>
+
+                                            </div>
+
+                                            <hr
+                                                style={{
+                                                    borderColor:
+                                                        "#cbd5e1",
+                                                    margin:
+                                                        "10px 0"
+                                                }}
                                             />
+
+                                            <div
+                                                style={{
+                                                    display:
+                                                        "flex",
+                                                    justifyContent:
+                                                        "space-between",
+                                                    fontSize:
+                                                        "1.1rem",
+                                                    fontWeight:
+                                                        "bold",
+                                                    color:
+                                                        "#16a34a"
+                                                }}
+                                            >
+
+                                                <span>
+                                                    TOTAL:
+                                                </span>
+
+                                                <span>
+                                                    {moneda(
+                                                        totalPagar
+                                                    )}
+                                                </span>
+
+                                            </div>
+
                                         </div>
-                                    </div>
 
-                                    {/* RESUMEN */}
-
-                                    <div className="fact-summary">
-                                        <h4>Resumen Financiero</h4>
-
-                                        <div className="fact-summary-row">
-                                            <span>Base Imponible:</span>
-                                            <span>{moneda(baseImponible)}</span>
-                                        </div>
-
-                                        <div className="fact-summary-row is-danger">
-                                            <span>Descuentos:</span>
-                                            <span>-{" "}{moneda(totalDescuentos)}</span>
-                                        </div>
-
-                                        <div className="fact-summary-row">
-                                            <span>IGV 18%:</span>
-                                            <span>{moneda(igvMonto)}</span>
-                                        </div>
-
-                                        <div className="fact-summary-row is-total">
-                                            <span>TOTAL:</span>
-                                            <span>{moneda(totalPagar)}</span>
-                                        </div>
                                     </div>
 
                                 </div>
@@ -3087,8 +3971,7 @@ function Facturacion() {
                                         emitiendoFactura
                                     }
                                 >
-                                    <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>
-                                    Anterior
+                                    ◀ Anterior
                                 </button>
 
                             )}
@@ -3130,15 +4013,14 @@ function Facturacion() {
 
                                     }}
                                 >
-                                    Siguiente
-                                    <span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
+                                    Siguiente ▶
                                 </button>
 
                             ) : (
 
                                 <button
                                     type="button"
-                                    className="btn-guardar"
+                                    className="btn-approve"
                                     onClick={
                                         emitirFacturaFinal
                                     }
@@ -3146,12 +4028,13 @@ function Facturacion() {
                                         emitiendoFactura
                                     }
                                 >
-                                    <span className="material-symbols-outlined" aria-hidden="true">receipt_long</span>
+
                                     {
                                         emitiendoFactura
                                             ? "Registrando..."
-                                            : `Emitir ${tipoComprobante}`
+                                            : `🧾 Emitir ${tipoComprobante}`
                                     }
+
                                 </button>
 
                             )}
@@ -3169,22 +4052,17 @@ function Facturacion() {
             ================================================= */}
             {mostrarModalNC && (
                 <div className="modal-overlay">
-                    <div className="modal-content fact-modal-form">
+                    <div className="modal-content" style={{ maxWidth: "600px" }}>
                         <div className="modal-header">
                             <div>
                                 <h2>Emitir Nota de Crédito</h2>
                                 <p>Generar comprobante de ajuste o anulación a factura en PostgreSQL</p>
                             </div>
-                            <button className="btn-close" onClick={() => setMostrarModalNC(false)} aria-label="Cerrar"><span className="material-symbols-outlined" aria-hidden="true">close</span></button>
+                            <button className="btn-close" onClick={() => setMostrarModalNC(false)}>✕</button>
                         </div>
 
-                        <div className="modal-body fact-form-stack">
-                            <div className="vm-form-section-title">
-                                <span className="material-symbols-outlined" aria-hidden="true">description</span>
-                                Comprobante de referencia
-                            </div>
-
-                            <div className="form-group">
+                        <div className="modal-body">
+                            <div className="form-group" style={{ marginBottom: "14px" }}>
                                 <label>Factura de Referencia *</label>
                                 <select
                                     value={ncFacturaId}
@@ -3207,7 +4085,7 @@ function Facturacion() {
                                 </select>
                             </div>
 
-                            <div className="form-group">
+                            <div className="form-group" style={{ marginBottom: "14px" }}>
                                 <label>Tipo de Nota de Crédito *</label>
                                 <select
                                     value={ncTipoNota}
@@ -3221,12 +4099,7 @@ function Facturacion() {
                                 </select>
                             </div>
 
-                            <div className="vm-form-section-title fact-section-gap">
-                                <span className="material-symbols-outlined" aria-hidden="true">tune</span>
-                                Sustento y monto
-                            </div>
-
-                            <div className="form-group">
+                            <div className="form-group" style={{ marginBottom: "14px" }}>
                                 <label>Motivo / Sustento de Emisión *</label>
                                 <input
                                     type="text"
@@ -3236,7 +4109,7 @@ function Facturacion() {
                                 />
                             </div>
 
-                            <div className="form-group">
+                            <div className="form-group" style={{ marginBottom: "14px" }}>
                                 <label>Monto Total a Ajustar (S/) *</label>
                                 <input
                                     type="number"
@@ -3246,7 +4119,7 @@ function Facturacion() {
                                     value={ncMontoTotal}
                                     onChange={(e) => setNcMontoTotal(e.target.value)}
                                 />
-                                <small className="fact-hint">
+                                <small style={{ color: "#64748b", marginTop: "4px", display: "block" }}>
                                     Subtotal (base): S/ {(Number(ncMontoTotal || 0) / 1.18).toFixed(2)} | IGV (18%): S/ {(Number(ncMontoTotal || 0) - (Number(ncMontoTotal || 0) / 1.18)).toFixed(2)}
                                 </small>
                             </div>
@@ -3263,12 +4136,11 @@ function Facturacion() {
                             </button>
                             <button
                                 type="button"
-                                className="btn-guardar"
+                                className="btn-approve"
                                 onClick={emitirNotaCreditoFinal}
                                 disabled={emitiendoNC}
                             >
-                                <span className="material-symbols-outlined" aria-hidden="true">receipt_long</span>
-                                {emitiendoNC ? "Emitiendo..." : "Emitir Nota de Crédito"}
+                                {emitiendoNC ? "Emitiendo..." : "📝 Emitir Nota de Crédito"}
                             </button>
                         </div>
                     </div>
@@ -3280,7 +4152,7 @@ function Facturacion() {
             ================================================= */}
             {mostrarModalND && (
                 <div className="modal-overlay">
-                    <div className="modal-content fact-modal-form">
+                    <div className="modal-content" style={{ maxWidth: "600px" }}>
                         <div className="modal-header">
                             <div>
                                 <h2>Emitir Nota de Débito</h2>
@@ -3290,19 +4162,13 @@ function Facturacion() {
                                 className="btn-close"
                                 onClick={() => setMostrarModalND(false)}
                                 disabled={emitiendoND}
-                                aria-label="Cerrar"
                             >
-                                <span className="material-symbols-outlined" aria-hidden="true">close</span>
+                                ✕
                             </button>
                         </div>
 
-                        <div className="modal-body fact-form-stack">
-                            <div className="vm-form-section-title">
-                                <span className="material-symbols-outlined" aria-hidden="true">description</span>
-                                Comprobante de referencia
-                            </div>
-
-                            <div className="form-group">
+                        <div className="modal-body">
+                            <div className="form-group" style={{ marginBottom: "14px" }}>
                                 <label>Comprobante de Referencia *</label>
                                 <select
                                     value={ndFacturaId}
@@ -3326,7 +4192,7 @@ function Facturacion() {
                                 </select>
                             </div>
 
-                            <div className="form-group">
+                            <div className="form-group" style={{ marginBottom: "14px" }}>
                                 <label>Tipo de Nota de Débito *</label>
                                 <select
                                     value={ndTipoNota}
@@ -3336,12 +4202,7 @@ function Facturacion() {
                                 </select>
                             </div>
 
-                            <div className="vm-form-section-title fact-section-gap">
-                                <span className="material-symbols-outlined" aria-hidden="true">tune</span>
-                                Sustento y monto
-                            </div>
-
-                            <div className="form-group">
+                            <div className="form-group" style={{ marginBottom: "14px" }}>
                                 <label>Motivo / Sustento de Emisión *</label>
                                 <input
                                     type="text"
@@ -3351,7 +4212,7 @@ function Facturacion() {
                                 />
                             </div>
 
-                            <div className="form-group">
+                            <div className="form-group" style={{ marginBottom: "14px" }}>
                                 <label>Monto Total a Ajustar (S/) *</label>
                                 <input
                                     type="number"
@@ -3361,7 +4222,7 @@ function Facturacion() {
                                     value={ndMontoTotal}
                                     onChange={(e) => setNdMontoTotal(e.target.value)}
                                 />
-                                <small className="fact-hint">
+                                <small style={{ color: "#64748b", marginTop: "4px", display: "block" }}>
                                     Subtotal (base): S/ {(Number(ndMontoTotal || 0) / 1.18).toFixed(2)} | IGV (18%): S/ {(Number(ndMontoTotal || 0) - (Number(ndMontoTotal || 0) / 1.18)).toFixed(2)}
                                 </small>
                             </div>
@@ -3378,12 +4239,11 @@ function Facturacion() {
                             </button>
                             <button
                                 type="button"
-                                className="btn-guardar"
+                                className="btn-approve"
                                 onClick={emitirNotaDebitoFinal}
                                 disabled={emitiendoND}
                             >
-                                <span className="material-symbols-outlined" aria-hidden="true">receipt_long</span>
-                                {emitiendoND ? "Emitiendo..." : "Emitir Nota de Débito"}
+                                {emitiendoND ? "Emitiendo..." : "📝 Emitir Nota de Débito"}
                             </button>
                         </div>
                     </div>
@@ -3394,12 +4254,14 @@ function Facturacion() {
                 MODAL DE REGISTRO DE PAGO
             ================================================= */}
             {mostrarModalPago && facturaAPagar && (
-                <div className="modal-overlay">
-                    <div className="modal-content fact-modal-pago">
+                <div className="os-modal-overlay">
+                    <div className="modal-content" style={{ maxWidth: "520px" }}>
                         <div className="modal-header">
                             <div>
                                 <h2>Registrar Pago de Comprobante</h2>
-                                <p>Confirmar cobro y saldar comprobante en PostgreSQL</p>
+                                <p style={{ margin: "4px 0 0", color: "#64748b" }}>
+                                    Confirmar cobro y saldar comprobante en PostgreSQL
+                                </p>
                             </div>
                             <button
                                 className="btn-close"
@@ -3407,88 +4269,125 @@ function Facturacion() {
                                     setMostrarModalPago(false);
                                     setFacturaAPagar(null);
                                 }}
-                                aria-label="Cerrar"
                             >
-                                <span className="material-symbols-outlined" aria-hidden="true">close</span>
+                                ✕
                             </button>
                         </div>
 
-                        <div className="modal-body fact-form-stack">
+                        <div className="modal-body">
                             {/* RESUMEN DE LA FACTURA */}
-                            <div className="fact-summary">
-                                <div className="fact-summary-row">
-                                    <span>N° Comprobante:</span>
-                                    <span className="vm-code">{facturaAPagar.numero_comprobante}</span>
+                            <div
+                                style={{
+                                    background: "#f8fafc",
+                                    border: "1px solid #e2e8f0",
+                                    borderRadius: "8px",
+                                    padding: "14px 16px",
+                                    marginBottom: "18px"
+                                }}
+                            >
+                                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                                    <span style={{ color: "#64748b", fontSize: "13px" }}>N° Comprobante:</span>
+                                    <strong style={{ color: "#0f172a" }}>{facturaAPagar.numero_comprobante}</strong>
                                 </div>
-                                <div className="fact-summary-row">
-                                    <span>Cliente:</span>
-                                    <strong>
+                                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                                    <span style={{ color: "#64748b", fontSize: "13px" }}>Cliente:</span>
+                                    <strong style={{ color: "#0f172a" }}>
                                         {facturaAPagar.cliente_nombre ||
                                             facturaAPagar.nombre_razon_social ||
                                             obtenerNombreCliente(facturaAPagar.cliente_id)}
                                     </strong>
                                 </div>
-                                <div className="fact-summary-row">
-                                    <span>Tipo:</span>
-                                    <span>{facturaAPagar.tipo_comprobante}</span>
+                                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                                    <span style={{ color: "#64748b", fontSize: "13px" }}>Tipo:</span>
+                                    <span style={{ color: "#334155" }}>{facturaAPagar.tipo_comprobante}</span>
                                 </div>
-                                <div className="fact-summary-row fact-summary-divider">
-                                    <span>Total factura:</span>
-                                    <strong>
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        justifyContent: "space-between",
+                                        paddingTop: "8px",
+                                        borderTop: "1px dashed #cbd5e1"
+                                    }}
+                                >
+                                    <span style={{ color: "#64748b", fontSize: "13px" }}>Total factura:</span>
+                                    <strong style={{ color: "#10b981", fontSize: "18px" }}>
                                         {moneda(facturaAPagar.monto_total)}
                                     </strong>
                                 </div>
-                                <div className="fact-summary-row">
+                                <div style={{ display: "flex", justifyContent: "space-between", marginTop: "8px" }}>
                                     <span>Pagado</span><strong>{moneda(facturaAPagar.monto_pagado)}</strong>
                                 </div>
-                                <div className="fact-summary-row is-total">
-                                    <span>Saldo pendiente</span><span>{moneda(facturaAPagar.saldo)}</span>
+                                <div style={{ display: "flex", justifyContent: "space-between", marginTop: "6px" }}>
+                                    <strong>Saldo pendiente</strong><strong>{moneda(facturaAPagar.saldo)}</strong>
                                 </div>
                             </div>
 
-                            {errorModalPago && <div className="vm-alert" role="alert"><span className="material-symbols-outlined" aria-hidden="true">error</span>{errorModalPago}</div>}
-                            {exitoModalPago && <div className="vm-alert vm-alert-success" role="status"><span className="material-symbols-outlined" aria-hidden="true">check_circle</span>{exitoModalPago}</div>}
-                            {!cajaAbiertaParaPago && <div className="vm-alert" role="alert"><span className="material-symbols-outlined" aria-hidden="true">error</span>No hay una caja abierta. Abre caja antes de registrar el pago.</div>}
+                            {errorModalPago && <div className="caja-alert caja-alert-error" role="alert">{errorModalPago}</div>}
+                            {exitoModalPago && <div className="caja-alert caja-alert-success" role="status">{exitoModalPago}</div>}
+                            {!cajaAbiertaParaPago && <div className="caja-alert caja-alert-error" role="alert">No hay una caja abierta. Abre caja antes de registrar el pago.</div>}
 
-                            <div className="form-grid">
-                                <div className="form-group">
-                                    <label>Monto a pagar *</label>
-                                    <input type="number" min="0.01" max={facturaAPagar.saldo} step="0.01" value={montoPagoRegistro} onChange={(event) => setMontoPagoRegistro(event.target.value)} required disabled={Boolean(exitoModalPago)} />
-                                </div>
+                            <div className="form-group" style={{ marginBottom: "14px" }}>
+                                <label style={{ display: "block", marginBottom: "6px", fontWeight: 600 }}>Monto a pagar *</label>
+                                <input type="number" min="0.01" max={facturaAPagar.saldo} step="0.01" value={montoPagoRegistro} onChange={(event) => setMontoPagoRegistro(event.target.value)} required disabled={Boolean(exitoModalPago)} />
+                            </div>
 
-                                <div className="form-group">
-                                    <label>Usuario que registra</label>
-                                    <input
-                                        type="text"
-                                        value={usuarioActual?.nombre || "Usuario autenticado"}
-                                        readOnly
-                                        disabled
-                                    />
-                                </div>
+                            <div className="form-group" style={{ marginBottom: "14px" }}>
+                                <label style={{ display: "block", marginBottom: "6px", fontWeight: 600 }}>Usuario que registra</label>
+                                <input
+                                    type="text"
+                                    value={usuarioActual?.nombre || "Usuario autenticado"}
+                                    readOnly
+                                    disabled
+                                    style={{
+                                        width: "100%",
+                                        padding: "10px 12px",
+                                        borderRadius: "6px",
+                                        border: "1px solid #cbd5e1",
+                                        background: "#f8fafc"
+                                    }}
+                                />
+                            </div>
 
-                                {/* MÉTODO DE PAGO */}
-                                <div className="form-group form-group-full">
-                                    <label>Método de Pago Utilizado *</label>
-                                    <select
-                                        value={metodoPagoRegistro}
-                                        onChange={(e) => setMetodoPagoRegistro(e.target.value)}
-                                        required
-                                    >
-                                        {metodosPagoDisponibles.map((metodo) => <option key={metodo} value={metodo}>{metodo}</option>)}
-                                    </select>
-                                </div>
+                            {/* MÉTODO DE PAGO */}
+                            <div className="form-group" style={{ marginBottom: "14px" }}>
+                                <label style={{ display: "block", marginBottom: "6px", fontWeight: 600 }}>
+                                    Método de Pago Utilizado *
+                                </label>
+                                <select
+                                    value={metodoPagoRegistro}
+                                    onChange={(e) => setMetodoPagoRegistro(e.target.value)}
+                                    required
+                                    style={{
+                                        width: "100%",
+                                        padding: "10px 12px",
+                                        borderRadius: "6px",
+                                        border: "1px solid #cbd5e1",
+                                        fontSize: "14px"
+                                    }}
+                                >
+                                    {metodosPagoDisponibles.map((metodo) => <option key={metodo} value={metodo}>{metodo}</option>)}
+                                </select>
+                            </div>
 
-                                {/* OBSERVACIONES */}
-                                <div className="form-group form-group-full">
-                                    <label>N° de Operación / Observaciones de Pago (Opcional)</label>
-                                    <input
-                                        type="text"
-                                        placeholder="Ej. Operación #987213 o Pago en caja principal..."
-                                        value={observacionesPagoRegistro}
-                                        onChange={(e) => setObservacionesPagoRegistro(e.target.value)}
-                                        disabled={Boolean(exitoModalPago)}
-                                    />
-                                </div>
+                            {/* OBSERVACIONES */}
+                            <div className="form-group" style={{ marginBottom: "14px" }}>
+                                <label style={{ display: "block", marginBottom: "6px", fontWeight: 600 }}>
+                                    N° de Operación / Observaciones de Pago (Opcional)
+                                </label>
+                                <input
+                                    type="text"
+                                    placeholder="Ej. Operación #987213 o Pago en caja principal..."
+                                    value={observacionesPagoRegistro}
+                                    onChange={(e) => setObservacionesPagoRegistro(e.target.value)}
+                                    disabled={Boolean(exitoModalPago)}
+                                    style={{
+                                        width: "100%",
+                                        padding: "10px 12px",
+                                        borderRadius: "6px",
+                                        border: "1px solid #cbd5e1",
+                                        fontSize: "14px"
+                                    }}
+                                />
                             </div>
                         </div>
 
@@ -3506,11 +4405,17 @@ function Facturacion() {
                             </button>
                             <button
                                 type="button"
-                                className="btn-guardar"
+                                className="btn-approve"
+                                style={{
+                                    background: "#10b981",
+                                    borderColor: "#10b981",
+                                    color: "#ffffff",
+                                    fontWeight: "bold",
+                                    padding: "10px 20px"
+                                }}
                                 onClick={confirmarPagoFactura}
                                 disabled={procesandoPago || !cajaAbiertaParaPago || !montoPagoRegistro || Number(montoPagoRegistro) <= 0 || Number(montoPagoRegistro) > Number(facturaAPagar.saldo) || Boolean(exitoModalPago)}
                             >
-                                <span className="material-symbols-outlined" aria-hidden="true">payments</span>
                                 {procesandoPago ? "Registrando pago..." : exitoModalPago ? "Pago registrado" : "Confirmar pago"}
                             </button>
                         </div>

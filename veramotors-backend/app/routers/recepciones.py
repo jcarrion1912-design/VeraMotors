@@ -6,8 +6,6 @@ from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core.security import get_current_user
-from app.models.usuario import Usuario
 from app.database import get_db
 from app.models.compra import Compra
 from app.models.detalle_compra import DetalleCompra
@@ -243,9 +241,7 @@ def obtener_recepcion(
 def crear_recepcion(
     datos: RecepcionCreate,
     db: Session = Depends(get_db),
-    usuario_actual: Usuario = Depends(get_current_user),
 ):
-<<<<<<< HEAD
     try:
         if datos.recepcion_id is not None:
             if datos.confirmar:
@@ -261,87 +257,15 @@ def crear_recepcion(
             db.commit()
             db.refresh(recepcion)
             return recepcion
-=======
-    # El autor siempre es quien tiene la sesión, no lo que diga el cuerpo.
-    datos.usuario_id = usuario_actual.user_id
-
-    compra = db.query(Compra).filter(Compra.compra_id == datos.compra_id).first()
-    if not compra:
-        raise HTTPException(status_code=404, detail="Compra no encontrada.")
->>>>>>> c50f4ef899f2d8106c402b44bb7cd55c4df493ab
 
         if datos.compra_id is None:
             raise HTTPException(status_code=422, detail="Debe indicar la orden de compra.")
 
-<<<<<<< HEAD
         compra = (
             db.query(Compra)
             .filter(Compra.compra_id == datos.compra_id)
             .with_for_update(of=Compra)
             .first()
-=======
-    if compra.estado == "Recibida":
-        raise HTTPException(status_code=409, detail="Esta orden de compra ya fue recibida por completo.")
-
-    # Lo ya recibido en recepciones anteriores limita lo que se puede recibir ahora.
-    ordenado_por_item = {}
-    for detalle_compra in compra.detalles:
-        ordenado_por_item[detalle_compra.item_id] = (
-            ordenado_por_item.get(detalle_compra.item_id, Decimal("0")) + Decimal(str(detalle_compra.cantidad))
-        )
-
-    recibido_por_item = {}
-    filas_previas = (
-        db.query(DetalleRecepcion)
-        .join(Recepcion, DetalleRecepcion.recepcion_id == Recepcion.recepcion_id)
-        .filter(Recepcion.compra_id == compra.compra_id, Recepcion.estado == "Confirmada")
-        .all()
-    )
-    for previa in filas_previas:
-        recibido_por_item[previa.item_id] = (
-            recibido_por_item.get(previa.item_id, Decimal("0")) + Decimal(str(previa.cantidad_recibida))
-        )
-
-    if ordenado_por_item:
-        for detalle in datos.detalles:
-            if detalle.item_id not in ordenado_por_item:
-                raise HTTPException(status_code=400, detail=f"El ítem {detalle.item_id} no pertenece a esta orden de compra.")
-            nuevo_total = recibido_por_item.get(detalle.item_id, Decimal("0")) + Decimal(str(detalle.cantidad_recibida))
-            if nuevo_total > ordenado_por_item[detalle.item_id]:
-                raise HTTPException(status_code=400, detail="La cantidad recibida excede lo pendiente de la orden.")
-
-    recepcion = Recepcion(
-        compra_id=datos.compra_id,
-        proveedor_id=datos.proveedor_id,
-        usuario_id=datos.usuario_id,
-        estado=datos.estado or "Confirmada",
-        observaciones=datos.observaciones,
-    )
-
-    total_recibido = Decimal("0")
-    for detalle in datos.detalles:
-        cantidad_ordenada = Decimal(str(detalle.cantidad_ordenada))
-        cantidad_recibida = Decimal(str(detalle.cantidad_recibida))
-        cantidad_pendiente = Decimal(str(detalle.cantidad_pendiente))
-
-        if cantidad_recibida < 0:
-            raise HTTPException(status_code=400, detail="La cantidad recibida no puede ser negativa.")
-
-        if cantidad_recibida > cantidad_ordenada:
-            raise HTTPException(status_code=400, detail="La cantidad recibida excede la cantidad ordenada.")
-
-        if cantidad_pendiente != max(cantidad_ordenada - cantidad_recibida, Decimal("0")):
-            cantidad_pendiente = max(cantidad_ordenada - cantidad_recibida, Decimal("0"))
-
-        detalle_recepcion = DetalleRecepcion(
-            item_id=detalle.item_id,
-            descripcion=detalle.descripcion,
-            cantidad_ordenada=cantidad_ordenada,
-            cantidad_recibida=cantidad_recibida,
-            cantidad_pendiente=cantidad_pendiente,
-            precio_unitario=Decimal(str(detalle.precio_unitario)),
-            total=Decimal(str(detalle.total)),
->>>>>>> c50f4ef899f2d8106c402b44bb7cd55c4df493ab
         )
         if not compra:
             raise HTTPException(status_code=404, detail="Orden de compra no encontrada.")
@@ -366,7 +290,6 @@ def crear_recepcion(
                 detail=f"La orden ya tiene una recepción pendiente de confirmación ({borrador_existente.recepcion_id}).",
             )
 
-<<<<<<< HEAD
         recibidos = _obtener_cantidades_recibidas(db, compra.compra_id)
         cantidades_solicitadas: Dict[int, Decimal] = {}
         for detalle in datos.detalles:
@@ -433,18 +356,3 @@ def crear_recepcion(
     except IntegrityError:
         db.rollback()
         raise HTTPException(status_code=409, detail="No se pudo registrar la recepción por un conflicto de datos.")
-=======
-            recibido_por_item[detalle.item_id] = (
-                recibido_por_item.get(detalle.item_id, Decimal("0")) + Decimal(str(detalle.cantidad_recibida))
-            )
-
-        if ordenado_por_item and all(
-            recibido_por_item.get(item_id, Decimal("0")) >= cantidad
-            for item_id, cantidad in ordenado_por_item.items()
-        ):
-            compra.estado = "Recibida"
-
-    db.commit()
-    db.refresh(recepcion)
-    return recepcion
->>>>>>> c50f4ef899f2d8106c402b44bb7cd55c4df493ab

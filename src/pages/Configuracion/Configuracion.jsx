@@ -1,7 +1,6 @@
 
 import { useEffect, useState } from "react";
 import "./Configuracion.css";
-import { obtenerParametrosEmpresa, guardarParametrosEmpresa } from "../../services/configuracionService";
 
 const SUBMENUS_CONFIG = [
     "Parámetros del Taller",
@@ -70,58 +69,13 @@ function Configuracion() {
     });
 
 
-    const [guardandoEmpresa, setGuardandoEmpresa] = useState(false);
-    const [errorEmpresa, setErrorEmpresa] = useState("");
-
-    useEffect(() => {
-        let activa = true;
-        obtenerParametrosEmpresa()
-            .then((datos) => {
-                if (!activa || !datos) return;
-                setEmpresaData({
-                    nombre: datos.nombre || "",
-                    desarrollador: datos.desarrollador || "",
-                    ruc: datos.ruc || "",
-                    direccion: datos.direccion || "",
-                    telefono: datos.telefono || "",
-                    email: datos.email || "",
-                    igv: String(Number(datos.igv)),
-                    moneda: datos.moneda || ""
-                });
-            })
-            .catch((error) => {
-                if (activa) setErrorEmpresa(error.message || "No se pudieron cargar los parámetros del taller.");
-            });
-        return () => { activa = false; };
-    }, []);
-
-    const guardarEmpresa = async (e) => {
+    const guardarEmpresa = (e) => {
 
         e.preventDefault();
 
-        if (!/^\d{11}$/.test(empresaData.ruc.trim())) {
-            setErrorEmpresa("El RUC debe tener exactamente 11 dígitos.");
-            return;
-        }
-
-        setGuardandoEmpresa(true);
-        setErrorEmpresa("");
-
-        try {
-            await guardarParametrosEmpresa({
-                ...empresaData,
-                ruc: empresaData.ruc.trim(),
-                igv: Number(empresaData.igv)
-            });
-            alert(
-                "¡Parámetros del taller actualizados correctamente!"
-            );
-        } catch (error) {
-            console.error("Error guardando parámetros:", error);
-            setErrorEmpresa(error.message || "No se pudieron guardar los parámetros del taller.");
-        } finally {
-            setGuardandoEmpresa(false);
-        }
+        alert(
+            "¡Parámetros del taller actualizados correctamente!"
+        );
     };
 
 
@@ -813,36 +767,24 @@ function Configuracion() {
             {subtab ===
                 "Parámetros del Taller" && (
 
-                    <div className="vm-card config-card">
+                    <div className="config-card">
 
-                        <div className="vm-card-head">
-
-                            <h3>
-                                <span className="material-symbols-outlined" aria-hidden="true">account_balance</span>
-                                Información Institucional del Taller
-                            </h3>
-
-                        </div>
+                        <h3>
+                            🏛️ Información Institucional del Taller
+                        </h3>
 
 
                         <form
-                            className="vm-card-body"
                             onSubmit={guardarEmpresa}
                         >
 
-                            <h4 className="vm-form-section-title">
-                                <span className="material-symbols-outlined" aria-hidden="true">badge</span>
-                                Identidad y datos fiscales
-                            </h4>
-
-                            {errorEmpresa && (
-                                <div className="vm-alert" role="alert">
-                                    <span className="material-symbols-outlined" aria-hidden="true">error</span>
-                                    <span>{errorEmpresa}</span>
-                                </div>
-                            )}
-
-                            <div className="form-grid config-seccion-grid">
+                            <div
+                                className="config-form-grid"
+                                style={{
+                                    marginBottom:
+                                        "16px"
+                                }}
+                            >
 
                                 <div className="config-field">
 
@@ -928,6 +870,10 @@ function Configuracion() {
                                             `${empresaData.igv}%`
                                         }
                                         disabled
+                                        style={{
+                                            background:
+                                                "#f1f5f9"
+                                        }}
                                     />
 
                                 </div>
@@ -935,12 +881,13 @@ function Configuracion() {
                             </div>
 
 
-                            <h4 className="vm-form-section-title">
-                                <span className="material-symbols-outlined" aria-hidden="true">contact_phone</span>
-                                Ubicación, contacto y moneda
-                            </h4>
-
-                            <div className="form-grid config-seccion-grid">
+                            <div
+                                className="config-form-grid"
+                                style={{
+                                    marginBottom:
+                                        "20px"
+                                }}
+                            >
 
                                 <div className="config-field">
 
@@ -1023,6 +970,10 @@ function Configuracion() {
                                             empresaData.moneda
                                         }
                                         disabled
+                                        style={{
+                                            background:
+                                                "#f1f5f9"
+                                        }}
                                     />
 
                                 </div>
@@ -1030,18 +981,18 @@ function Configuracion() {
                             </div>
 
 
-                            <div className="config-form-acciones">
-
-                                <button
-                                    type="submit"
-                                    className="vm-btn vm-btn-accent"
-                                    disabled={guardandoEmpresa}
-                                >
-                                    <span className="material-symbols-outlined" aria-hidden="true">save</span>
-                                    {guardandoEmpresa ? "Guardando…" : "Guardar Cambios"}
-                                </button>
-
-                            </div>
+                            <button
+                                type="submit"
+                                className="btn-act-table link"
+                                style={{
+                                    padding:
+                                        "10px 20px",
+                                    fontSize:
+                                        "0.9rem"
+                                }}
+                            >
+                                💾 Guardar Cambios
+                            </button>
 
                         </form>
 
@@ -1057,26 +1008,44 @@ function Configuracion() {
             {subtab ===
                 "Usuarios y Perfiles" && (
 
-                    <div className="vm-card config-card">
+                    <div className="config-card">
 
-                        <div className="vm-card-head">
+                        <div
+                            style={{
+                                display:
+                                    "flex",
+                                justifyContent:
+                                    "space-between",
+                                alignItems:
+                                    "center",
+                                marginBottom:
+                                    "16px"
+                            }}
+                        >
 
-                            <h3>
-                                <span className="material-symbols-outlined" aria-hidden="true">group</span>
-                                Usuarios y Control de Roles
+                            <h3
+                                style={{
+                                    margin: 0,
+                                    border: "none"
+                                }}
+                            >
+                                👥 Usuarios y Control de Roles
                             </h3>
 
 
                             <button
-                                className="vm-btn vm-btn-accent"
+                                className="btn-act-table link"
+                                style={{
+                                    padding:
+                                        "8px 16px"
+                                }}
                                 onClick={() =>
                                     setMostrarModalUsuario(
                                         true
                                     )
                                 }
                             >
-                                <span className="material-symbols-outlined" aria-hidden="true">person_add</span>
-                                Crear Nuevo Usuario
+                                + Crear Nuevo Usuario
                             </button>
 
                         </div>
@@ -1084,8 +1053,22 @@ function Configuracion() {
 
                         {errorUsuarios && (
 
-                            <div className="vm-alert config-card-alerta" role="alert">
-                                <span className="material-symbols-outlined" aria-hidden="true">error</span>
+                            <div
+                                style={{
+                                    background:
+                                        "#fee2e2",
+                                    color:
+                                        "#b91c1c",
+                                    padding:
+                                        "12px",
+                                    borderRadius:
+                                        "6px",
+                                    marginBottom:
+                                        "16px",
+                                    border:
+                                        "1px solid #fecaca"
+                                }}
+                            >
                                 {errorUsuarios}
                             </div>
 
@@ -1094,7 +1077,7 @@ function Configuracion() {
 
                         <div className="os-table-wrapper">
 
-                            <table className="os-table config-tabla-usuarios">
+                            <table className="os-table">
 
                                 <thead>
 
@@ -1135,10 +1118,16 @@ function Configuracion() {
 
                                         <tr>
 
-                                            <td colSpan="6">
-                                                <div className="vm-loading config-card-carga">
-                                                    Cargando usuarios...
-                                                </div>
+                                            <td
+                                                colSpan="6"
+                                                style={{
+                                                    textAlign:
+                                                        "center",
+                                                    padding:
+                                                        "30px"
+                                                }}
+                                            >
+                                                Cargando usuarios...
                                             </td>
 
                                         </tr>
@@ -1147,11 +1136,16 @@ function Configuracion() {
 
                                         <tr>
 
-                                            <td colSpan="6">
-                                                <div className="vm-empty">
-                                                    <span className="material-symbols-outlined" aria-hidden="true">group_off</span>
-                                                    No hay usuarios registrados.
-                                                </div>
+                                            <td
+                                                colSpan="6"
+                                                style={{
+                                                    textAlign:
+                                                        "center",
+                                                    padding:
+                                                        "30px"
+                                                }}
+                                            >
+                                                No hay usuarios registrados.
                                             </td>
 
                                         </tr>
@@ -1169,17 +1163,15 @@ function Configuracion() {
 
                                                     <td>
 
-                                                        <span className="vm-code">
+                                                        <strong>
                                                             #{u.user_id}
-                                                        </span>
+                                                        </strong>
 
                                                     </td>
 
 
                                                     <td>
-                                                        <strong>
-                                                            {u.nombre}
-                                                        </strong>
+                                                        {u.nombre}
                                                     </td>
 
 
@@ -1190,7 +1182,7 @@ function Configuracion() {
 
                                                     <td>
 
-                                                        <span className="vm-badge vm-badge-info is-plain">
+                                                        <span className="proc-tag preventivo">
 
                                                             {
                                                                 u.rol ||
@@ -1207,12 +1199,14 @@ function Configuracion() {
                                                     <td>
 
                                                         <span
-                                                            className={
-                                                                `vm-badge ${u.activo
-                                                                    ? "vm-badge-success"
-                                                                    : "vm-badge-danger"
-                                                                }`
-                                                            }
+                                                            style={{
+                                                                color:
+                                                                    u.activo
+                                                                        ? "#16a34a"
+                                                                        : "#ef4444",
+                                                                fontWeight:
+                                                                    "bold"
+                                                            }}
                                                         >
 
                                                             {u.activo
@@ -1227,20 +1221,13 @@ function Configuracion() {
                                                     <td>
 
                                                         <button
-                                                            className={
-                                                                `btn-act-table ${u.activo
-                                                                    ? "config-accion-desactivar"
-                                                                    : "nps"
-                                                                }`
-                                                            }
+                                                            className="btn-act-table diag"
                                                             onClick={() =>
                                                                 toggleEstadoUsuario(
                                                                     u.user_id
                                                                 )
                                                             }
                                                         >
-
-                                                            <span className="material-symbols-outlined" aria-hidden="true">power_settings_new</span>
 
                                                             {u.activo
                                                                 ? "Desactivar"
@@ -1275,31 +1262,51 @@ function Configuracion() {
             {subtab ===
                 "Integraciones & Notificaciones" && (
 
-                    <div className="vm-card config-card">
+                    <div className="config-card">
 
-                        <div className="vm-card-head">
-
-                            <h3>
-                                <span className="material-symbols-outlined" aria-hidden="true">hub</span>
-                                Integraciones de Comunicación
-                                (Telegram & Email)
-                            </h3>
-
-                        </div>
+                        <h3>
+                            📲 Integraciones de Comunicación
+                            (Telegram & Email)
+                        </h3>
 
 
-                        <div className="vm-card-body config-integraciones">
+                        <div
+                            style={{
+                                display:
+                                    "grid",
+                                gridTemplateColumns:
+                                    "1fr 1fr",
+                                gap: "20px"
+                            }}
+                        >
 
                             {/* TELEGRAM */}
 
-                            <div className="config-integracion">
+                            <div
+                                style={{
+                                    background:
+                                        "#f8fafc",
+                                    padding:
+                                        "16px",
+                                    borderRadius:
+                                        "8px",
+                                    border:
+                                        "1px solid #cbd5e1"
+                                }}
+                            >
 
-                                <h4 className="vm-form-section-title">
-                                    <span className="material-symbols-outlined" aria-hidden="true">send</span>
-                                    Telegram Bot
+                                <h4>
+                                    🔵 Telegram Bot
                                 </h4>
 
-                                <p className="config-integracion-texto">
+                                <p
+                                    style={{
+                                        fontSize:
+                                            "0.85rem",
+                                        color:
+                                            "#64748b"
+                                    }}
+                                >
                                     Envío automático de citas,
                                     actualizaciones de órdenes
                                     de servicio, aprobaciones
@@ -1307,7 +1314,13 @@ function Configuracion() {
                                 </p>
 
 
-                                <div className="config-field">
+                                <div
+                                    className="config-field"
+                                    style={{
+                                        marginTop:
+                                            "12px"
+                                    }}
+                                >
 
                                     <label>
                                         Token del Bot de Telegram
@@ -1322,15 +1335,18 @@ function Configuracion() {
 
 
                                 <button
-                                    className="vm-btn vm-btn-secondary"
+                                    className="btn-act-table link"
+                                    style={{
+                                        marginTop:
+                                            "12px"
+                                    }}
                                     onClick={() =>
                                         alert(
                                             "La conexión con Telegram estará disponible cuando se configure el Bot."
                                         )
                                     }
                                 >
-                                    <span className="material-symbols-outlined" aria-hidden="true">bolt</span>
-                                    Probar Conexión Telegram
+                                    ⚡ Probar Conexión Telegram
                                 </button>
 
                             </div>
@@ -1338,21 +1354,44 @@ function Configuracion() {
 
                             {/* EMAIL */}
 
-                            <div className="config-integracion">
+                            <div
+                                style={{
+                                    background:
+                                        "#f8fafc",
+                                    padding:
+                                        "16px",
+                                    borderRadius:
+                                        "8px",
+                                    border:
+                                        "1px solid #cbd5e1"
+                                }}
+                            >
 
-                                <h4 className="vm-form-section-title">
-                                    <span className="material-symbols-outlined" aria-hidden="true">mail</span>
-                                    Servidor de Correo SMTP
+                                <h4>
+                                    ✉️ Servidor de Correo SMTP
                                 </h4>
 
-                                <p className="config-integracion-texto">
+                                <p
+                                    style={{
+                                        fontSize:
+                                            "0.85rem",
+                                        color:
+                                            "#64748b"
+                                    }}
+                                >
                                     Notificaciones de ODS,
                                     cotizaciones y facturas
                                     electrónicas vía e-mail.
                                 </p>
 
 
-                                <div className="config-field">
+                                <div
+                                    className="config-field"
+                                    style={{
+                                        marginTop:
+                                            "12px"
+                                    }}
+                                >
 
                                     <label>
                                         Host SMTP
@@ -1362,21 +1401,28 @@ function Configuracion() {
                                         type="text"
                                         value="smtp.veramotors.pe:587"
                                         readOnly
+                                        style={{
+                                            background:
+                                                "#e2e8f0"
+                                        }}
                                     />
 
                                 </div>
 
 
                                 <button
-                                    className="vm-btn vm-btn-secondary"
+                                    className="btn-act-table link"
+                                    style={{
+                                        marginTop:
+                                            "12px"
+                                    }}
                                     onClick={() =>
                                         alert(
                                             "La configuración de correo estará disponible cuando se conecte el servidor SMTP."
                                         )
                                     }
                                 >
-                                    <span className="material-symbols-outlined" aria-hidden="true">forward_to_inbox</span>
-                                    Enviar Correo de Prueba
+                                    📧 Enviar Correo de Prueba
                                 </button>
 
                             </div>
@@ -1394,51 +1440,51 @@ function Configuracion() {
 
             {subtab === "Series y Comprobantes" && (
 
-                <div className="vm-card config-card">
+                <div className="config-card">
 
-                    <div className="vm-card-head">
-                        <h3>
-                            <span className="material-symbols-outlined" aria-hidden="true">receipt_long</span>
-                            Configuración de Series y Correlativos SUNAT / Sistema
-                        </h3>
-                    </div>
+                    <h3>🧾 Configuración de Series y Correlativos SUNAT / Sistema</h3>
 
-                    <p className="config-card-intro">
+                    <p style={{ color: "#64748b", marginBottom: "20px", fontSize: "0.9rem" }}>
                         Configura el prefijo y el número correlativo para cada tipo de documento emitido por VeraMotors.
                         El cambio entra en vigencia a partir del siguiente comprobante generado.
                     </p>
 
                     {errorSeries && (
-                        <div className="vm-alert config-card-alerta" role="alert">
-                            <span className="material-symbols-outlined" aria-hidden="true">error</span>
+                        <div style={{
+                            background: "#fee2e2",
+                            color: "#b91c1c",
+                            padding: "12px",
+                            borderRadius: "6px",
+                            marginBottom: "16px",
+                            border: "1px solid #fecaca"
+                        }}>
                             {errorSeries}
                         </div>
                     )}
 
                     {cargandoSeries ? (
-                        <div className="vm-loading config-card-carga">
-                            Cargando configuración de correlativos...
+                        <div style={{ textAlign: "center", padding: "40px", color: "#64748b" }}>
+                            ⏳ Cargando configuración de correlativos...
                         </div>
 
                     ) : series.length === 0 ? (
-                        <div className="vm-empty">
-                            <span className="material-symbols-outlined" aria-hidden="true">receipt_long</span>
+                        <div style={{ textAlign: "center", padding: "40px", color: "#64748b" }}>
                             No existen configuraciones de correlativos registradas.
                         </div>
 
                     ) : (
 
                         <div className="os-table-wrapper">
-                            <table className="os-table config-tabla-series">
+                            <table className="os-table">
                                 <thead>
                                     <tr>
                                         <th>Tipo de Documento</th>
                                         <th>Uso en el Sistema</th>
-                                        <th className="config-col-compacta">Prefijo / Serie</th>
-                                        <th className="config-col-compacta vm-num">Siguiente N°</th>
+                                        <th style={{ width: "130px" }}>Prefijo / Serie</th>
+                                        <th style={{ width: "130px" }}>Siguiente N°</th>
                                         <th>Vista Previa</th>
-                                        <th className="config-centro">Estado</th>
-                                        <th className="config-centro">Acción</th>
+                                        <th style={{ textAlign: "center" }}>Estado</th>
+                                        <th style={{ textAlign: "center" }}>Acción</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -1446,7 +1492,6 @@ function Configuracion() {
                                         .slice()
                                         .filter((serie) => serie.tipo_documento !== "REMISION")
                                         .sort((a, b) => {
-<<<<<<< HEAD
                                             const orden = ["FACTURA", "BOLETA", "COTIZACION", "ODS", "NOTA_CREDITO", "COMPRA"];
                                             return orden.indexOf(a.tipo_documento) - orden.indexOf(b.tipo_documento);
                                         })
@@ -1458,86 +1503,70 @@ function Configuracion() {
                                                 ODS: { nombre: "Orden de Servicio (ODS)", icono: "🔧", desc: "Ingreso de vehículo al taller" },
                                                 NOTA_CREDITO: { nombre: "Nota de Crédito", icono: "↩️", desc: "Anulación o devolución parcial" },
                                                 COMPRA: { nombre: "Orden de Compra (ODC)", icono: "🛒", desc: "Compras a proveedores" },
-=======
-                                            const orden = ["FACTURA", "BOLETA", "COTIZACION", "ODS", "NOTA_CREDITO", "NOTA_CREDITO_FACTURA", "NOTA_CREDITO_BOLETA", "NOTA_DEBITO", "NOTA_DEBITO_FACTURA", "NOTA_DEBITO_BOLETA", "REMISION", "COMPRA"];
-                                            const posicion = (tipo) => {
-                                                const indice = orden.indexOf(tipo);
-                                                return indice === -1 ? orden.length : indice;
                                             };
-                                            return posicion(a.tipo_documento) - posicion(b.tipo_documento);
-                                        })
-                                        .map((serie) => {
-                                            const etiquetas = {
-                                                FACTURA: { nombre: "Factura Electrónica", icono: "receipt_long", desc: "Ventas a empresas con RUC" },
-                                                BOLETA: { nombre: "Boleta Electrónica", icono: "receipt", desc: "Ventas a personas naturales" },
-                                                COTIZACION: { nombre: "Cotización de Servicios", icono: "request_quote", desc: "Presupuesto previo al servicio" },
-                                                ODS: { nombre: "Orden de Servicio (ODS)", icono: "build", desc: "Ingreso de vehículo al taller" },
-                                                NOTA_CREDITO: { nombre: "Nota de Crédito", icono: "undo", desc: "Anulación o devolución parcial" },
-                                                NOTA_CREDITO_FACTURA: { nombre: "Nota de Crédito de Factura", icono: "undo", desc: "Anulación o devolución sobre una factura" },
-                                                NOTA_CREDITO_BOLETA: { nombre: "Nota de Crédito de Boleta", icono: "undo", desc: "Anulación o devolución sobre una boleta" },
-                                                NOTA_DEBITO: { nombre: "Nota de Débito", icono: "add_card", desc: "Cargos adicionales sobre un comprobante" },
-                                                NOTA_DEBITO_FACTURA: { nombre: "Nota de Débito de Factura", icono: "add_card", desc: "Cargos adicionales sobre una factura" },
-                                                NOTA_DEBITO_BOLETA: { nombre: "Nota de Débito de Boleta", icono: "add_card", desc: "Cargos adicionales sobre una boleta" },
-                                                REMISION: { nombre: "Guía de Remisión", icono: "local_shipping", desc: "Traslado de bienes / repuestos" },
-                                                COMPRA: { nombre: "Orden de Compra (ODC)", icono: "shopping_cart", desc: "Compras a proveedores" },
->>>>>>> c50f4ef899f2d8106c402b44bb7cd55c4df493ab
-                                            };
-                                            const meta = etiquetas[serie.tipo_documento] || { nombre: serie.tipo_documento, icono: "description", desc: "Documento interno" };
+                                            const meta = etiquetas[serie.tipo_documento] || { nombre: serie.tipo_documento, icono: "📄", desc: "Documento interno" };
                                             const vistaPrevia = `${serie.prefijo}-${String(serie.siguiente_correlativo).padStart(5, "0")}`;
 
                                             return (
                                                 <tr key={serie.correlativo_id}>
                                                     <td>
-                                                        <div className="config-doc">
-                                                            <span className="material-symbols-outlined config-doc-icono" aria-hidden="true">{meta.icono}</span>
+                                                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                                            <span style={{ fontSize: "1.2rem" }}>{meta.icono}</span>
                                                             <div>
-                                                                <strong>{meta.nombre}</strong>
-                                                                <small>{meta.desc}</small>
+                                                                <strong style={{ display: "block", fontSize: "14px" }}>{meta.nombre}</strong>
+                                                                <small style={{ color: "#94a3b8", fontSize: "12px" }}>{meta.desc}</small>
                                                             </div>
                                                         </div>
                                                     </td>
                                                     <td>
-                                                        <code className="vm-code config-code-neutro">
+                                                        <code style={{ background: "#ffffffff", color: "#60a5fa", padding: "2px 8px", borderRadius: "4px", fontSize: "13px" }}>
                                                             {serie.tipo_documento}
                                                         </code>
                                                     </td>
                                                     <td>
                                                         <input
-                                                            className="config-serie-input"
                                                             type="text"
                                                             value={serie.prefijo}
                                                             onChange={(e) => cambiarSerie(serie.correlativo_id, "prefijo", e.target.value)}
                                                             maxLength="10"
+                                                            style={{ width: "100%", padding: "6px 8px", borderRadius: "6px", border: "1px solid #334155", background: "#0f172a", color: "#f8fafc", fontSize: "14px", fontFamily: "monospace" }}
                                                         />
                                                     </td>
-                                                    <td className="vm-num">
+                                                    <td>
                                                         <input
-                                                            className="config-serie-input config-serie-numero"
                                                             type="number"
                                                             min="1"
                                                             value={serie.siguiente_correlativo}
                                                             onChange={(e) => cambiarSerie(serie.correlativo_id, "siguiente_correlativo", e.target.value)}
+                                                            style={{ width: "100%", padding: "6px 8px", borderRadius: "6px", border: "1px solid #334155", background: "#0f172a", color: "#f8fafc", fontSize: "14px", textAlign: "center" }}
                                                         />
                                                     </td>
                                                     <td>
-                                                        <code className="vm-code">
+                                                        <code style={{ background: "#ffffffff", color: "#34d399", padding: "4px 10px", borderRadius: "4px", fontSize: "14px", fontWeight: "bold", border: "1px solid #065f46" }}>
                                                             {vistaPrevia}
                                                         </code>
                                                     </td>
-                                                    <td className="config-centro">
-                                                        <span className={`vm-badge ${serie.activo ? "vm-badge-success" : "vm-badge-danger"}`}>
-                                                            {serie.activo ? "Activo" : "Inactivo"}
+                                                    <td style={{ textAlign: "center" }}>
+                                                        <span style={{
+                                                            padding: "3px 10px",
+                                                            borderRadius: "12px",
+                                                            fontSize: "12px",
+                                                            fontWeight: "bold",
+                                                            background: serie.activo ? "#dcfce7" : "#fee2e2",
+                                                            color: serie.activo ? "#16a34a" : "#b91c1c"
+                                                        }}>
+                                                            {serie.activo ? "✓ Activo" : "✗ Inactivo"}
                                                         </span>
                                                     </td>
-                                                    <td className="config-centro">
+                                                    <td style={{ textAlign: "center" }}>
                                                         <button
                                                             type="button"
                                                             className="btn-act-table link"
+                                                            style={{ padding: "6px 14px", fontSize: "13px" }}
                                                             disabled={guardandoSerie}
                                                             onClick={() => guardarCorrelativo(serie)}
                                                         >
-                                                            <span className="material-symbols-outlined" aria-hidden="true">save</span>
-                                                            Guardar
+                                                            💾 Guardar
                                                         </button>
                                                     </td>
                                                 </tr>
@@ -1561,7 +1590,13 @@ function Configuracion() {
 
                 <div className="modal-overlay">
 
-                    <div className="modal-content config-modal">
+                    <div
+                        className="modal-content config-modal"
+                        style={{
+                            maxWidth:
+                                "500px"
+                        }}
+                    >
 
                         <div className="modal-header">
 
@@ -1589,9 +1624,8 @@ function Configuracion() {
                                 disabled={
                                     creandoUsuario
                                 }
-                                aria-label="Cerrar"
                             >
-                                <span className="material-symbols-outlined" aria-hidden="true">close</span>
+                                ✕
                             </button>
 
                         </div>
@@ -1606,19 +1640,27 @@ function Configuracion() {
                             <div className="modal-body">
 
 
-                                <h4 className="vm-form-section-title">
-                                    <span className="material-symbols-outlined" aria-hidden="true">person</span>
-                                    Datos del usuario
-                                </h4>
-
-                                <div className="form-grid config-seccion-grid">
-
-
                                 {/* NOMBRE */}
 
-                                <div className="form-group form-group-full">
+                                <div
+                                    style={{
+                                        marginBottom:
+                                            "14px"
+                                    }}
+                                >
 
-                                    <label>
+                                    <label
+                                        style={{
+                                            fontSize:
+                                                "0.85rem",
+                                            fontWeight:
+                                                "bold",
+                                            display:
+                                                "block",
+                                            marginBottom:
+                                                "4px"
+                                        }}
+                                    >
                                         Nombre Completo *
                                     </label>
 
@@ -1646,9 +1688,25 @@ function Configuracion() {
 
                                 {/* CORREO */}
 
-                                <div className="form-group">
+                                <div
+                                    style={{
+                                        marginBottom:
+                                            "14px"
+                                    }}
+                                >
 
-                                    <label>
+                                    <label
+                                        style={{
+                                            fontSize:
+                                                "0.85rem",
+                                            fontWeight:
+                                                "bold",
+                                            display:
+                                                "block",
+                                            marginBottom:
+                                                "4px"
+                                        }}
+                                    >
                                         Correo Electrónico *
                                     </label>
 
@@ -1676,9 +1734,25 @@ function Configuracion() {
 
                                 {/* ROL */}
 
-                                <div className="form-group">
+                                <div
+                                    style={{
+                                        marginBottom:
+                                            "14px"
+                                    }}
+                                >
 
-                                    <label>
+                                    <label
+                                        style={{
+                                            fontSize:
+                                                "0.85rem",
+                                            fontWeight:
+                                                "bold",
+                                            display:
+                                                "block",
+                                            marginBottom:
+                                                "4px"
+                                        }}
+                                    >
                                         Rol del Sistema *
                                     </label>
 
@@ -1723,22 +1797,27 @@ function Configuracion() {
                                 </div>
 
 
-                                </div>
-
-
-                                <h4 className="vm-form-section-title">
-                                    <span className="material-symbols-outlined" aria-hidden="true">lock</span>
-                                    Credenciales y estado
-                                </h4>
-
-                                <div className="form-grid config-seccion-grid">
-
-
                                 {/* CONTRASEÑA */}
 
-                                <div className="form-group">
+                                <div
+                                    style={{
+                                        marginBottom:
+                                            "14px"
+                                    }}
+                                >
 
-                                    <label>
+                                    <label
+                                        style={{
+                                            fontSize:
+                                                "0.85rem",
+                                            fontWeight:
+                                                "bold",
+                                            display:
+                                                "block",
+                                            marginBottom:
+                                                "4px"
+                                        }}
+                                    >
                                         Contraseña *
                                     </label>
 
@@ -1767,9 +1846,25 @@ function Configuracion() {
 
                                 {/* CONFIRMAR CONTRASEÑA */}
 
-                                <div className="form-group">
+                                <div
+                                    style={{
+                                        marginBottom:
+                                            "14px"
+                                    }}
+                                >
 
-                                    <label>
+                                    <label
+                                        style={{
+                                            fontSize:
+                                                "0.85rem",
+                                            fontWeight:
+                                                "bold",
+                                            display:
+                                                "block",
+                                            marginBottom:
+                                                "4px"
+                                        }}
+                                    >
                                         Confirmar Contraseña *
                                     </label>
 
@@ -1798,16 +1893,39 @@ function Configuracion() {
 
                                 {/* ESTADO */}
 
-                                <div className="form-group form-group-full">
+                                <div
+                                    style={{
+                                        marginBottom:
+                                            "14px"
+                                    }}
+                                >
 
-                                    <label>
+                                    <label
+                                        style={{
+                                            fontSize:
+                                                "0.85rem",
+                                            fontWeight:
+                                                "bold",
+                                            display:
+                                                "block",
+                                            marginBottom:
+                                                "4px"
+                                        }}
+                                    >
                                         Estado
                                     </label>
 
                                     <select
-                                        className="config-estado-fijo"
                                         value="Activo"
                                         disabled
+                                        style={{
+                                            background:
+                                                "#f1f5f9",
+                                            color:
+                                                "#16a34a",
+                                            fontWeight:
+                                                "bold"
+                                        }}
                                     >
 
                                         <option value="Activo">
@@ -1815,8 +1933,6 @@ function Configuracion() {
                                         </option>
 
                                     </select>
-
-                                </div>
 
                                 </div>
 
