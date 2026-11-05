@@ -92,7 +92,7 @@
 }
 
 .compras-tabla-facturas {
-    min-width: 920px;
+    min-width: 1040px;
 }
 
 .compras-celda-secundaria {
@@ -104,6 +104,90 @@
 .compras-serie-numero {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
     gap: var(--s-2);
+}
+
+.compras-factura-relacion {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-2) var(--s-4);
+    margin-top: var(--s-3);
+    padding: var(--s-3);
+    background: var(--surface-2);
+    border-radius: var(--r);
+}
+
+.compras-factura-lineas {
+    display: grid;
+    gap: var(--s-3);
+}
+
+.compras-factura-linea {
+    display: grid;
+    grid-template-columns: minmax(180px, 2fr) repeat(3, minmax(95px, 1fr)) minmax(100px, 1fr) auto;
+    align-items: end;
+    gap: var(--s-2);
+    padding: var(--s-3);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+}
+
+.compras-factura-linea output {
+    display: block;
+    min-height: 40px;
+    padding: var(--s-2);
+    color: var(--text);
+    font-weight: 600;
+}
+
+.compras-factura-detalles {
+    display: grid;
+    gap: var(--s-2);
+    padding: var(--s-3);
+    background: var(--surface-2);
+}
+
+.compras-factura-detalles > div {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) repeat(3, auto);
+    gap: var(--s-3);
+    align-items: center;
+}
+
+.compras-factura-detalles > .compras-factura-documentos,
+.compras-factura-detalles > .compras-factura-sunat {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-2);
+}
+
+.compras-factura-sunat {
+    padding: var(--s-3);
+    background: var(--surface);
+    border-left: 3px solid var(--warning);
+}
+
+.compras-factura-sunat span {
+    color: var(--text-muted);
+    font-size: var(--fs-sm);
+}
+
+.compras-adjuntar-pdf {
+    position: relative;
+    cursor: pointer;
+}
+
+.compras-adjuntar-pdf input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    opacity: 0;
+}
+
+.compras-factura-totales {
+    padding-top: var(--s-2);
+    border-top: 1px solid var(--border-strong);
 }
 
 .compras-modal-pago {
@@ -151,5 +235,18 @@
 
     .compras-resumen-total {
         font-size: var(--fs-lg);
+    }
+
+    .compras-factura-linea {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .compras-factura-linea > .form-group:first-child,
+    .compras-factura-linea > button {
+        grid-column: 1 / -1;
+    }
+
+    .compras-factura-detalles > div {
+        grid-template-columns: minmax(0, 1fr) auto;
     }
 }

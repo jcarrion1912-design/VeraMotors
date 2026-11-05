@@ -21,6 +21,18 @@ class MovimientoInventario(Base):
         nullable=False,
         index=True,
     )
+    responsable_id = Column(
+        BigInteger,
+        ForeignKey("usuarios.user_id", onupdate="CASCADE", ondelete="RESTRICT"),
+        nullable=True,
+        index=True,
+    )
+    ods_id = Column(
+        BigInteger,
+        ForeignKey("ordenes_servicio.ods_id", onupdate="CASCADE", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     fecha_movimiento = Column(DateTime, nullable=False, server_default=func.current_timestamp())
     tipo_movimiento = Column(String(30), nullable=False)
     cantidad = Column(Numeric(12, 2), nullable=False, default=0)
@@ -30,3 +42,6 @@ class MovimientoInventario(Base):
     observaciones = Column(Text, nullable=True)
 
     item = relationship("Inventario", foreign_keys=[item_id], lazy="joined")
+    usuario = relationship("Usuario", foreign_keys=[usuario_id], lazy="joined")
+    responsable = relationship("Usuario", foreign_keys=[responsable_id], lazy="joined")
+    ods = relationship("OrdenServicio", foreign_keys=[ods_id], lazy="joined")

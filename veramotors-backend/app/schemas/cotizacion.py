@@ -17,6 +17,8 @@ class DetalleCotizacionBase(BaseModel):
 class DetalleCotizacionResponse(DetalleCotizacionBase):
     detalle_cotizacion_id: int
     cotizacion_id: int
+    item_nombre: Optional[str] = None
+    item_codigo: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -34,7 +36,14 @@ class CotizacionBase(BaseModel):
 
 
 class CotizacionCreate(CotizacionBase):
-    detalles: Optional[List[DetalleCotizacionBase]] = []
+    detalles: List[DetalleCotizacionBase] = Field(default_factory=list)
+
+
+class CotizacionUpdate(BaseModel):
+    cliente_id: Optional[int] = None
+    vehiculo_id: Optional[int] = None
+    observaciones: Optional[str] = None
+    detalles: Optional[List[DetalleCotizacionBase]] = None
 
 
 class CotizacionAprobacionRequest(BaseModel):
@@ -56,9 +65,8 @@ class CotizacionResponse(CotizacionBase):
     cliente_documento: Optional[str] = None
     vehiculo_placa: Optional[str] = None
     vehiculo_modelo: Optional[str] = None
-    detalles: Optional[List[DetalleCotizacionResponse]] = []
+    detalles: List[DetalleCotizacionResponse] = Field(default_factory=list)
 
     class Config:
         from_attributes = True
-
 

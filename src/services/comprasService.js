@@ -1,7 +1,7 @@
 const API_URL = "http://127.0.0.1:8000/api/compras";
 const API_RECEPCIONES_URL = "http://127.0.0.1:8000/api/recepciones";
-const API_FACTURAS_URL = "http://127.0.0.1:8000/api/facturas-proveedor";
-const API_PAGOS_URL = "http://127.0.0.1:8000/api/pagos-proveedor";
+const API_FACTURAS_URL = "/api/facturas-proveedor";
+const API_PAGOS_URL = "/api/pagos-proveedor";
 
 const procesarRespuesta = async (res) => {
     const data = await res.json();
@@ -59,27 +59,65 @@ export const registrarRecepcion = async (datos) => {
 };
 
 export const obtenerFacturasProveedor = async () => {
-    const res = await fetch(API_FACTURAS_URL);
+    const res = await fetch(API_FACTURAS_URL, { credentials: "include" });
+    return procesarRespuesta(res);
+};
+
+export const obtenerFacturaProveedor = async (facturaId) => {
+    const res = await fetch(`${API_FACTURAS_URL}/${facturaId}`, {
+        credentials: "include"
+    });
     return procesarRespuesta(res);
 };
 
 export const crearFacturaProveedor = async (datos) => {
     const res = await fetch(API_FACTURAS_URL, {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(datos)
     });
     return procesarRespuesta(res);
 };
 
+export const extraerDatosPdfProveedor = async (archivo) => {
+    const formData = new FormData();
+    formData.append("archivo", archivo);
+    const res = await fetch(`${API_FACTURAS_URL}/extraer-pdf`, {
+        method: "POST",
+        credentials: "include",
+        body: formData
+    });
+    return procesarRespuesta(res);
+};
+
+export const adjuntarPdfOriginalProveedor = async (facturaId, archivo) => {
+    const formData = new FormData();
+    formData.append("archivo", archivo);
+    const res = await fetch(`${API_FACTURAS_URL}/${facturaId}/pdf-original`, {
+        method: "POST",
+        credentials: "include",
+        body: formData
+    });
+    return procesarRespuesta(res);
+};
+
+export const urlPdfProveedor = (facturaId, tipo = "interno", descargar = false) => {
+    if (tipo === "original") {
+        return `${API_FACTURAS_URL}/${facturaId}/pdf-original${descargar ? "?descargar=true" : ""}`;
+    }
+    return `${API_FACTURAS_URL}/${facturaId}/pdf-interno${descargar ? "?descargar=true" : ""}`;
+};
+
 export const obtenerPagosProveedor = async () => {
-    const res = await fetch(API_PAGOS_URL);
+    const res = await fetch(API_PAGOS_URL, { credentials: "include" });
     return procesarRespuesta(res);
 };
 
 export const registrarPagoProveedor = async (datos) => {
     const res = await fetch(API_PAGOS_URL, {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(datos)
     });

@@ -28,6 +28,8 @@ class Settings(BaseSettings):
     SUNAT_UBIGEO: str = "150136"
     SUNAT_CODIGO_ESTABLECIMIENTO: str = "0000"
 
+    FACTURAS_PROVEEDOR_STORAGE_DIR: str = "storage/facturas-proveedor"
+
 
     # ============================================================
     # CONFIGURACIÓN

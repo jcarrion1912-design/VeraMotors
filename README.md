@@ -82,6 +82,7 @@ Van en `veramotors-backend/.env`, que Git ignora. Nunca subas este archivo ni el
 | `COOKIE_SECURE` | No | Cookie solo por HTTPS. Por defecto `true` | `false` | `true` |
 | `HABILITAR_DOCS` | No | Publica `/docs` y `/redoc`. Por defecto `false` | `true` | `false` |
 | `PERMITIR_LOGIN_DEMO` | No | Habilita el Modo Demo. Por defecto `false` | `true` | `false` |
+| `FACTURAS_PROVEEDOR_STORAGE_DIR` | No | Directorio para conservar los PDF originales de proveedores. Por defecto `veramotors-backend/storage/facturas-proveedor` | Ruta local | Ruta en volumen persistente |
 | `SUNAT_*` | Para facturar | Conexión con APISUNAT: `SUNAT_API_URL`, `SUNAT_API_TOKEN`, `SUNAT_PERSONA_ID`, `SUNAT_RUC`, `SUNAT_USUARIO`, `SUNAT_PASSWORD`, `SUNAT_AMBIENTE`, `SUNAT_RAZON_SOCIAL`, `SUNAT_CODIGO_ESTABLECIMIENTO` | Credenciales de prueba | Credenciales reales |
 
 ## Base de datos
@@ -150,6 +151,7 @@ npm run build
 - **HTTPS y variables:** usa HTTPS y los valores de la columna Producción.
 - **Proxy:** pasa la IP real del cliente a uvicorn; si no, todos los usuarios cuentan como una misma IP en el límite de intentos.
 - **Un solo proceso:** el límite de intentos vive en memoria. Con varios workers, cada uno lleva su propia cuenta.
+- **PDF originales de proveedores:** configura `FACTURAS_PROVEEDOR_STORAGE_DIR` en un volumen persistente incluido en las copias de seguridad. Los archivos se conservan fuera de PostgreSQL y el backend no transforma sus bytes.
 
 `veramotors-backend/Dockerfile` construye la imagen del backend.
 

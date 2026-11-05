@@ -889,6 +889,7 @@ function Compras() {
                 <FacturasProveedor
                     proveedores={proveedores}
                     ordenesCompra={ordenesCompra}
+                    recepciones={recepciones}
                     usuarioActual={usuarioActual}
                 />
             )}

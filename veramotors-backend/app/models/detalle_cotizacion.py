@@ -10,9 +10,15 @@ class DetalleCotizacion(Base):
     cotizacion_id = Column(
         BigInteger,
         ForeignKey("cotizaciones.cotizacion_id", onupdate="CASCADE", ondelete="CASCADE"),
-        nullable=False
+        nullable=False,
+        index=True,
     )
-    item_id = Column(BigInteger, nullable=True)
+    item_id = Column(
+        BigInteger,
+        ForeignKey("inventario.item_id", onupdate="CASCADE", ondelete="RESTRICT"),
+        nullable=True,
+        index=True,
+    )
     descripcion = Column(String(255), nullable=False)
     cantidad = Column(Numeric(10, 2), nullable=False, default=1)
     precio_unitario = Column(Numeric(12, 2), nullable=False, default=0)
@@ -21,3 +27,4 @@ class DetalleCotizacion(Base):
     total = Column(Numeric(12, 2), nullable=False, default=0)
 
     cotizacion = relationship("Cotizacion", back_populates="detalles")
+    item = relationship("Inventario", foreign_keys=[item_id], lazy="joined")

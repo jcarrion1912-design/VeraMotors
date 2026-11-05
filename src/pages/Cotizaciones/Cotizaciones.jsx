@@ -1,14 +1,17 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useRole } from "../../context/authContext";
 import {
     obtenerCotizaciones,
+    obtenerCotizacion,
     crearCotizacion,
+    actualizarCotizacion,
     aprobarCotizacion,
     rechazarCotizacion
 } from "../../services/cotizacionesService";
 import { obtenerClientes } from "../../services/clientesService";
 import { obtenerVehiculosCliente } from "../../services/citaService";
+import { obtenerInventario } from "../../services/inventarioService";
 import "./Cotizaciones.css";
 
 const moneda = (valor) =>
@@ -23,6 +26,24 @@ const fecha = (valor) => {
     return isNaN(d.getTime()) ? String(valor) : d.toLocaleDateString("es-PE");
 };
 
+const redondear = (valor) => Number(Number(valor || 0).toFixed(2));
+
+const calcularLinea = (item) => {
+    const bruto = Number(item.cantidad) * Number(item.precio_unitario);
+    const descuento = Number(item.descuento || 0);
+    const base = bruto - descuento;
+    const impuesto = item.impuesto_porcentaje != null
+        ? redondear(base * Number(item.impuesto_porcentaje) / 100)
+        : Number(item.impuesto || 0);
+
+    return {
+        bruto: redondear(bruto),
+        descuento: redondear(descuento),
+        impuesto,
+        total: redondear(base + impuesto)
+    };
+};
+
 function Cotizaciones() {
     const navigate = useNavigate();
     const { usuarioActual } = useRole();
@@ -34,10 +55,14 @@ function Cotizaciones() {
     // Modal Crear Cotización
     const [mostrarModal, setMostrarModal] = useState(false);
     const [clientes, setClientes] = useState([]);
+    const [productosInventario, setProductosInventario] = useState([]);
     const [vehiculosCliente, setVehiculosCliente] = useState([]);
     const [cotizacionCliente, setCotizacionCliente] = useState("");
     const [cotizacionVehiculo, setCotizacionVehiculo] = useState("");
     const [itemsCotizacion, setItemsCotizacion] = useState([]);
+    const [productoInventarioId, setProductoInventarioId] = useState("");
+    const [cotizacionEditandoId, setCotizacionEditandoId] = useState(null);
+    const [cotizacionExpandidaId, setCotizacionExpandidaId] = useState(null);
 
     const [nuevoItemDesc, setNuevoItemDesc] = useState("");
     const [nuevoItemPrecio, setNuevoItemPrecio] = useState("");
@@ -45,6 +70,7 @@ function Cotizaciones() {
     const [nuevoItemDescuento, setNuevoItemDescuento] = useState(0);
 
     const [guardandoCotizacion, setGuardandoCotizacion] = useState(false);
+    const [cargandoInventario, setCargandoInventario] = useState(false);
 
     // Cargar Cotizaciones
     const cargarCotizaciones = async () => {
@@ -70,9 +96,24 @@ function Cotizaciones() {
         }
     };
 
+    const cargarInventario = async () => {
+        try {
+            setCargandoInventario(true);
+            const data = await obtenerInventario();
+            setProductosInventario(Array.isArray(data) ? data : []);
+        } catch (error) {
+            console.error("Error cargando inventario para cotizaciones:", error);
+            setProductosInventario([]);
+            alert(error.message || "No se pudo cargar el inventario.");
+        } finally {
+            setCargandoInventario(false);
+        }
+    };
+
     useEffect(() => {
         cargarCotizaciones();
         cargarClientes();
+        cargarInventario();
     }, []);
 
     // Cargar vehículos al seleccionar cliente
@@ -92,9 +133,11 @@ function Cotizaciones() {
     // Modal Handlers
     const abrirModal = () => {
         setMostrarModal(true);
+        setCotizacionEditandoId(null);
         setCotizacionCliente("");
         setCotizacionVehiculo("");
         setItemsCotizacion([]);
+        setProductoInventarioId("");
         setNuevoItemDesc("");
         setNuevoItemPrecio("");
         setNuevoItemCantidad(1);
@@ -107,13 +150,47 @@ function Cotizaciones() {
     };
 
     // Totales dinámicos
-    const totalCotizacion = itemsCotizacion.reduce(
-        (total, item) =>
-            total +
-            Number(item.cantidad) * Number(item.precio_unitario) -
-            Number(item.descuento || 0),
-        0
+    const totalesCotizacion = itemsCotizacion.reduce(
+        (totales, item) => {
+            const linea = calcularLinea(item);
+            return {
+                subtotal: totales.subtotal + linea.bruto,
+                descuentos: totales.descuentos + linea.descuento,
+                impuestos: totales.impuestos + linea.impuesto,
+                total: totales.total + linea.total
+            };
+        },
+        { subtotal: 0, descuentos: 0, impuestos: 0, total: 0 }
     );
+    const totalCotizacion = redondear(totalesCotizacion.total);
+
+    const agregarProductoInventario = () => {
+        const producto = productosInventario.find(
+            (item) => String(item.item_id) === productoInventarioId
+        );
+        if (!producto) {
+            alert("Selecciona un producto del inventario.");
+            return;
+        }
+        if (itemsCotizacion.some((item) => Number(item.item_id) === Number(producto.item_id))) {
+            alert("Ese producto ya está agregado a la cotización.");
+            return;
+        }
+        setItemsCotizacion((prev) => [
+            ...prev,
+            {
+                id: `inventario-${producto.item_id}`,
+                item_id: producto.item_id,
+                item_codigo: producto.codigo_referencia,
+                descripcion: producto.nombre_nomenclatura,
+                cantidad: 1,
+                precio_unitario: Number(producto.precio_venta || 0),
+                descuento: 0,
+                impuesto_porcentaje: Number(producto.impuesto || 0)
+            }
+        ]);
+        setProductoInventarioId("");
+    };
 
     const agregarItem = () => {
         if (!nuevoItemDesc.trim()) {
@@ -135,7 +212,8 @@ function Cotizaciones() {
             descripcion: nuevoItemDesc.trim(),
             cantidad: Number(nuevoItemCantidad),
             precio_unitario: Number(nuevoItemPrecio),
-            descuento: Number(nuevoItemDescuento) || 0
+            descuento: Number(nuevoItemDescuento) || 0,
+            impuesto_porcentaje: 18
         };
 
         setItemsCotizacion((prev) => [...prev, item]);
@@ -147,6 +225,14 @@ function Cotizaciones() {
 
     const eliminarItem = (id) => {
         setItemsCotizacion((prev) => prev.filter((item) => item.id !== id));
+    };
+
+    const actualizarItem = (id, campo, valor) => {
+        setItemsCotizacion((prev) =>
+            prev.map((item) =>
+                item.id === id ? { ...item, [campo]: Number(valor) } : item
+            )
+        );
     };
 
     const handleGuardar = async () => {
@@ -165,51 +251,52 @@ function Cotizaciones() {
 
         try {
             setGuardandoCotizacion(true);
-
-            const subtotalCalculado = itemsCotizacion.reduce(
-                (acc, item) =>
-                    acc + Number(item.cantidad) * Number(item.precio_unitario),
-                0
+            const detalleCalculado = itemsCotizacion.map((item) => ({
+                ...calcularLinea(item),
+                item
+            }));
+            const subtotal = redondear(
+                detalleCalculado.reduce((acum, linea) => acum + linea.bruto, 0)
             );
-            const descuentosCalculados = itemsCotizacion.reduce(
-                (acc, item) => acc + Number(item.descuento || 0),
-                0
+            const descuentos = redondear(
+                detalleCalculado.reduce((acum, linea) => acum + linea.descuento, 0)
             );
-            const impuestosCalculados = itemsCotizacion.reduce((acc, item) => {
-                const base =
-                    Number(item.cantidad) * Number(item.precio_unitario) -
-                    Number(item.descuento || 0);
-                return acc + base * 0.18;
-            }, 0);
+            const impuestos = redondear(
+                detalleCalculado.reduce((acum, linea) => acum + linea.impuesto, 0)
+            );
+            const total = redondear(
+                detalleCalculado.reduce((acum, linea) => acum + linea.total, 0)
+            );
 
             const payload = {
                 cliente_id: Number(cotizacionCliente),
                 vehiculo_id: Number(cotizacionVehiculo),
-                subtotal: Number(subtotalCalculado.toFixed(2)),
-                descuentos: Number(descuentosCalculados.toFixed(2)),
-                impuestos: Number(impuestosCalculados.toFixed(2)),
-                total: Number(totalCotizacion.toFixed(2)),
-                estado: "Pendiente",
-                detalles: itemsCotizacion.map((item) => {
-                    const subtotal =
-                        Number(item.cantidad) * Number(item.precio_unitario);
-                    const descuento = Number(item.descuento || 0);
-                    const iva = (subtotal - descuento) * 0.18;
+                subtotal,
+                descuentos,
+                impuestos,
+                total,
+                detalles: detalleCalculado.map(({ item, impuesto, total: totalLinea }) => {
                     return {
                         item_id: item.item_id ? Number(item.item_id) : null,
                         descripcion: item.descripcion,
                         cantidad: Number(item.cantidad),
                         precio_unitario: Number(item.precio_unitario),
-                        descuento: descuento,
-                        impuesto: Number(iva.toFixed(2)),
-                        total: Number((subtotal - descuento).toFixed(2))
+                        descuento: Number(item.descuento || 0),
+                        impuesto,
+                        total: totalLinea
                     };
                 })
             };
 
-            await crearCotizacion(payload);
-            alert("Cotización registrada correctamente.");
+            if (cotizacionEditandoId) {
+                await actualizarCotizacion(cotizacionEditandoId, payload);
+                alert("Cotización actualizada correctamente.");
+            } else {
+                await crearCotizacion(payload);
+                alert("Cotización registrada correctamente.");
+            }
             setMostrarModal(false);
+            setCotizacionEditandoId(null);
             await cargarCotizaciones();
         } catch (error) {
             console.error("Error registrando cotización:", error);
@@ -217,6 +304,45 @@ function Cotizaciones() {
         } finally {
             setGuardandoCotizacion(false);
         }
+    };
+
+    const abrirEdicion = async (cotizacion) => {
+        if (!cotizacion.detalles?.length) {
+            try {
+                const actualizada = await obtenerCotizacion(cotizacion.cotizacion_id);
+                cotizacion = actualizada;
+            } catch (error) {
+                alert(error.message || "No se pudo cargar el detalle de la cotización.");
+                return;
+            }
+        }
+
+        setCotizacionEditandoId(cotizacion.cotizacion_id);
+        setCotizacionCliente(String(cotizacion.cliente_id));
+        setCotizacionVehiculo(String(cotizacion.vehiculo_id));
+        setItemsCotizacion((cotizacion.detalles || []).map((detalle) => {
+            const base = Number(detalle.cantidad) * Number(detalle.precio_unitario)
+                - Number(detalle.descuento || 0);
+            return {
+                id: detalle.detalle_cotizacion_id,
+                item_id: detalle.item_id,
+                item_codigo: detalle.item_codigo,
+                descripcion: detalle.descripcion,
+                cantidad: Number(detalle.cantidad),
+                precio_unitario: Number(detalle.precio_unitario),
+                descuento: Number(detalle.descuento || 0),
+                impuesto: Number(detalle.impuesto || 0),
+                impuesto_porcentaje: base > 0
+                    ? redondear(Number(detalle.impuesto || 0) * 100 / base)
+                    : 0
+            };
+        }));
+        setProductoInventarioId("");
+        setNuevoItemDesc("");
+        setNuevoItemPrecio("");
+        setNuevoItemCantidad(1);
+        setNuevoItemDescuento(0);
+        setMostrarModal(true);
     };
 
     const handleActualizarEstado = async (cotizacionId, accion) => {
@@ -306,7 +432,7 @@ function Cotizaciones() {
                 <div className="modal-overlay">
                     <div className="modal-content modal-cotizacion-card">
                         <div className="modal-header">
-                            <h3>Registrar nueva cotización</h3>
+                            <h3>{cotizacionEditandoId ? "Editar cotización" : "Registrar nueva cotización"}</h3>
                             <button
                                 type="button"
                                 className="btn-close"
@@ -365,6 +491,38 @@ function Cotizaciones() {
                                     <span className="material-symbols-outlined">format_list_bulleted</span>
                                     Items y servicios presupuestados
                                 </h4>
+                                <div className="form-group cot-producto-inventario">
+                                    <label htmlFor="cotizacion-producto">Producto de inventario</label>
+                                    <div className="cot-producto-selector">
+                                        <select
+                                            id="cotizacion-producto"
+                                            value={productoInventarioId}
+                                            onChange={(event) => setProductoInventarioId(event.target.value)}
+                                            disabled={cargandoInventario || productosInventario.length === 0}
+                                        >
+                                            <option value="">
+                                                {cargandoInventario
+                                                    ? "Cargando productos..."
+                                                    : "Selecciona un producto"}
+                                            </option>
+                                            {productosInventario.map((producto) => (
+                                                <option key={producto.item_id} value={producto.item_id}>
+                                                    {producto.codigo_referencia} · {producto.nombre_nomenclatura}
+                                                    {" · "}{moneda(producto.precio_venta)}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <button
+                                            type="button"
+                                            className="vm-btn vm-btn-primary"
+                                            onClick={agregarProductoInventario}
+                                            disabled={!productoInventarioId}
+                                        >
+                                            <span className="material-symbols-outlined">add</span>
+                                            Agregar producto
+                                        </button>
+                                    </div>
+                                </div>
                                 <div className="items-input-row">
                                     <div className="form-group">
                                         <label>
@@ -447,15 +605,37 @@ function Cotizaciones() {
                                             </thead>
                                             <tbody>
                                                 {itemsCotizacion.map((item) => {
-                                                    const subtotal = Number(item.cantidad) * Number(item.precio_unitario);
-                                                    const totalItem = subtotal - Number(item.descuento || 0);
+                                                    const linea = calcularLinea(item);
                                                     return (
                                                         <tr key={item.id}>
-                                                            <td>{item.descripcion}</td>
-                                                            <td className="vm-num">{item.cantidad}</td>
-                                                            <td className="vm-num">{moneda(item.precio_unitario)}</td>
+                                                            <td>
+                                                                {item.item_codigo && <span className="vm-code">{item.item_codigo} · </span>}
+                                                                {item.descripcion}
+                                                            </td>
+                                                            <td className="vm-num">
+                                                                <input
+                                                                    className="cot-linea-numero"
+                                                                    type="number"
+                                                                    min="0.01"
+                                                                    step="0.01"
+                                                                    value={item.cantidad}
+                                                                    onChange={(event) => actualizarItem(item.id, "cantidad", event.target.value)}
+                                                                    aria-label={`Cantidad de ${item.descripcion}`}
+                                                                />
+                                                            </td>
+                                                            <td className="vm-num">
+                                                                <input
+                                                                    className="cot-linea-numero"
+                                                                    type="number"
+                                                                    min="0"
+                                                                    step="0.01"
+                                                                    value={item.precio_unitario}
+                                                                    onChange={(event) => actualizarItem(item.id, "precio_unitario", event.target.value)}
+                                                                    aria-label={`Precio unitario de ${item.descripcion}`}
+                                                                />
+                                                            </td>
                                                             <td className="vm-num">{moneda(item.descuento || 0)}</td>
-                                                            <td className="vm-num"><strong>{moneda(totalItem)}</strong></td>
+                                                            <td className="vm-num"><strong>{moneda(linea.total)}</strong></td>
                                                             <td>
                                                                 <button
                                                                     type="button"
@@ -478,7 +658,12 @@ function Cotizaciones() {
 
                         <div className="modal-footer">
                             <div className="total-cotizacion-badge">
-                                <span>Total cotización</span>
+                                <span>
+                                    Subtotal {moneda(totalesCotizacion.subtotal)}
+                                    {" · "}Descuentos {moneda(totalesCotizacion.descuentos)}
+                                    {" · "}Impuestos {moneda(totalesCotizacion.impuestos)}
+                                    {" · "}Total cotización
+                                </span>
                                 <strong>{moneda(totalCotizacion)}</strong>
                             </div>
                             <button
@@ -531,7 +716,8 @@ function Cotizaciones() {
                             </tr>
                         ) : (
                             cotizacionesFiltradas.map((cot) => (
-                                <tr key={cot.cotizacion_id}>
+                                <Fragment key={cot.cotizacion_id}>
+                                <tr>
                                     <td><span className="vm-code">{cot.codigo_cotizacion}</span></td>
                                     <td className="cot-fecha">{fecha(cot.fecha)}</td>
                                     <td className="cot-cliente">{cot.cliente_nombre || "Cliente"}</td>
@@ -563,6 +749,30 @@ function Cotizaciones() {
                                     </td>
                                     <td>
                                         <div className="table-actions">
+                                            <button
+                                                type="button"
+                                                className="btn-act-table link"
+                                                onClick={() => setCotizacionExpandidaId(
+                                                    cotizacionExpandidaId === cot.cotizacion_id
+                                                        ? null
+                                                        : cot.cotizacion_id
+                                                )}
+                                            >
+                                                <span className="material-symbols-outlined">
+                                                    {cotizacionExpandidaId === cot.cotizacion_id ? "expand_less" : "list"}
+                                                </span>
+                                                Productos
+                                            </button>
+                                            {cot.estado === "Pendiente" && (
+                                                <button
+                                                    type="button"
+                                                    className="btn-act-table link"
+                                                    onClick={() => abrirEdicion(cot)}
+                                                >
+                                                    <span className="material-symbols-outlined">edit</span>
+                                                    Editar
+                                                </button>
+                                            )}
                                             {cot.estado === "Pendiente" && (
                                                 <>
                                                     <button
@@ -597,6 +807,35 @@ function Cotizaciones() {
                                         </div>
                                     </td>
                                 </tr>
+                                {cotizacionExpandidaId === cot.cotizacion_id && (
+                                    <tr key={`${cot.cotizacion_id}-detalles`}>
+                                        <td colSpan="9">
+                                            {cot.detalles?.length ? (
+                                                <div className="cot-detalles-lista">
+                                                    {cot.detalles.map((detalle) => (
+                                                        <div key={detalle.detalle_cotizacion_id}>
+                                                            <span>
+                                                                {detalle.item_codigo
+                                                                    ? `${detalle.item_codigo} · `
+                                                                    : ""}
+                                                                {detalle.item_nombre || detalle.descripcion}
+                                                            </span>
+                                                            <span>
+                                                                {detalle.cantidad} × {moneda(detalle.precio_unitario)}
+                                                            </span>
+                                                            <span>Subtotal {moneda(Number(detalle.cantidad) * Number(detalle.precio_unitario))}</span>
+                                                            <span>Impuesto {moneda(detalle.impuesto)}</span>
+                                                            <strong>{moneda(detalle.total)}</strong>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="cot-detalles-lista">Sin productos o servicios registrados.</div>
+                                            )}
+                                        </td>
+                                    </tr>
+                                )}
+                                </Fragment>
                             ))
                         )}
                     </tbody>
@@ -607,4 +846,3 @@ function Cotizaciones() {
 }
 
 export default Cotizaciones;
-

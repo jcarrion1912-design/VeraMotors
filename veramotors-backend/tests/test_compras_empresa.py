@@ -6,8 +6,11 @@ Ejecutar desde veramotors-backend:
     python -m unittest tests.test_compras_empresa -v
 """
 import os
+import tempfile
 import unittest
 from decimal import Decimal
+from io import BytesIO
+from unittest.mock import patch
 
 # Debe definirse antes de importar la app: load_dotenv no sobrescribe variables existentes.
 os.environ["DATABASE_URL"] = "sqlite://"
@@ -19,6 +22,8 @@ from sqlalchemy import BigInteger, create_engine  # noqa: E402
 from sqlalchemy.ext.compiler import compiles  # noqa: E402
 from sqlalchemy.orm import sessionmaker  # noqa: E402
 from sqlalchemy.pool import StaticPool  # noqa: E402
+from pypdf import PdfReader  # noqa: E402
+from reportlab.pdfgen import canvas  # noqa: E402
 
 from app.core.security import crear_token  # noqa: E402
 from app.database import Base, get_db  # noqa: E402
@@ -114,8 +119,13 @@ class ComprasTest(BaseAPITest):
         self.assertEqual(respuesta.status_code, 201, respuesta.text)
         compra = respuesta.json()
         self.assertEqual(compra["codigo_compra"], "ODC-00001")
+        detalle = compra["detalles"][0]
+        self.assertEqual(detalle["item"]["codigo_referencia"], "FIL-001")
+        self.assertEqual(detalle["item"]["nombre_nomenclatura"], "Filtro de aceite")
+        self.assertEqual(detalle["codigo_referencia"], "FIL-001")
+        self.assertEqual(detalle["descripcion"], "Filtro de aceite")
 
-        detalles = self.client.get(f"/api/compras/{compra['compra_id']}/detalles").json()
+        detalles = self.client.get(f"/api/compras/{compra['compra_id']}").json()["detalles"]
         self.assertEqual(len(detalles), 1)
         self.assertEqual(detalles[0]["descripcion"], "Filtro de aceite")
         self.assertEqual(detalles[0]["codigo_referencia"], "FIL-001")
@@ -181,8 +191,162 @@ class FacturasProveedorTest(BaseAPITest):
     }
 
     def test_duplicado_devuelve_409_y_no_500(self):
-        self.assertEqual(self.client.post("/api/facturas-proveedor", json=self.FACTURA).status_code, 201)
+        creada = self.client.post("/api/facturas-proveedor", json=self.FACTURA)
+        self.assertEqual(creada.status_code, 201)
+        self.assertEqual(creada.json()["tipo_comprobante"], "Factura")
+        self.assertEqual(creada.json()["codigo_interno"], "FPROV-0001")
         self.assertEqual(self.client.post("/api/facturas-proveedor", json=self.FACTURA).status_code, 409)
+
+    def test_solo_acepta_factura_como_tipo_de_comprobante(self):
+        respuesta = self.client.post("/api/facturas-proveedor", json={
+            **self.FACTURA,
+            "tipo_comprobante": "Boleta",
+        })
+        self.assertEqual(respuesta.status_code, 422)
+
+    def test_rechaza_ruc_de_comprobante_distinto_al_proveedor(self):
+        respuesta = self.client.post("/api/facturas-proveedor", json={
+            **self.FACTURA,
+            "ruc_comprobante": "20111111111",
+        })
+        self.assertEqual(respuesta.status_code, 422)
+
+    def test_pdf_interno_incluye_codigo_y_se_identifica_como_registro(self):
+        factura = self.client.post("/api/facturas-proveedor", json={
+            **self.FACTURA,
+            "detalles": [{
+                "descripcion": "Filtro FIL-001",
+                "cantidad": "2",
+                "precio_unitario": "50",
+                "impuesto": "18",
+            }],
+        }).json()
+
+        respuesta = self.client.get(
+            f"/api/facturas-proveedor/{factura['factura_proveedor_id']}/pdf-interno"
+        )
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(respuesta.headers["content-type"], "application/pdf")
+        texto = "\n".join(
+            pagina.extract_text() or ""
+            for pagina in PdfReader(BytesIO(respuesta.content)).pages
+        )
+        self.assertIn("FPROV-0001", texto)
+        self.assertIn("VERAMOTORS S.A.C.", texto)
+        self.assertIn("No es un comprobante electrónico oficial emitido por SUNAT.", texto)
+        self.assertIn("Filtro FIL-001", texto)
+
+    def test_extrae_datos_y_preserva_pdf_original(self):
+        buffer = BytesIO()
+        documento = canvas.Canvas(buffer)
+        for indice, linea in enumerate([
+            "RUC: 20123456789",
+            "FACTURA ELECTRONICA",
+            "F001-00000123",
+            "Fecha de emision: 04/11/2026",
+            "Moneda: PEN",
+            "Subtotal: S/ 100.00",
+            "IGV: S/ 18.00",
+            "Importe Total: S/ 118.00",
+        ]):
+            documento.drawString(40, 800 - indice * 18, linea)
+        documento.save()
+        pdf_original = buffer.getvalue()
+
+        extraidos = self.client.post(
+            "/api/facturas-proveedor/extraer-pdf",
+            files={"archivo": ("proveedor.pdf", pdf_original, "application/pdf")},
+        )
+        self.assertEqual(extraidos.status_code, 200, extraidos.text)
+        self.assertEqual(extraidos.json()["serie"], "F001")
+        self.assertEqual(extraidos.json()["numero"], "00000123")
+        self.assertEqual(extraidos.json()["ruc"], "20123456789")
+        self.assertEqual(extraidos.json()["subtotal"], "100.00")
+        self.assertEqual(extraidos.json()["igv"], "18.00")
+        self.assertEqual(extraidos.json()["total"], "118.00")
+
+        factura = self.client.post("/api/facturas-proveedor", json=self.FACTURA).json()
+        with tempfile.TemporaryDirectory() as directorio, patch.dict(
+            os.environ, {"FACTURAS_PROVEEDOR_STORAGE_DIR": directorio}
+        ):
+            subida = self.client.post(
+                f"/api/facturas-proveedor/{factura['factura_proveedor_id']}/pdf-original",
+                files={"archivo": ("proveedor.pdf", pdf_original, "application/pdf")},
+            )
+            self.assertEqual(subida.status_code, 201, subida.text)
+            descargado = self.client.get(
+                f"/api/facturas-proveedor/{factura['factura_proveedor_id']}/pdf-original"
+            )
+            self.assertEqual(descargado.status_code, 200)
+            self.assertEqual(descargado.content, pdf_original)
+
+    def test_detalles_calculan_totales_y_facturar_no_mueve_inventario(self):
+        compra = self.crear_compra().json()
+        recepcion = self.recibir(compra["compra_id"], "5").json()
+        with self.Sesion() as db:
+            stock_antes = db.get(Inventario, 10).stock_actual
+            movimientos_antes = db.query(MovimientoInventario).count()
+
+        respuesta = self.client.post("/api/facturas-proveedor", json={
+            **self.FACTURA,
+            "numero": "124",
+            "compra_id": compra["compra_id"],
+            "recepcion_id": recepcion["recepcion_id"],
+            "subtotal": "999",
+            "igv": "999",
+            "total": "1998",
+            "detalles": [
+                {
+                    "descripcion": "Filtro de aceite",
+                    "cantidad": "2",
+                    "precio_unitario": "10",
+                    "impuesto": "3.60",
+                },
+                {
+                    "descripcion": "Aceite",
+                    "cantidad": "1",
+                    "precio_unitario": "15",
+                    "impuesto": "2.70",
+                },
+            ],
+        })
+        self.assertEqual(respuesta.status_code, 201, respuesta.text)
+        factura = respuesta.json()
+        self.assertEqual(Decimal(factura["subtotal"]), Decimal("35.00"))
+        self.assertEqual(Decimal(factura["igv"]), Decimal("6.30"))
+        self.assertEqual(Decimal(factura["total"]), Decimal("41.30"))
+        self.assertEqual(len(factura["detalles"]), 2)
+        self.assertEqual(Decimal(factura["detalles"][0]["total"]), Decimal("23.60"))
+        self.assertEqual(factura["compra_id"], compra["compra_id"])
+        self.assertEqual(factura["recepcion_id"], recepcion["recepcion_id"])
+
+        consultada = self.client.get(
+            f"/api/facturas-proveedor/{factura['factura_proveedor_id']}"
+        )
+        self.assertEqual(consultada.status_code, 200)
+        self.assertEqual(len(consultada.json()["detalles"]), 2)
+
+        with self.Sesion() as db:
+            self.assertEqual(db.get(Inventario, 10).stock_actual, stock_antes)
+            self.assertEqual(db.query(MovimientoInventario).count(), movimientos_antes)
+
+    def test_rechaza_compra_de_otro_proveedor(self):
+        with self.Sesion() as db:
+            db.add(Proveedor(
+                proveedor_id=2,
+                ruc="20111111111",
+                razon_social="Otro proveedor",
+                activo=True,
+            ))
+            db.commit()
+        compra = self.crear_compra().json()
+        respuesta = self.client.post("/api/facturas-proveedor", json={
+            **self.FACTURA,
+            "numero": "125",
+            "proveedor_id": 2,
+            "compra_id": compra["compra_id"],
+        })
+        self.assertEqual(respuesta.status_code, 422, respuesta.text)
 
     def test_pagos_actualizan_estado_y_no_exceden_saldo(self):
         factura = self.client.post("/api/facturas-proveedor", json=self.FACTURA).json()

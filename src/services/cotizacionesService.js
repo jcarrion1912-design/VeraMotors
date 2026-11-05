@@ -1,4 +1,4 @@
-const API_URL = "http://127.0.0.1:8000/api/cotizaciones";
+const API_URL = "/api/cotizaciones";
 
 const procesarRespuesta = async (res) => {
     const data = await res.json().catch(() => ({}));
@@ -19,18 +19,31 @@ const procesarRespuesta = async (res) => {
 
 export const obtenerCotizaciones = async (clienteId = null) => {
     const url = clienteId ? `${API_URL}?cliente_id=${clienteId}` : API_URL;
-    const res = await fetch(url);
+    const res = await fetch(url, { credentials: "include" });
     return procesarRespuesta(res);
 };
 
 export const obtenerCotizacion = async (cotizacionId) => {
-    const res = await fetch(`${API_URL}/${cotizacionId}`);
+    const res = await fetch(`${API_URL}/${cotizacionId}`, { credentials: "include" });
     return procesarRespuesta(res);
 };
 
 export const crearCotizacion = async (datos) => {
     const res = await fetch(API_URL, {
         method: "POST",
+        credentials: "include",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(datos)
+    });
+    return procesarRespuesta(res);
+};
+
+export const actualizarCotizacion = async (cotizacionId, datos) => {
+    const res = await fetch(`${API_URL}/${cotizacionId}`, {
+        method: "PUT",
+        credentials: "include",
         headers: {
             "Content-Type": "application/json"
         },
@@ -42,6 +55,7 @@ export const crearCotizacion = async (datos) => {
 export const aprobarCotizacion = async (cotizacionId, { usuario_id, motivo = "" }) => {
     const res = await fetch(`${API_URL}/${cotizacionId}/aprobar`, {
         method: "POST",
+        credentials: "include",
         headers: {
             "Content-Type": "application/json"
         },
@@ -56,6 +70,7 @@ export const aprobarCotizacion = async (cotizacionId, { usuario_id, motivo = "" 
 export const rechazarCotizacion = async (cotizacionId, { usuario_id, motivo = "" }) => {
     const res = await fetch(`${API_URL}/${cotizacionId}/rechazar`, {
         method: "POST",
+        credentials: "include",
         headers: {
             "Content-Type": "application/json"
         },
@@ -66,4 +81,3 @@ export const rechazarCotizacion = async (cotizacionId, { usuario_id, motivo = ""
     });
     return procesarRespuesta(res);
 };
-

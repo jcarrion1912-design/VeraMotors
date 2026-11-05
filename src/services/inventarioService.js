@@ -1,4 +1,4 @@
-const API_URL = "http://127.0.0.1:8000/api/inventario";
+const API_URL = "/api/inventario";
 
 const procesarRespuesta = async (res) => {
     const data = await res.json().catch(() => null);

@@ -1,7 +1,7 @@
 from decimal import Decimal
 from typing import List, Optional
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, computed_field
 
 
 class DetalleCompraCreate(BaseModel):
@@ -24,14 +24,6 @@ class InventarioCompraResponse(BaseModel):
         from_attributes = True
 
 
-class DetalleCompraResponse(DetalleCompraCreate):
-    detalle_compra_id: int
-    item: InventarioCompraResponse
-
-    class Config:
-        from_attributes = True
-
-
 class CompraBase(BaseModel):
     codigo_compra: Optional[str] = Field(default=None, max_length=50)
     proveedor_id: int
@@ -46,20 +38,20 @@ class CompraBase(BaseModel):
     observaciones: Optional[str] = None
 
 
-class DetalleCompraCreate(BaseModel):
-    item_id: int
-    cantidad: Decimal = Field(..., gt=0)
-    precio_unitario: Decimal = Field(default=Decimal("0"), ge=0)
-    descuento: Decimal = Field(default=Decimal("0"), ge=0)
-    impuesto: Decimal = Field(default=Decimal("0"), ge=0)
-    total: Decimal = Field(default=Decimal("0"), ge=0)
-
-
 class DetalleCompraResponse(DetalleCompraCreate):
     detalle_compra_id: int
     compra_id: int
-    descripcion: Optional[str] = None
-    codigo_referencia: Optional[str] = None
+    item: InventarioCompraResponse
+
+    @computed_field
+    @property
+    def descripcion(self) -> str:
+        return self.item.nombre_nomenclatura
+
+    @computed_field
+    @property
+    def codigo_referencia(self) -> str:
+        return self.item.codigo_referencia
 
     class Config:
         from_attributes = True

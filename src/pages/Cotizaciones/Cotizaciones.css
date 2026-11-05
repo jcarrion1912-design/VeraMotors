@@ -31,6 +31,19 @@
     border-top: 1px solid var(--border-soft);
 }
 
+.cot-producto-inventario {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--s-2);
+    margin-bottom: var(--s-4);
+}
+
+.cot-producto-selector {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--s-3);
+}
+
 .items-input-row {
     display: grid;
     grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr) minmax(0, 0.7fr) minmax(0, 0.8fr) auto;
@@ -50,6 +63,13 @@
     min-width: 600px;
 }
 
+.cot-linea-numero {
+    width: 92px;
+    min-width: 72px;
+    padding: var(--s-1) var(--s-2);
+    text-align: right;
+}
+
 .total-cotizacion-badge {
     display: flex;
     align-items: baseline;
@@ -66,6 +86,26 @@
     font-size: var(--fs-2xl);
     font-weight: 600;
     font-variant-numeric: tabular-nums;
+}
+
+.cot-detalles-lista {
+    display: grid;
+    gap: var(--s-2);
+    padding: var(--s-3);
+    background: var(--surface-2);
+}
+
+.cot-detalles-lista > div {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) repeat(4, auto);
+    gap: var(--s-3);
+    align-items: center;
+}
+
+@media (max-width: 720px) {
+    .cot-detalles-lista > div {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
 }
 
 /* =========================================================
@@ -108,6 +148,10 @@
 ========================================================= */
 
 @media (max-width: 860px) {
+    .cot-producto-selector {
+        grid-template-columns: 1fr;
+    }
+
     .items-input-row {
         grid-template-columns: repeat(3, minmax(0, 1fr));
     }

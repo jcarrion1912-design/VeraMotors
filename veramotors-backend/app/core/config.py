@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str = os.getenv("SECRET_KEY", "secret_key_default")
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 480
+    COOKIE_SECURE: bool = False
 
     DATABASE_URL: str = os.getenv("DATABASE_URL", "")
 

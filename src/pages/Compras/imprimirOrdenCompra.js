@@ -14,14 +14,18 @@ export function imprimirOrdenCompra({ orden, proveedor, detalles }) {
     if (!ventana) return false;
 
     const filas = detalles.length > 0
-        ? detalles.map((d) => `
+        ? detalles.map((d) => {
+            const codigo = d.codigo_referencia || d.item?.codigo_referencia || "";
+            const descripcion = d.descripcion || d.item?.nombre_nomenclatura || "";
+            return `
             <tr>
-                <td>${escapar(d.codigo_referencia)}</td>
-                <td>${escapar(d.descripcion)}</td>
+                <td>${escapar(codigo)}</td>
+                <td>${escapar(descripcion)}</td>
                 <td class="num">${Number(d.cantidad)}</td>
                 <td class="num">${moneda(d.precio_unitario)}</td>
                 <td class="num">${moneda(Number(d.cantidad) * Number(d.precio_unitario))}</td>
-            </tr>`).join("")
+            </tr>`;
+        }).join("")
         : `<tr><td colspan="5" class="vacio">Esta orden se registró sin detalle de ítems.</td></tr>`;
 
     ventana.document.write(`<!doctype html>
